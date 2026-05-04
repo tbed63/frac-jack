@@ -33,8 +33,6 @@
       gap: 8px;
     }
 
-    /* TOP AREA */
-
     .top {
       display: grid;
       grid-template-columns: 1fr 260px 1fr;
@@ -125,8 +123,6 @@
       filter: drop-shadow(0 7px 8px rgba(0,0,0,0.5));
     }
 
-    /* HERO / MESSAGE AREA */
-
     .hero-row {
       display: grid;
       grid-template-columns: 1fr 440px 1fr;
@@ -183,8 +179,6 @@
       box-shadow: 0 5px 14px rgba(0,0,0,0.22);
     }
 
-    /* BOARD */
-
     .board {
       min-height: 0;
       background: rgba(255,255,255,0.92);
@@ -223,26 +217,38 @@
       line-height: 1;
     }
 
-    .square {
+    /* TRUE 12-PARTITION RECTANGLE */
+    .rectangle {
       width: 100%;
-      max-height: 100%;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 4 / 3;
       background: white;
-      border: 4px solid #111;
-      border-radius: 14px;
-      padding: 5px;
+      border: 5px solid #111;
+      border-radius: 4px;
+      padding: 0;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 4px;
+      grid-template-rows: repeat(3, 1fr);
+      gap: 0;
       align-self: center;
       justify-self: center;
+      overflow: hidden;
     }
 
     .cell {
-      background: #eee4c9;
-      border: 2px solid rgba(0,0,0,0.25);
-      border-radius: 7px;
+      background: #f8f2df;
+      border-right: 2px solid rgba(0,0,0,0.42);
+      border-bottom: 2px solid rgba(0,0,0,0.42);
+      border-radius: 0;
+    }
+
+    .cell:nth-child(4),
+    .cell:nth-child(8),
+    .cell:nth-child(12) {
+      border-right: none;
+    }
+
+    .cell:nth-child(n+9) {
+      border-bottom: none;
     }
 
     .cell.green {
@@ -260,8 +266,6 @@
       min-height: 18px;
       line-height: 1;
     }
-
-    /* HANDS */
 
     .bottom-zone {
       min-height: 0;
@@ -369,22 +373,35 @@
       border-radius: 99px;
     }
 
+    /* TRUE 12-PARTITION MINI RECTANGLE */
     .mini {
       border: 3px solid #111;
-      border-radius: 9px;
-      padding: 3px;
+      border-radius: 4px;
+      padding: 0;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 2px;
+      grid-template-rows: repeat(3, 1fr);
+      gap: 0;
       background: white;
       min-height: 0;
+      overflow: hidden;
     }
 
     .mini-cell {
-      background: #eee4c9;
-      border-radius: 4px;
-      border: 1px solid rgba(0,0,0,0.25);
+      background: #f8f2df;
+      border-right: 1px solid rgba(0,0,0,0.42);
+      border-bottom: 1px solid rgba(0,0,0,0.42);
+      border-radius: 0;
+    }
+
+    .mini-cell:nth-child(4),
+    .mini-cell:nth-child(8),
+    .mini-cell:nth-child(12) {
+      border-right: none;
+    }
+
+    .mini-cell:nth-child(n+9) {
+      border-bottom: none;
     }
 
     .green-piece .mini-cell.filled {
@@ -394,8 +411,6 @@
     .orange-piece .mini-cell.filled {
       background: #ff7900;
     }
-
-    /* CONTROLS */
 
     .controls {
       min-height: 0;
@@ -429,8 +444,6 @@
     .hidden-labels .fraction {
       visibility: hidden;
     }
-
-    /* SMALLER DESKTOP / CHROMEBOOK */
 
     @media (max-height: 720px) {
       .game {
@@ -605,6 +618,7 @@
   </div>
 
   <script>
+    var TOTAL_UNITS = 12;
     var currentPlayer = "green";
     var selectedPieceId = null;
     var labelsShowing = true;
@@ -621,26 +635,42 @@
     var idCounter = 0;
 
     var pieceOptions = [
-      { label: "1/8", top: 1, bottom: 8, units: 1 },
-      { label: "1/4", top: 1, bottom: 4, units: 2 },
-      { label: "3/8", top: 3, bottom: 8, units: 3 },
-      { label: "1/2", top: 1, bottom: 2, units: 4 },
-      { label: "5/8", top: 5, bottom: 8, units: 5 },
-      { label: "3/4", top: 3, bottom: 4, units: 6 }
+      { label: "1/12", top: 1, bottom: 12, units: 1 },
+      { label: "1/6", top: 1, bottom: 6, units: 2 },
+      { label: "1/4", top: 1, bottom: 4, units: 3 },
+      { label: "1/3", top: 1, bottom: 3, units: 4 },
+      { label: "5/12", top: 5, bottom: 12, units: 5 },
+      { label: "1/2", top: 1, bottom: 2, units: 6 },
+      { label: "7/12", top: 7, bottom: 12, units: 7 },
+      { label: "2/3", top: 2, bottom: 3, units: 8 },
+      { label: "3/4", top: 3, bottom: 4, units: 9 },
+      { label: "5/6", top: 5, bottom: 6, units: 10 }
     ];
 
     var weightedPieces = [
-      "1/8", "1/8", "1/8", "1/8",
+      "1/12", "1/12", "1/12", "1/12",
+      "1/6", "1/6", "1/6", "1/6",
       "1/4", "1/4", "1/4", "1/4",
-      "3/8", "3/8", "3/8",
+      "1/3", "1/3", "1/3",
+      "5/12", "5/12",
       "1/2", "1/2", "1/2",
-      "5/8", "5/8",
-      "3/4", "3/4"
+      "7/12",
+      "2/3", "2/3",
+      "3/4",
+      "5/6"
     ];
 
     function makeId() {
       idCounter++;
       return "piece" + idCounter;
+    }
+
+    function emptyCells() {
+      var cells = [];
+      for (var i = 0; i < TOTAL_UNITS; i++) {
+        cells.push(null);
+      }
+      return cells;
     }
 
     function findPieceTemplate(label) {
@@ -666,7 +696,7 @@
     function makeDeck() {
       var deck = [];
 
-      for (var i = 0; i < 24; i++) {
+      for (var i = 0; i < 28; i++) {
         var randomLabel = weightedPieces[Math.floor(Math.random() * weightedPieces.length)];
         deck.push(makePiece(randomLabel));
       }
@@ -710,7 +740,7 @@
 
       for (var w = 0; w < 5; w++) {
         wholes.push({
-          cells: [null, null, null, null, null, null, null, null],
+          cells: emptyCells(),
           filled: 0
         });
       }
@@ -755,10 +785,10 @@
         title.className = "whole-title";
         title.textContent = "WHOLE " + (i + 1);
 
-        var square = document.createElement("div");
-        square.className = "square";
+        var rectangle = document.createElement("div");
+        rectangle.className = "rectangle";
 
-        for (var c = 0; c < 8; c++) {
+        for (var c = 0; c < TOTAL_UNITS; c++) {
           var cell = document.createElement("div");
           cell.className = "cell";
 
@@ -770,7 +800,7 @@
             cell.classList.add("orange");
           }
 
-          square.appendChild(cell);
+          rectangle.appendChild(cell);
         }
 
         var status = document.createElement("div");
@@ -778,7 +808,7 @@
         status.textContent = whole.filled === 0 ? "Empty" : "Partly Filled";
 
         card.appendChild(title);
-        card.appendChild(square);
+        card.appendChild(rectangle);
         card.appendChild(status);
 
         board.appendChild(card);
@@ -824,7 +854,7 @@
         var mini = document.createElement("div");
         mini.className = "mini";
 
-        for (var c = 0; c < 8; c++) {
+        for (var c = 0; c < TOTAL_UNITS; c++) {
           var cell = document.createElement("div");
           cell.className = "mini-cell";
 
@@ -850,9 +880,9 @@
       selectedPieceId = id;
 
       if (currentPlayer === "green") {
-        setMessage("Green Team: now choose a square.");
+        setMessage("Green Team: now choose a rectangle.");
       } else {
-        setMessage("Orange Team: now choose a square.");
+        setMessage("Orange Team: now choose a rectangle.");
       }
 
       render();
@@ -920,7 +950,7 @@
 
       var whole = wholes[wholeIndex];
 
-      if (whole.filled + piece.units > 8) {
+      if (whole.filled + piece.units > TOTAL_UNITS) {
         removeSelectedPiece();
         drawNewPiece();
 
@@ -950,7 +980,7 @@
       removeSelectedPiece();
       drawNewPiece();
 
-      if (whole.filled === 8) {
+      if (whole.filled === TOTAL_UNITS) {
         if (currentPlayer === "green") {
           greenScore++;
           setMessage("Green Team JACKED the whole!");
@@ -960,7 +990,7 @@
         }
 
         wholes[wholeIndex] = {
-          cells: [null, null, null, null, null, null, null, null],
+          cells: emptyCells(),
           filled: 0
         };
       } else {
