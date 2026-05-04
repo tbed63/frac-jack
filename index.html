@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frac Jack - Desktop</title>
+  <title>Frac Jack</title>
 
   <style>
     :root {
@@ -13,7 +13,7 @@
       --orange-dark: #b64b00;
       --cream: #fff7df;
       --ink: #171717;
-      --panel: rgba(255,255,255,0.92);
+      --panel: rgba(255, 255, 255, 0.94);
     }
 
     * {
@@ -25,8 +25,8 @@
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(circle at 20% 20%, rgba(35,177,63,0.45), transparent 35%),
-        radial-gradient(circle at 80% 20%, rgba(255,122,0,0.45), transparent 35%),
+        radial-gradient(circle at 18% 20%, rgba(35,177,63,0.45), transparent 34%),
+        radial-gradient(circle at 82% 20%, rgba(255,122,0,0.45), transparent 34%),
         linear-gradient(135deg, #102414, #1b1b1b 45%, #2a1605);
       color: var(--ink);
       min-height: 100vh;
@@ -37,22 +37,20 @@
       width: 100vw;
       height: 100vh;
       display: grid;
-      grid-template-rows: 150px 1fr 165px;
+      grid-template-rows: 145px 1fr 160px;
       padding: 14px 22px 18px;
       gap: 12px;
     }
 
-    /* HEADER */
-
     .top-bar {
       display: grid;
-      grid-template-columns: 1fr 360px 1fr;
+      grid-template-columns: 1fr 350px 1fr;
       align-items: center;
       gap: 18px;
     }
 
     .player-card {
-      height: 118px;
+      height: 115px;
       border-radius: 22px;
       background: var(--panel);
       border: 4px solid white;
@@ -95,14 +93,14 @@
     }
 
     .player-name {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0.5px;
     }
 
     .score {
-      font-size: 50px;
+      font-size: 48px;
       font-weight: 900;
       line-height: 1;
       margin-top: 6px;
@@ -111,7 +109,7 @@
     .turn-badge {
       position: relative;
       z-index: 1;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 900;
       padding: 10px 14px;
       border-radius: 999px;
@@ -128,26 +126,23 @@
     }
 
     .logo-wrap {
-      height: 145px;
+      height: 140px;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
     }
 
     .logo-wrap img {
-      max-height: 145px;
-      max-width: 360px;
+      max-height: 140px;
+      max-width: 350px;
       object-fit: contain;
       filter: drop-shadow(0 8px 14px rgba(0,0,0,0.55));
     }
 
-    /* CENTER */
-
     .center-area {
       min-height: 0;
       display: grid;
-      grid-template-columns: 260px 1fr 260px;
+      grid-template-columns: 250px 1fr 250px;
       gap: 18px;
       align-items: stretch;
     }
@@ -165,7 +160,7 @@
     }
 
     .mascot-panel img {
-      width: 118%;
+      width: 120%;
       max-height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 12px 18px rgba(0,0,0,0.5));
@@ -184,7 +179,7 @@
     }
 
     .message-bar {
-      min-height: 48px;
+      min-height: 46px;
       border-radius: 18px;
       background: #111;
       color: white;
@@ -216,7 +211,7 @@
 
     .whole-card {
       height: 100%;
-      min-height: 260px;
+      min-height: 245px;
       border-radius: 22px;
       background: #fff9e8;
       border: 4px solid #222;
@@ -235,15 +230,10 @@
       transform: translateY(-2px);
     }
 
-    .whole-card.selected-target {
-      outline: 7px solid #ffea00;
-      outline-offset: 2px;
-    }
-
     .whole-title {
       text-align: center;
       font-weight: 900;
-      font-size: 19px;
+      font-size: 18px;
       color: #222;
     }
 
@@ -279,11 +269,11 @@
     }
 
     .whole-footer {
-      height: 30px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       color: #333;
     }
@@ -294,7 +284,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      font-size: 34px;
+      font-size: 32px;
       font-weight: 1000;
       color: white;
       text-shadow: 0 4px 0 rgba(0,0,0,0.55);
@@ -305,18 +295,20 @@
 
     .whole-card.captured-green .captured-flash {
       display: flex;
-      background: rgba(35,177,63,0.9);
+      background: rgba(35,177,63,0.92);
     }
 
     .whole-card.captured-orange .captured-flash {
       display: flex;
-      background: rgba(255,122,0,0.9);
+      background: rgba(255,122,0,0.92);
     }
 
     .controls {
       display: flex;
       justify-content: center;
+      align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
     button {
@@ -349,8 +341,6 @@
       align-items: center;
       padding-left: 8px;
     }
-
-    /* HANDS */
 
     .bottom-area {
       display: grid;
@@ -411,7 +401,7 @@
       grid-template-rows: auto 1fr;
       padding: 8px;
       gap: 6px;
-      min-height: 118px;
+      min-height: 112px;
       transition: 0.14s;
       position: relative;
     }
@@ -532,7 +522,27 @@
       margin: 8px 0 24px;
     }
 
-    @media (max-width: 1100px) {
+    .error-box {
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 40px;
+      color: #111;
+      background: white;
+      min-height: 100vh;
+    }
+
+    .error-box pre {
+      background: #eee;
+      padding: 20px;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      font-size: 16px;
+    }
+
+    @media (max-width: 1150px) {
+      .game-shell {
+        grid-template-rows: 130px 1fr 155px;
+      }
+
       .center-area {
         grid-template-columns: 1fr;
       }
@@ -547,10 +557,15 @@
 
       .logo-wrap img {
         max-width: 260px;
+        max-height: 125px;
       }
 
-      .whole-grid {
-        grid-template-columns: repeat(5, 1fr);
+      .player-name {
+        font-size: 22px;
+      }
+
+      .score {
+        font-size: 42px;
       }
     }
   </style>
@@ -594,8 +609,8 @@
         <div class="whole-grid" id="wholeGrid"></div>
 
         <div class="controls">
-          <button onclick="newGame()">New Game</button>
-          <button onclick="toggleLabels()" id="labelButton">Hide Fraction Labels</button>
+          <button id="newGameButton">New Game</button>
+          <button id="labelButton">Hide Fraction Labels</button>
           <span class="small-note">No missing amount is shown. Players have to see it.</span>
         </div>
       </section>
@@ -628,7 +643,7 @@
     <div class="end-card">
       <h1 id="winnerText">Game Over</h1>
       <p id="finalScoreText"></p>
-      <button onclick="newGame()">Play Again</button>
+      <button id="playAgainButton">Play Again</button>
     </div>
   </div>
 
@@ -647,6 +662,12 @@
     const STARTING_DECK_SIZE = 24;
 
     let state = {};
+    let pieceCounter = 0;
+
+    function makeId() {
+      pieceCounter += 1;
+      return "piece-" + pieceCounter + "-" + Math.random().toString(36).slice(2);
+    }
 
     function createDeck() {
       const deck = [];
@@ -662,10 +683,16 @@
 
       for (let i = 0; i < STARTING_DECK_SIZE; i++) {
         const randomName = weightedPieces[Math.floor(Math.random() * weightedPieces.length)];
-        const template = PIECE_TYPES.find(p => p.name === randomName);
+        const template = PIECE_TYPES.find(function(p) {
+          return p.name === randomName;
+        });
+
         deck.push({
-          ...template,
-          id: crypto.randomUUID()
+          name: template.name,
+          numerator: template.numerator,
+          denominator: template.denominator,
+          units: template.units,
+          id: makeId()
         });
       }
 
@@ -673,15 +700,21 @@
     }
 
     function shuffle(array) {
-      const copy = [...array];
+      const copy = array.slice();
+
       for (let i = copy.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
       }
+
       return copy;
     }
 
     function newGame() {
+      pieceCounter = 0;
+
       const greenDeck = createDeck();
       const orangeDeck = createDeck();
 
@@ -701,13 +734,17 @@
             hand: orangeDeck.splice(0, HAND_SIZE)
           }
         },
-        wholes: Array.from({ length: WHOLE_COUNT }, (_, i) => ({
+        wholes: []
+      };
+
+      for (let i = 0; i < WHOLE_COUNT; i++) {
+        state.wholes.push({
           id: i,
           filled: 0,
-          cells: Array(8).fill(null),
+          cells: [null, null, null, null, null, null, null, null],
           capturedFlash: null
-        }))
-      };
+        });
+      }
 
       document.getElementById("endScreen").style.display = "none";
       render();
@@ -726,8 +763,8 @@
     function renderScores() {
       document.getElementById("greenScore").textContent = state.players.green.score;
       document.getElementById("orangeScore").textContent = state.players.orange.score;
-      document.getElementById("greenDeckStatus").textContent = `${state.players.green.deck.length} left`;
-      document.getElementById("orangeDeckStatus").textContent = `${state.players.orange.deck.length} left`;
+      document.getElementById("greenDeckStatus").textContent = state.players.green.deck.length + " left";
+      document.getElementById("orangeDeckStatus").textContent = state.players.orange.deck.length + " left";
     }
 
     function renderTurn() {
@@ -739,27 +776,41 @@
       const grid = document.getElementById("wholeGrid");
       grid.innerHTML = "";
 
-      state.wholes.forEach((whole, index) => {
+      state.wholes.forEach(function(whole, index) {
         const card = document.createElement("div");
         card.className = "whole-card";
 
-        if (whole.capturedFlash === "green") card.classList.add("captured-green");
-        if (whole.capturedFlash === "orange") card.classList.add("captured-orange");
+        if (whole.capturedFlash === "green") {
+          card.classList.add("captured-green");
+        }
 
-        card.onclick = () => placeSelectedPiece(index);
+        if (whole.capturedFlash === "orange") {
+          card.classList.add("captured-orange");
+        }
+
+        card.addEventListener("click", function() {
+          placeSelectedPiece(index);
+        });
 
         const title = document.createElement("div");
         title.className = "whole-title";
-        title.textContent = `WHOLE ${index + 1}`;
+        title.textContent = "WHOLE " + (index + 1);
 
         const square = document.createElement("div");
         square.className = "square-model";
 
-        whole.cells.forEach(owner => {
+        whole.cells.forEach(function(owner) {
           const cell = document.createElement("div");
           cell.className = "cell";
-          if (owner === "green") cell.classList.add("green-fill");
-          if (owner === "orange") cell.classList.add("orange-fill");
+
+          if (owner === "green") {
+            cell.classList.add("green-fill");
+          }
+
+          if (owner === "orange") {
+            cell.classList.add("orange-fill");
+          }
+
           square.appendChild(cell);
         });
 
@@ -769,12 +820,18 @@
 
         const flash = document.createElement("div");
         flash.className = "captured-flash";
-        flash.textContent = `${whole.capturedFlash === "green" ? "GREEN" : "ORANGE"} JACKED IT!`;
+
+        if (whole.capturedFlash === "green") {
+          flash.textContent = "GREEN JACKED IT!";
+        } else if (whole.capturedFlash === "orange") {
+          flash.textContent = "ORANGE JACKED IT!";
+        }
 
         card.appendChild(title);
         card.appendChild(square);
         card.appendChild(footer);
         card.appendChild(flash);
+
         grid.appendChild(card);
       });
     }
@@ -787,26 +844,29 @@
     function renderHand(player, container) {
       container.innerHTML = "";
 
-      state.players[player].hand.forEach(piece => {
+      state.players[player].hand.forEach(function(piece) {
         const pieceEl = document.createElement("div");
-        pieceEl.className = `piece ${player}`;
-        if (state.currentPlayer !== player) pieceEl.classList.add("disabled");
-        if (state.selectedPieceId === piece.id) pieceEl.classList.add("selected");
+        pieceEl.className = "piece " + player;
 
-        pieceEl.onclick = () => selectPiece(player, piece.id);
+        if (state.currentPlayer !== player) {
+          pieceEl.classList.add("disabled");
+        }
+
+        if (state.selectedPieceId === piece.id) {
+          pieceEl.classList.add("selected");
+        }
+
+        pieceEl.addEventListener("click", function() {
+          selectPiece(player, piece.id);
+        });
 
         const label = document.createElement("div");
         label.className = "fraction-label";
 
-        if (piece.denominator === 1) {
-          label.textContent = piece.numerator;
-        } else {
-          label.innerHTML = `
-            <span class="top">${piece.numerator}</span>
-            <span class="bar"></span>
-            <span class="bottom">${piece.denominator}</span>
-          `;
-        }
+        label.innerHTML =
+          '<span class="top">' + piece.numerator + '</span>' +
+          '<span class="bar"></span>' +
+          '<span class="bottom">' + piece.denominator + '</span>';
 
         const mini = document.createElement("div");
         mini.className = "mini-model";
@@ -814,7 +874,11 @@
         for (let i = 0; i < 8; i++) {
           const c = document.createElement("div");
           c.className = "mini-cell";
-          if (i < piece.units) c.classList.add("filled");
+
+          if (i < piece.units) {
+            c.classList.add("filled");
+          }
+
           mini.appendChild(c);
         }
 
@@ -826,22 +890,34 @@
 
     function renderLabelState() {
       document.body.classList.toggle("labels-off", !state.labelsVisible);
+
       document.getElementById("labelButton").textContent =
         state.labelsVisible ? "Hide Fraction Labels" : "Show Fraction Labels";
     }
 
     function selectPiece(player, pieceId) {
-      if (player !== state.currentPlayer) return;
+      if (player !== state.currentPlayer) {
+        return;
+      }
 
       state.selectedPieceId = pieceId;
+
       const playerName = player === "green" ? "Green Team" : "Orange Team";
-      setMessage(`${playerName}: now choose a square.`, player);
+      setMessage(playerName + ": now choose a square.", player);
+
       render();
     }
 
     function getSelectedPiece() {
       const player = state.players[state.currentPlayer];
-      return player.hand.find(p => p.id === state.selectedPieceId);
+
+      for (let i = 0; i < player.hand.length; i++) {
+        if (player.hand[i].id === state.selectedPieceId) {
+          return player.hand[i];
+        }
+      }
+
+      return null;
     }
 
     function placeSelectedPiece(wholeIndex) {
@@ -861,13 +937,14 @@
         drawPiece(currentPlayer);
         state.selectedPieceId = null;
 
-        setMessage(`${playerName} went over. That piece is gone.`, currentPlayer);
+        setMessage(playerName + " went over. That piece is gone.", currentPlayer);
         switchTurn();
         render();
         return;
       }
 
       let unitsToPlace = piece.units;
+
       for (let i = 0; i < whole.cells.length && unitsToPlace > 0; i++) {
         if (whole.cells[i] === null) {
           whole.cells[i] = currentPlayer;
@@ -885,10 +962,10 @@
         state.players[currentPlayer].score++;
         whole.capturedFlash = currentPlayer;
 
-        setMessage(`${playerName} saw the missing piece and JACKED the whole!`, currentPlayer);
+        setMessage(playerName + " saw the missing piece and JACKED the whole!", currentPlayer);
         render();
 
-        setTimeout(() => {
+        setTimeout(function() {
           resetWhole(wholeIndex);
           switchTurn();
           render();
@@ -897,17 +974,26 @@
         return;
       }
 
-      setMessage(`${playerName} placed a piece.`, currentPlayer);
+      setMessage(playerName + " placed a piece.", currentPlayer);
       switchTurn();
       render();
     }
 
     function removePieceFromHand(player, pieceId) {
-      state.players[player].hand = state.players[player].hand.filter(p => p.id !== pieceId);
+      const newHand = [];
+
+      state.players[player].hand.forEach(function(piece) {
+        if (piece.id !== pieceId) {
+          newHand.push(piece);
+        }
+      });
+
+      state.players[player].hand = newHand;
     }
 
     function drawPiece(player) {
       const p = state.players[player];
+
       if (p.deck.length > 0 && p.hand.length < HAND_SIZE) {
         p.hand.push(p.deck.shift());
       }
@@ -917,22 +1003,31 @@
       state.wholes[index] = {
         id: index,
         filled: 0,
-        cells: Array(8).fill(null),
+        cells: [null, null, null, null, null, null, null, null],
         capturedFlash: null
       };
     }
 
     function switchTurn() {
       state.currentPlayer = state.currentPlayer === "green" ? "orange" : "green";
+
       const playerName = state.currentPlayer === "green" ? "Green Team" : "Orange Team";
-      setMessage(`${playerName}: choose a piece, then choose a square.`, state.currentPlayer);
+
+      setMessage(playerName + ": choose a piece, then choose a square.", state.currentPlayer);
     }
 
     function setMessage(text, player) {
       const bar = document.getElementById("messageBar");
       bar.textContent = text;
-      bar.classList.remove("green-msg", "orange-msg");
-      bar.classList.add(player === "green" ? "green-msg" : "orange-msg");
+
+      bar.classList.remove("green-msg");
+      bar.classList.remove("orange-msg");
+
+      if (player === "green") {
+        bar.classList.add("green-msg");
+      } else {
+        bar.classList.add("orange-msg");
+      }
     }
 
     function toggleLabels() {
@@ -944,22 +1039,49 @@
       const greenDone = state.players.green.deck.length === 0 && state.players.green.hand.length === 0;
       const orangeDone = state.players.orange.deck.length === 0 && state.players.orange.hand.length === 0;
 
-      if (!greenDone || !orangeDone) return;
+      if (!greenDone || !orangeDone) {
+        return;
+      }
 
       const greenScore = state.players.green.score;
       const orangeScore = state.players.orange.score;
 
       let winner = "Tie Game!";
-      if (greenScore > orangeScore) winner = "Green Team Wins!";
-      if (orangeScore > greenScore) winner = "Orange Team Wins!";
+
+      if (greenScore > orangeScore) {
+        winner = "Green Team Wins!";
+      }
+
+      if (orangeScore > greenScore) {
+        winner = "Orange Team Wins!";
+      }
 
       document.getElementById("winnerText").textContent = winner;
       document.getElementById("finalScoreText").textContent =
-        `Final Score: Green ${greenScore} — Orange ${orangeScore}`;
+        "Final Score: Green " + greenScore + " — Orange " + orangeScore;
+
       document.getElementById("endScreen").style.display = "flex";
     }
 
-    newGame();
+    function setupButtons() {
+      document.getElementById("newGameButton").addEventListener("click", newGame);
+      document.getElementById("labelButton").addEventListener("click", toggleLabels);
+      document.getElementById("playAgainButton").addEventListener("click", newGame);
+    }
+
+    try {
+      setupButtons();
+      newGame();
+    } catch (error) {
+      document.body.innerHTML =
+        '<div class="error-box">' +
+          '<h1>Frac Jack Error</h1>' +
+          '<p>The game had trouble loading. This message means the page loaded, but the JavaScript hit an error.</p>' +
+          '<pre>' + error + '</pre>' +
+        '</div>';
+
+      console.error(error);
+    }
   </script>
 </body>
 </html>
