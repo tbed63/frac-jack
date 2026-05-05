@@ -221,13 +221,13 @@ html,body{
   min-width:0;
   min-height:0;
   display:grid;
-  grid-template-rows:58px 96px minmax(0,1fr);
-  gap:9px;
+  grid-template-rows:58px 52px minmax(0,1fr);
+  gap:8px;
 }
 
 .status-row{
   display:grid;
-  grid-template-columns:150px 1fr 210px;
+  grid-template-columns:145px 1fr 310px;
   gap:10px;
 }
 
@@ -243,7 +243,7 @@ html,body{
 }
 
 .timer{
-  font-size:28px;
+  font-size:27px;
 }
 
 .turn-burst{
@@ -270,30 +270,41 @@ html,body{
 }
 
 .info{
-  flex-direction:column;
-  gap:4px;
+  gap:6px;
   font-size:13px;
   text-align:center;
   padding:5px;
 }
 
-.level-row{
-  display:flex;
-  gap:6px;
-  align-items:center;
+.control-btn{
+  border:3px solid white;
+  border-radius:999px;
+  background:#111;
+  color:white;
+  font-weight:1000;
+  padding:7px 12px;
+  cursor:pointer;
+  box-shadow:0 3px 0 rgba(0,0,0,.35);
+  text-transform:uppercase;
 }
 
-select,.small-btn{
+.start-btn{
+  background:linear-gradient(180deg,#ffe56b,#f0a800);
+  color:#111;
+}
+
+.level-select{
+  display:none;
   border:2px solid white;
   border-radius:999px;
   background:#111;
   color:white;
   font-weight:1000;
-  padding:4px 8px;
+  padding:6px 8px;
 }
 
-.small-btn{
-  cursor:pointer;
+.level-select.show{
+  display:block;
 }
 
 /* FRACTIONS */
@@ -302,38 +313,43 @@ select,.small-btn{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:20px;
+  gap:14px;
+  min-height:0;
+}
+
+.fraction-row.hidden{
+  visibility:hidden;
 }
 
 .frac-card{
-  width:158px;
-  height:90px;
+  width:84px;
+  height:46px;
   background:white;
   color:#111;
-  border:5px solid white;
-  border-radius:24px;
+  border:4px solid white;
+  border-radius:16px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:38px;
+  font-size:22px;
   font-weight:1000;
   line-height:.95;
   cursor:pointer;
-  box-shadow:0 8px 18px rgba(0,0,0,.35);
+  box-shadow:0 6px 12px rgba(0,0,0,.35);
   transition:.15s;
 }
 
-.frac-card:nth-child(1){ box-shadow:0 0 0 4px rgba(255,135,0,.75),0 8px 18px rgba(0,0,0,.35); }
-.frac-card:nth-child(2){ box-shadow:0 0 0 4px rgba(24,120,255,.75),0 8px 18px rgba(0,0,0,.35); }
-.frac-card:nth-child(3){ box-shadow:0 0 0 4px rgba(163,92,255,.75),0 8px 18px rgba(0,0,0,.35); }
+.frac-card:nth-child(1){ box-shadow:0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35); }
+.frac-card:nth-child(2){ box-shadow:0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35); }
+.frac-card:nth-child(3){ box-shadow:0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35); }
 
 .frac-card.selected{
-  transform:translateY(-5px) scale(1.04);
-  box-shadow:0 0 0 7px var(--yellow),0 10px 18px rgba(0,0,0,.38);
+  transform:translateY(-3px) scale(1.04);
+  box-shadow:0 0 0 5px var(--yellow),0 8px 14px rgba(0,0,0,.38);
 }
 
 .frac-card .mixed{
-  font-size:31px;
+  font-size:18px;
 }
 
 .frac-card.flyback{
@@ -341,8 +357,8 @@ select,.small-btn{
 }
 
 @keyframes flyback{
-  0%{transform:translateY(-5px) scale(1.04);}
-  40%{transform:translateY(-40px) rotate(-8deg) scale(1.06);}
+  0%{transform:translateY(-3px) scale(1.04);}
+  40%{transform:translateY(-32px) rotate(-8deg) scale(1.06);}
   100%{transform:translateY(0) rotate(0) scale(1);}
 }
 
@@ -364,7 +380,7 @@ select,.small-btn{
   border-radius:22px;
   overflow:hidden;
   display:grid;
-  grid-template-rows:26px minmax(0,1fr)24px;
+  grid-template-rows:25px minmax(0,1fr)23px;
   cursor:pointer;
   box-shadow:0 8px 18px rgba(0,0,0,.32);
 }
@@ -404,7 +420,7 @@ select,.small-btn{
 
 .t-body{
   min-height:0;
-  padding:5px;
+  padding:4px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -488,7 +504,7 @@ select,.small-btn{
   flex:1;
   height:100%;
   min-height:10px;
-  max-height:28px;
+  max-height:30px;
   border:2px solid #555;
   display:grid;
   background:white;
@@ -587,7 +603,7 @@ select,.small-btn{
 .set-whole{
   min-width:0;
   max-width:210px;
-  flex:1 1 118px;
+  flex:1 1 112px;
   max-height:100%;
   overflow:hidden;
   display:grid;
@@ -603,7 +619,7 @@ select,.small-btn{
   align-items:center;
   justify-content:center;
   min-height:0;
-  font-size:14px;
+  font-size:13px;
   border:1px solid rgba(0,0,0,.18);
   border-radius:6px;
   background:white;
@@ -617,13 +633,13 @@ select,.small-btn{
   flex-wrap:wrap;
   align-items:center;
   justify-content:center;
-  gap:6px;
+  gap:5px;
   overflow:hidden;
 }
 
 .circle-model{
-  width:54px;
-  height:54px;
+  width:50px;
+  height:50px;
   border-radius:50%;
   border:2px solid #555;
   background:white;
@@ -693,7 +709,7 @@ select,.small-btn{
   margin-top:8px;
 }
 
-.lesson-overlay{
+.lesson-overlay,.rules-overlay{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.58);
@@ -704,7 +720,7 @@ select,.small-btn{
   padding:24px;
 }
 
-.lesson-card{
+.lesson-card,.rules-card{
   width:min(760px,94vw);
   background:white;
   color:#111;
@@ -715,7 +731,7 @@ select,.small-btn{
   text-align:center;
 }
 
-.lesson-title{
+.lesson-title,.rules-title{
   font-size:46px;
   font-weight:1000;
   color:#df2525;
@@ -726,6 +742,15 @@ select,.small-btn{
   font-size:22px;
   font-weight:1000;
   margin:12px 0 18px;
+}
+
+.rules-text{
+  font-size:21px;
+  font-weight:900;
+  line-height:1.35;
+  text-align:left;
+  max-width:620px;
+  margin:18px auto;
 }
 
 .fit-strip{
@@ -766,7 +791,7 @@ select,.small-btn{
   font-weight:1000;
 }
 
-.continue-btn{
+.continue-btn,.close-rules-btn{
   border:0;
   border-radius:999px;
   padding:12px 28px;
@@ -775,6 +800,9 @@ select,.small-btn{
   background:#111;
   color:white;
   cursor:pointer;
+}
+
+.continue-btn{
   opacity:.42;
 }
 
@@ -827,8 +855,8 @@ select,.small-btn{
   .main{grid-template-columns:250px 1fr 250px;}
   .player-panel{grid-template-rows:minmax(0,1fr) 196px;}
   .trick-btn{height:52px;font-size:16px;}
-  .frac-card{width:145px;height:86px;}
-  .circle-model{width:48px;height:48px;}
+  .frac-card{width:78px;height:42px;font-size:20px;}
+  .circle-model{width:46px;height:46px;}
   .t-head{font-size:9px;}
   .set-item{font-size:12px;}
   .mascot-stage img{
@@ -874,28 +902,28 @@ select,.small-btn{
 
     <main class="center">
       <div class="status-row">
-        <div class="timer" id="timerCard">00:30</div>
+        <div class="timer" id="timerCard">--:--</div>
 
         <div class="turn-burst orange" id="turnBurst">
-          JACKAL!
+          READY?
         </div>
 
         <div class="info">
-          <div class="level-row">
-            <span>Level</span>
-            <select id="levelSelect">
-              <option value="1">1</option>
-              <option value="2" selected>2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-            <button class="small-btn" id="newGameBtn">New</button>
-          </div>
+          <button class="control-btn start-btn" id="startBtn">Start</button>
+          <button class="control-btn" id="rulesBtn">Rules</button>
+          <button class="control-btn" id="levelsBtn">Levels</button>
+          <select class="level-select" id="levelSelect">
+            <option value="1">Level 1</option>
+            <option value="2" selected>Level 2</option>
+            <option value="3">Level 3</option>
+            <option value="4">Level 4</option>
+            <option value="5">Level 5</option>
+          </select>
+          <button class="control-btn" id="newGameBtn">New</button>
         </div>
       </div>
 
-      <div class="fraction-row" id="fractionRow"></div>
+      <div class="fraction-row hidden" id="fractionRow"></div>
 
       <div class="territories" id="territories"></div>
     </main>
@@ -931,6 +959,19 @@ select,.small-btn{
   </div>
 </div>
 
+<div class="rules-overlay" id="rulesOverlay">
+  <div class="rules-card">
+    <div class="rules-title">How to Play</div>
+    <div class="rules-text">
+      Pick one fraction and place it in a territory. Legal moves earn Jack Points.
+      Complete a territory to earn a big bonus. Go over, and your opponent hijacks the territory.
+      Some fractions do not fit some models. If it does not fit, your turn ends.
+      Highest Jack Points wins when all territories are claimed.
+    </div>
+    <button class="close-rules-btn" id="closeRulesBtn">Close</button>
+  </div>
+</div>
+
 <div class="victory-banner" id="victoryBanner">
   <div class="victory-text" id="victoryText">Jackal is the Frac Jack Champ!</div>
   <img id="victoryImg" src="jackal-orange.png" alt="Winner">
@@ -946,7 +987,8 @@ var currentPlayer="orange";
 var currentFractions=[];
 var selectedFractionIndex=0;
 var territories=[];
-var gameLocked=false;
+var gameLocked=true;
+var gameStarted=false;
 var pendingTrick=null;
 var timer=30;
 var timerId=null;
@@ -1016,10 +1058,6 @@ function denomWord(d){
   return w[d] || d+"ths";
 }
 
-function oneDenomWord(d){
-  return denomWord(d)+" model";
-}
-
 function createTerritories(){
   var dens=levelDenominators();
   var m=shuffle(models);
@@ -1075,14 +1113,15 @@ function rerollFractions(){
   renderFractions();
 }
 
-function startGame(){
+function setupNewGame(){
   clearInterval(timerId);
   players.orange.points=0;
   players.green.points=0;
   currentPlayer="orange";
   selectedFractionIndex=0;
   pendingTrick=null;
-  gameLocked=false;
+  gameLocked=true;
+  gameStarted=false;
   moveChunkIndex=0;
   victoryReached=false;
 
@@ -1093,16 +1132,39 @@ function startGame(){
 
   territories=createTerritories();
   document.getElementById("victoryBanner").classList.remove("show");
+  document.getElementById("timerCard").textContent="--:--";
+  document.getElementById("startBtn").style.display="inline-block";
+  document.getElementById("fractionRow").classList.add("hidden");
 
   rerollFractions();
   renderAll();
+  updateReadyUI();
+}
+
+function startGame(){
+  if(gameStarted || victoryReached)return;
+  gameStarted=true;
+  gameLocked=false;
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("fractionRow").classList.remove("hidden");
+  updateTurnUI();
   showTurnPopup();
   startTimer();
 }
 
+function updateReadyUI(){
+  document.getElementById("orangePanel").classList.add("active");
+  document.getElementById("greenPanel").classList.remove("active");
+  var b=document.getElementById("turnBurst");
+  b.className="turn-burst orange";
+  b.innerHTML="READY?";
+}
+
 function renderAll(){
   updateScores();
-  updateTurnUI();
+  if(gameStarted){
+    updateTurnUI();
+  }
   renderFractions();
   renderTerritories();
   renderTricks();
@@ -1140,7 +1202,7 @@ function renderFractions(){
     card.innerHTML=txt.indexOf(" ")>=0 ? '<span class="mixed">'+txt+"</span>" : txt;
 
     card.onclick=function(){
-      if(gameLocked||pendingTrick)return;
+      if(gameLocked||pendingTrick||!gameStarted)return;
       selectedFractionIndex=Number(this.dataset.index);
       renderFractions();
     };
@@ -1207,7 +1269,7 @@ function renderTerritories(){
     card.appendChild(foot);
 
     card.onclick=function(){
-      if(gameLocked)return;
+      if(gameLocked||!gameStarted)return;
       handleTerritoryClick(Number(this.dataset.id));
     };
 
@@ -1536,7 +1598,7 @@ function startTimer(){
   document.getElementById("timerCard").textContent="00:30";
 
   timerId=setInterval(function(){
-    if(gameLocked||victoryReached)return;
+    if(gameLocked||victoryReached||!gameStarted)return;
     timer--;
     if(timer<0)timer=0;
 
@@ -1630,7 +1692,7 @@ function showHijackLesson(t,remaining,callback){
 }
 
 function useTrick(player,trick){
-  if(gameLocked||victoryReached)return;
+  if(gameLocked||victoryReached||!gameStarted)return;
   if(player!==currentPlayer)return;
   if(trickUsed[player][trick])return;
 
@@ -1749,13 +1811,27 @@ function wireEvents(){
     };
   });
 
-  document.getElementById("newGameBtn").onclick=startGame;
-  document.getElementById("levelSelect").onchange=startGame;
+  document.getElementById("startBtn").onclick=startGame;
+  document.getElementById("newGameBtn").onclick=setupNewGame;
+
+  document.getElementById("levelsBtn").onclick=function(){
+    document.getElementById("levelSelect").classList.toggle("show");
+  };
+
+  document.getElementById("levelSelect").onchange=setupNewGame;
+
+  document.getElementById("rulesBtn").onclick=function(){
+    document.getElementById("rulesOverlay").style.display="flex";
+  };
+
+  document.getElementById("closeRulesBtn").onclick=function(){
+    document.getElementById("rulesOverlay").style.display="none";
+  };
 }
 
 try{
   wireEvents();
-  startGame();
+  setupNewGame();
 }catch(error){
   document.body.innerHTML=
     "<div style='background:white;color:black;font-family:Arial;padding:40px;min-height:100vh;'>" +
