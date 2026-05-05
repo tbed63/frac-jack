@@ -184,7 +184,7 @@ body::after{
 .side-mascot{
   position:absolute;
   bottom:198px;
-  width:108%;
+  width:70%;
   max-width:none;
   height:auto;
   object-fit:contain;
@@ -197,13 +197,13 @@ body::after{
 }
 
 .orange-mascot{
-  left:-18px;
-  transform:rotate(-2deg);
+  left:50%;
+  transform:translateX(-50%) rotate(-2deg);
 }
 
 .green-mascot{
-  right:-18px;
-  transform:rotate(2deg);
+  right:50%;
+  transform:translateX(50%) rotate(2deg);
 }
 
 .trick-title{
@@ -656,21 +656,21 @@ body::after{
   flex-wrap:wrap;
   align-items:center;
   justify-content:center;
-  gap:4px;
+  gap:8px;
   overflow:hidden;
 }
 
 .set-whole{
   min-width:0;
-  max-width:210px;
-  flex:1 1 112px;
+  max-width:220px;
+  flex:1 1 118px;
   max-height:100%;
   overflow:hidden;
   display:grid;
-  gap:3px;
-  padding:4px;
+  gap:5px;
+  padding:5px;
   border:2px solid #aaa;
-  border-radius:10px;
+  border-radius:12px;
   background:#fff8ef;
 }
 
@@ -679,10 +679,27 @@ body::after{
   align-items:center;
   justify-content:center;
   min-height:0;
-  font-size:13px;
-  border:1px solid rgba(0,0,0,.18);
-  border-radius:6px;
-  background:white;
+  background:transparent;
+}
+
+.set-shape{
+  font-size:clamp(20px, 2.3vw, 40px);
+  line-height:1;
+  color:white;
+  -webkit-text-stroke:1.5px #111;
+  text-shadow:
+    0 2px 0 rgba(0,0,0,.35),
+    0 0 2px #111;
+}
+
+.set-shape.fill-red{
+  color:var(--red);
+  -webkit-text-stroke:1.4px #111;
+}
+
+.set-shape.fill-blue{
+  color:var(--blue);
+  -webkit-text-stroke:1.4px #111;
 }
 
 .circle-wrap{
@@ -923,15 +940,13 @@ body::after{
   .trick-title{font-size:16px;}
   .trick-btn{height:42px;font-size:14px;}
   .side-mascot{
-    width:105%;
+    width:68%;
     bottom:190px;
   }
-  .orange-mascot{left:-14px;}
-  .green-mascot{right:-14px;}
   .frac-card{width:78px;height:42px;font-size:20px;}
   .circle-model{width:46px;height:46px;}
   .t-head{font-size:9px;}
-  .set-item{font-size:12px;}
+  .set-shape{font-size:clamp(18px, 2.1vw, 34px);}
 }
 </style>
 </head>
@@ -1538,9 +1553,15 @@ function renderSet(t){
     for(var i=0;i<t.denominator;i++){
       var item=document.createElement("div");
       item.className="set-item";
+
+      var shape=document.createElement("div");
+      shape.className="set-shape";
+
       var color=cells[w*t.denominator+i];
-      if(color)item.classList.add("fill-"+color);
-      item.textContent=shapes[i%shapes.length];
+      if(color)shape.classList.add("fill-"+color);
+
+      shape.textContent=shapes[i%shapes.length];
+      item.appendChild(shape);
       group.appendChild(item);
     }
 
