@@ -121,7 +121,7 @@ html,body{
   overflow:hidden;
   box-shadow:0 10px 24px rgba(0,0,0,.45);
   display:grid;
-  grid-template-rows:minmax(0,1fr) 206px;
+  grid-template-rows:minmax(0,1fr) 34px 164px;
 }
 
 .player-panel.orange{
@@ -172,27 +172,41 @@ html,body{
   transform:translateX(50%) rotate(2deg);
 }
 
+.trick-title{
+  position:relative;
+  z-index:9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  font-weight:1000;
+  letter-spacing:1px;
+  text-shadow:0 3px 0 rgba(0,0,0,.45);
+  background:rgba(0,0,0,.18);
+  border-top:3px solid rgba(255,255,255,.18);
+  border-bottom:3px solid rgba(255,255,255,.22);
+}
+
 .trick-stack{
   position:relative;
   z-index:8;
-  padding:12px;
+  padding:10px 12px 12px;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
   background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.28));
-  border-top:3px solid rgba(255,255,255,.25);
 }
 
 .trick-btn{
-  height:54px;
-  border-radius:18px;
-  border:4px solid rgba(255,255,255,.78);
+  height:44px;
+  border-radius:15px;
+  border:3px solid rgba(255,255,255,.78);
   color:white;
-  font-size:17px;
+  font-size:15px;
   font-weight:1000;
   cursor:pointer;
   text-transform:uppercase;
-  box-shadow:0 5px 0 rgba(0,0,0,.35);
+  box-shadow:0 4px 0 rgba(0,0,0,.35);
 }
 
 .orange .trick-btn{
@@ -843,8 +857,9 @@ html,body{
 
 @media(max-width:1400px){
   .main{grid-template-columns:250px 1fr 250px;}
-  .player-panel{grid-template-rows:minmax(0,1fr) 196px;}
-  .trick-btn{height:52px;font-size:16px;}
+  .player-panel{grid-template-rows:minmax(0,1fr) 32px 158px;}
+  .trick-title{font-size:16px;}
+  .trick-btn{height:42px;font-size:14px;}
   .frac-card{width:78px;height:42px;font-size:20px;}
   .circle-model{width:46px;height:46px;}
   .t-head{font-size:9px;}
@@ -882,6 +897,8 @@ html,body{
       <div class="mascot-stage">
         <img src="jackal-orange.png" alt="Jackal">
       </div>
+
+      <div class="trick-title">JACK TRICKS</div>
 
       <div class="trick-stack">
         <button class="trick-btn" id="orange-slipjack" data-player="orange" data-trick="slipjack">Slipjack</button>
@@ -922,6 +939,8 @@ html,body{
       <div class="mascot-stage">
         <img src="jackrabbit-green.png" alt="Jackrabbit">
       </div>
+
+      <div class="trick-title">JACK TRICKS</div>
 
       <div class="trick-stack">
         <button class="trick-btn" id="green-slipjack" data-player="green" data-trick="slipjack">Slipjack</button>
