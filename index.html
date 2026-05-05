@@ -364,6 +364,68 @@ body::after{
   visibility:hidden;
 }
 
+.trash-can-btn{
+  width:62px;
+  height:52px;
+  border:4px solid rgba(255,255,255,.9);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(255,255,255,.28), transparent 35%),
+    linear-gradient(180deg,#3a4658,#101722);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 6px 12px rgba(0,0,0,.42), inset 0 0 0 2px rgba(255,135,0,.32);
+  position:relative;
+  transition:.15s;
+}
+
+.trash-can-btn::before{
+  content:"FRAC";
+  position:absolute;
+  top:-11px;
+  left:50%;
+  transform:translateX(-50%) rotate(-3deg);
+  background:linear-gradient(180deg,#ffe76a,#ff9c12);
+  color:#111;
+  border:2px solid white;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:1000;
+  padding:1px 7px;
+  box-shadow:0 3px 0 rgba(0,0,0,.28);
+}
+
+.trash-can-btn:hover{
+  transform:translateY(-2px) scale(1.04);
+  box-shadow:0 0 0 4px rgba(255,216,61,.78),0 8px 14px rgba(0,0,0,.45);
+}
+
+.trash-can-img{
+  width:50px;
+  height:44px;
+  object-fit:contain;
+  filter:drop-shadow(0 5px 4px rgba(0,0,0,.45));
+  pointer-events:none;
+}
+
+.trash-can-btn:hover .trash-can-img{
+  animation:trashShake .28s infinite;
+}
+
+.trash-can-btn.burp .trash-can-img{
+  animation:trashShake .22s 4;
+}
+
+@keyframes trashShake{
+  0%{transform:rotate(0deg) translateX(0);}
+  25%{transform:rotate(-7deg) translateX(-1px);}
+  50%{transform:rotate(6deg) translateX(1px);}
+  75%{transform:rotate(-4deg) translateX(-1px);}
+  100%{transform:rotate(0deg) translateX(0);}
+}
+
 .frac-card{
   width:84px;
   height:46px;
@@ -889,6 +951,148 @@ body::after{
   opacity:1;
 }
 
+.trash-overlay{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,135,0,.18), transparent 26%),
+    radial-gradient(circle at 52% 52%, rgba(64,201,31,.12), transparent 28%),
+    rgba(0,0,0,.78);
+  overflow:hidden;
+}
+
+.trash-overlay::before,
+.trash-overlay::after{
+  content:"";
+  position:absolute;
+  width:170px;
+  height:170px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,.05) 45%, transparent 72%);
+  filter:blur(2px);
+  opacity:.7;
+  animation:smokeDrift 4s infinite ease-in-out;
+}
+
+.trash-overlay::before{
+  left:18%;
+  bottom:12%;
+}
+
+.trash-overlay::after{
+  right:16%;
+  top:16%;
+  animation-delay:-1.5s;
+}
+
+@keyframes smokeDrift{
+  0%{transform:translate(0,0) scale(.75); opacity:.25;}
+  45%{transform:translate(18px,-28px) scale(1.08); opacity:.58;}
+  100%{transform:translate(-10px,-58px) scale(1.25); opacity:.08;}
+}
+
+.trash-card{
+  position:relative;
+  width:min(620px,92vw);
+  border:7px solid white;
+  border-radius:34px;
+  padding:24px 28px 26px;
+  text-align:center;
+  color:white;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.18), transparent 30%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 3px, transparent 3px 14px),
+    linear-gradient(180deg,#2b1111,#07090f 62%,#101824);
+  box-shadow:0 24px 60px rgba(0,0,0,.68),0 0 0 7px rgba(255,135,0,.28);
+  text-shadow:0 4px 0 rgba(0,0,0,.55);
+  overflow:hidden;
+}
+
+.trash-card::before{
+  content:"";
+  position:absolute;
+  inset:-30%;
+  background:radial-gradient(circle at 50% 50%, rgba(255,216,61,.16), transparent 28%);
+  animation:trashGlow 1.8s infinite alternate;
+  pointer-events:none;
+}
+
+@keyframes trashGlow{
+  from{transform:scale(.92); opacity:.3;}
+  to{transform:scale(1.08); opacity:.82;}
+}
+
+.trash-modal-img{
+  position:relative;
+  z-index:2;
+  width:118px;
+  height:118px;
+  object-fit:contain;
+  filter:drop-shadow(0 12px 10px rgba(0,0,0,.55));
+  animation:trashShake .18s infinite;
+}
+
+.trash-title{
+  position:relative;
+  z-index:2;
+  font-size:46px;
+  font-weight:1000;
+  color:#ffdf4c;
+  line-height:.95;
+  text-transform:uppercase;
+  margin-top:4px;
+}
+
+.trash-message{
+  position:relative;
+  z-index:2;
+  font-size:23px;
+  font-weight:1000;
+  line-height:1.25;
+  margin:12px auto 18px;
+  max-width:480px;
+}
+
+.trash-penalty{
+  display:inline-block;
+  position:relative;
+  z-index:2;
+  font-size:34px;
+  font-weight:1000;
+  color:white;
+  background:linear-gradient(180deg,#ff6a6a,#d41414);
+  border:4px solid white;
+  border-radius:20px;
+  padding:8px 18px;
+  transform:rotate(-3deg);
+  box-shadow:0 7px 0 rgba(0,0,0,.42);
+}
+
+.trash-continue-btn{
+  position:relative;
+  z-index:2;
+  margin-top:22px;
+  border:4px solid white;
+  border-radius:999px;
+  padding:12px 32px;
+  font-size:21px;
+  font-weight:1000;
+  color:#111;
+  background:linear-gradient(180deg,#ffe76a,#ff9d18);
+  cursor:pointer;
+  box-shadow:0 6px 0 rgba(0,0,0,.45);
+  text-transform:uppercase;
+}
+
+.trash-continue-btn:hover{
+  transform:translateY(-2px);
+}
+
 .victory-banner{
   position:fixed;
   top:116px;
@@ -1054,9 +1258,23 @@ body::after{
       Pick one fraction and place it in a territory. Legal moves earn Jack Points.
       Complete a territory to earn a big bonus. Go over, and your opponent hijacks the territory.
       Some fractions do not fit some models. If it does not fit, your turn ends.
+      You may also toss a fraction into Frac Trash and get a replacement. If that fraction could have been played, lose 50 Jack Points.
       Use Hint to reveal one legal move. Highest Jack Points wins when all territories are claimed.
     </div>
     <button class="close-rules-btn" id="closeRulesBtn">Close</button>
+  </div>
+</div>
+
+<div class="trash-overlay" id="trashOverlay">
+  <div class="trash-card">
+    <img class="trash-modal-img" src="frac-trash.png" alt="Frac Trash">
+    <div class="trash-title">Not Frac Trash!</div>
+    <div class="trash-message">
+      That fraction still had a place to go.<br>
+      The trash can is offended.
+    </div>
+    <div class="trash-penalty">-50 JACK POINTS</div><br>
+    <button class="trash-continue-btn" id="trashContinueBtn">Continue</button>
   </div>
 </div>
 
@@ -1347,6 +1565,15 @@ function renderFractions(){
 
     row.appendChild(card);
   });
+
+  var trashBtn=document.createElement("button");
+  trashBtn.className="trash-can-btn";
+  trashBtn.id="trashCanBtn";
+  trashBtn.title="Throw away selected fraction";
+  trashBtn.setAttribute("aria-label","Throw away selected fraction");
+  trashBtn.innerHTML='<img class="trash-can-img" src="frac-trash.png" alt="Frac Trash">';
+  trashBtn.onclick=handleTrashClick;
+  row.appendChild(trashBtn);
 }
 
 function renderTricks(){
@@ -1634,6 +1861,71 @@ function findHintMove(){
   return null;
 }
 
+function selectedFractionHasLegalMove(frac){
+  for(var i=0;i<territories.length;i++){
+    if(isLegalMove(frac,territories[i]))return true;
+  }
+
+  return false;
+}
+
+function handleTrashClick(){
+  if(gameLocked||pendingTrick||!gameStarted||victoryReached)return;
+  clearHints();
+
+  var frac=selectedFraction();
+  if(!frac)return;
+
+  if(selectedFractionHasLegalMove(frac)){
+    badFracTrash();
+  }else{
+    goodFracTrash();
+  }
+}
+
+function burpTrashCan(){
+  var btn=document.getElementById("trashCanBtn");
+  if(!btn)return;
+
+  btn.classList.add("burp");
+  setTimeout(function(){
+    btn.classList.remove("burp");
+  },900);
+}
+
+function goodFracTrash(){
+  burpTrashCan();
+  replaceSelectedFraction();
+  renderAll();
+  showPow("FRAC TRASH!","New fraction. Keep going!",currentPlayer,850);
+}
+
+function badFracTrash(){
+  gameLocked=true;
+  clearInterval(timerId);
+  burpTrashCan();
+
+  players[currentPlayer].points-=50;
+  replaceSelectedFraction();
+  renderAll();
+  showTrashPenaltyOverlay();
+}
+
+function showTrashPenaltyOverlay(){
+  var overlay=document.getElementById("trashOverlay");
+  var btn=document.getElementById("trashContinueBtn");
+
+  overlay.style.display="flex";
+
+  btn.onclick=function(){
+    overlay.style.display="none";
+    if(victoryReached)return;
+    gameLocked=false;
+    renderAll();
+    resumeTimer();
+  };
+}
+
 function clearHints(){
   document.querySelectorAll(".hinted").forEach(function(el){
     el.classList.remove("hinted");
@@ -1791,10 +2083,8 @@ function switchTurn(){
   startTimer();
 }
 
-function startTimer(){
+function armTimer(){
   clearInterval(timerId);
-  timer=30;
-  document.getElementById("timerCard").textContent="00:30";
 
   timerId=setInterval(function(){
     if(gameLocked||victoryReached||!gameStarted)return;
@@ -1815,6 +2105,18 @@ function startTimer(){
       },1000);
     }
   },1000);
+}
+
+function startTimer(){
+  timer=30;
+  document.getElementById("timerCard").textContent="00:30";
+  armTimer();
+}
+
+function resumeTimer(){
+  if(!gameStarted||victoryReached)return;
+  document.getElementById("timerCard").textContent="00:"+String(timer).padStart(2,"0");
+  armTimer();
 }
 
 function showPow(big,small,color,duration){
