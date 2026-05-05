@@ -1,2454 +1,1259 @@
-<!-- VERIFIED FRAC JACK BUILD v7 - successful Frac Trash gives +10 and resets timer - based on Tim's pasted Frac Jack code -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Frac Jack</title>
-
-<style>
-:root{
-  --orange:#ff8700;
-  --green:#40c91f;
-  --red:#e83434;
-  --blue:#1878ff;
-  --yellow:#ffd83d;
-}
-
-*{
-  box-sizing:border-box;
-  user-select:none;
-}
-
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  font-family:Arial, Helvetica, sans-serif;
-  color:white;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%),
-    radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%),
-    repeating-radial-gradient(circle at 50% 48%, rgba(255,255,255,.06) 0 2px, transparent 2px 14px),
-    radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%),
-    radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%),
-    linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%);
-}
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:-10%;
-  pointer-events:none;
-  background:
-    repeating-linear-gradient(120deg, transparent 0 34px, rgba(255,255,255,.045) 35px, transparent 37px),
-    repeating-linear-gradient(60deg, transparent 0 42px, rgba(255,255,255,.035) 43px, transparent 45px);
-  opacity:.75;
-  z-index:0;
-}
-
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background:radial-gradient(circle at 50% 45%, transparent 0 38%, rgba(0,0,0,.38) 75%, rgba(0,0,0,.60) 100%);
-  z-index:0;
-}
-
-.game{
-  position:relative;
-  z-index:1;
-  width:100vw;
-  height:100vh;
-  padding:10px;
-  display:grid;
-  grid-template-rows:122px 1fr;
-  gap:8px;
-}
-
-.topbar{
-  display:grid;
-  grid-template-columns:250px 1fr 250px;
-  gap:12px;
-  align-items:center;
-  overflow:visible;
-}
-
-.score-card{
-  height:104px;
-  border:5px solid white;
-  border-radius:24px;
-  box-shadow:0 8px 18px rgba(0,0,0,.45);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-shadow:0 3px 0 rgba(0,0,0,.45);
-  position:relative;
-  z-index:80;
-}
-
-.score-card.orange{
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255,255,255,.22), transparent 25%),
-    linear-gradient(180deg,#ffae35,#e06d00);
-}
-
-.score-card.green{
-  background:
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,.22), transparent 25%),
-    linear-gradient(180deg,#6bed46,#2e9c17);
-}
-
-.score-name{
-  font-size:28px;
-  font-weight:1000;
-  line-height:1;
-}
-
-.score-sub{
-  font-size:13px;
-  font-weight:1000;
-  margin-top:4px;
-  opacity:.95;
-}
-
-.score-num{
-  font-size:35px;
-  font-weight:1000;
-  line-height:1;
-  margin-top:3px;
-}
-
-.logo-zone{
-  height:122px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:visible;
-  position:relative;
-  z-index:12;
-}
-
-.logo-zone img{
-  max-height:142px;
-  max-width:100%;
-  object-fit:contain;
-  transform:translateY(8px) scale(1.08);
-  filter:drop-shadow(0 10px 14px rgba(0,0,0,.58));
-}
-
-.main{
-  min-height:0;
-  display:grid;
-  grid-template-columns:250px 1fr 250px;
-  gap:12px;
-  overflow:visible;
-}
-
-.player-panel{
-  position:relative;
-  min-height:0;
-  border:5px solid white;
-  border-radius:30px;
-  overflow:visible;
-  box-shadow:0 10px 24px rgba(0,0,0,.55);
-  display:grid;
-  grid-template-rows:minmax(0,1fr) 34px 164px;
-  z-index:10;
-}
-
-.player-panel.orange{
-  background:
-    radial-gradient(circle at 30% 14%, rgba(255,255,255,.22), transparent 24%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px),
-    radial-gradient(circle at 70% 40%, rgba(255,195,60,.16), transparent 36%),
-    linear-gradient(180deg,#ff9b19 0%,#d56500 55%,#743000 100%);
-}
-
-.player-panel.green{
-  background:
-    radial-gradient(circle at 70% 14%, rgba(255,255,255,.22), transparent 24%),
-    repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px),
-    radial-gradient(circle at 30% 40%, rgba(130,255,90,.16), transparent 36%),
-    linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#124b07 100%);
-}
-
-.player-panel.active{
-  outline:6px solid var(--yellow);
-  outline-offset:-9px;
-}
-
-/* CHARACTER PLACEMENT — smaller and anchored low */
-.side-mascot{
-  position:absolute;
-  bottom:184px;
-  width:92%;
-  max-width:none;
-  height:auto;
-  object-fit:contain;
-  filter:drop-shadow(0 14px 14px rgba(0,0,0,.62));
-  background:transparent;
-  border:none;
-  z-index:35;
-  pointer-events:none;
-  display:block;
-}
-
-.orange-mascot{
-  left:58%;
-  transform:translateX(-50%) rotate(-2deg);
-}
-
-.green-mascot{
-  right:58%;
-  transform:translateX(50%) rotate(2deg);
-}
-
-.mascot-fallback{
-  min-height:170px;
-  border:4px solid rgba(255,255,255,.85);
-  border-radius:28px;
-  display:flex!important;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:12px;
-  font-size:19px;
-  font-weight:1000;
-  line-height:1.05;
-  color:white;
-  text-transform:uppercase;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(255,255,255,.22), transparent 34%),
-    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.48));
-}
-
-.trick-title{
-  position:relative;
-  z-index:50;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:18px;
-  font-weight:1000;
-  letter-spacing:1px;
-  text-shadow:0 3px 0 rgba(0,0,0,.45);
-  background:rgba(0,0,0,.18);
-  border-top:3px solid rgba(255,255,255,.18);
-  border-bottom:3px solid rgba(255,255,255,.22);
-}
-
-.trick-stack{
-  position:relative;
-  z-index:50;
-  padding:10px 12px 12px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.28));
-  border-radius:0 0 24px 24px;
-}
-
-.trick-btn{
-  height:44px;
-  border-radius:15px;
-  border:3px solid rgba(255,255,255,.78);
-  color:white;
-  font-size:15px;
-  font-weight:1000;
-  cursor:pointer;
-  text-transform:uppercase;
-  box-shadow:0 4px 0 rgba(0,0,0,.35);
-}
-
-.orange .trick-btn{
-  background:linear-gradient(180deg,#ffaf38,#e66a00);
-}
-
-.green .trick-btn{
-  background:linear-gradient(180deg,#70ed4b,#2fa114);
-}
-
-.trick-btn.used{
-  background:linear-gradient(180deg,#777,#444)!important;
-  color:#ddd;
-  border-color:#bbb;
-  filter:grayscale(.2);
-  cursor:default;
-}
-
-.center{
-  min-width:0;
-  min-height:0;
-  display:grid;
-  grid-template-rows:58px 52px minmax(0,1fr);
-  gap:8px;
-  position:relative;
-  z-index:4;
-}
-
-.status-row{
-  display:grid;
-  grid-template-columns:145px 1fr 310px;
-  gap:10px;
-}
-
-.timer,.info{
-  border:4px solid white;
-  border-radius:20px;
-  background:rgba(0,0,0,.46);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:1000;
-  box-shadow:0 6px 15px rgba(0,0,0,.35);
-}
-
-.timer{
-  font-size:27px;
-}
-
-.turn-burst{
-  border:4px solid white;
-  color:white;
-  font-size:23px;
-  font-weight:1000;
-  line-height:.95;
-  text-align:center;
-  text-shadow:0 3px 0 rgba(0,0,0,.42);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  clip-path:polygon(50% 0%,60% 15%,78% 6%,72% 25%,93% 23%,79% 40%,100% 50%,79% 60%,93% 77%,72% 75%,78% 94%,60% 85%,50% 100%,40% 85%,22% 94%,28% 75%,7% 77%,21% 60%,0% 50%,21% 40%,7% 23%,28% 25%,22% 6%,40% 15%);
-  box-shadow:0 6px 16px rgba(0,0,0,.35);
-}
-
-.turn-burst.orange{
-  background:linear-gradient(180deg,#ffba42,#ff7a00);
-}
-
-.turn-burst.green{
-  background:linear-gradient(180deg,#82f45b,#36b817);
-}
-
-.info{
-  gap:6px;
-  font-size:13px;
-  text-align:center;
-  padding:5px;
-}
-
-.control-btn{
-  border:3px solid white;
-  border-radius:999px;
-  background:#111;
-  color:white;
-  font-weight:1000;
-  padding:7px 12px;
-  cursor:pointer;
-  box-shadow:0 3px 0 rgba(0,0,0,.35);
-  text-transform:uppercase;
-}
-
-.start-btn{
-  background:linear-gradient(180deg,#ffe56b,#f0a800);
-  color:#111;
-}
-
-.level-select{
-  display:none;
-  border:2px solid white;
-  border-radius:999px;
-  background:#111;
-  color:white;
-  font-weight:1000;
-  padding:6px 8px;
-}
-
-.level-select.show{
-  display:block;
-}
-
-.fraction-row{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:14px;
-  min-height:0;
-}
-
-.fraction-row.hidden{
-  visibility:hidden;
-}
-
-
-.trash-can-btn{
-  width:82px;
-  height:66px;
-  border:4px solid rgba(255,255,255,.98);
-  border-radius:22px;
-  background:
-    radial-gradient(circle at 50% 42%, #ffffff 0 42%, #fff8d9 62%, #ffd76a 100%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  box-shadow:0 7px 14px rgba(0,0,0,.45), inset 0 0 0 3px rgba(255,255,255,.85), inset 0 -5px 0 rgba(255,135,0,.16);
-  position:relative;
-  transition:.15s;
-  padding:5px;
-  overflow:hidden;
-  font-size:0;
-  line-height:0;
-  color:transparent;
-}
-
-.trash-can-btn:hover{
-  transform:translateY(-2px) scale(1.04);
-  box-shadow:0 0 0 4px rgba(255,216,61,.78),0 9px 16px rgba(0,0,0,.48), inset 0 0 0 3px rgba(255,255,255,.9);
-}
-
-.trash-can-img{
-  width:68px;
-  height:56px;
-  object-fit:contain;
-  pointer-events:none;
-  display:block;
-}
-
-.trash-can-btn:hover .trash-can-img{
-  animation:trashShake .28s infinite;
-}
-
-.trash-can-btn.burp .trash-can-img{
-  animation:trashShake .22s 4;
-}
-
-@keyframes trashShake{
-  0%{transform:rotate(0deg) translateX(0);}
-  25%{transform:rotate(-7deg) translateX(-1px);}
-  50%{transform:rotate(6deg) translateX(1px);}
-  75%{transform:rotate(-4deg) translateX(-1px);}
-  100%{transform:rotate(0deg) translateX(0);}
-}
-
-.frac-card{
-  width:84px;
-  height:46px;
-  background:white;
-  color:#111;
-  border:4px solid white;
-  border-radius:16px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:22px;
-  font-weight:1000;
-  line-height:.95;
-  cursor:pointer;
-  box-shadow:0 6px 12px rgba(0,0,0,.35);
-  transition:.15s;
-}
-
-.frac-card:nth-child(1){ box-shadow:0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35); }
-.frac-card:nth-child(2){ box-shadow:0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35); }
-.frac-card:nth-child(3){ box-shadow:0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35); }
-
-.frac-card.selected{
-  transform:translateY(-3px) scale(1.04);
-  box-shadow:0 0 0 5px var(--yellow),0 8px 14px rgba(0,0,0,.38);
-}
-
-.frac-card.hinted{
-  animation: hintPulse 1s infinite alternate;
-  box-shadow:0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)!important;
-}
-
-.frac-card .mixed{
-  font-size:18px;
-}
-
-.frac-card.flyback{
-  animation:flyback .65s ease-in-out;
-}
-
-@keyframes flyback{
-  0%{transform:translateY(-3px) scale(1.04);}
-  40%{transform:translateY(-32px) rotate(-8deg) scale(1.06);}
-  100%{transform:translateY(0) rotate(0) scale(1);}
-}
-
-@keyframes hintPulse{
-  from{ transform:scale(1); }
-  to{ transform:scale(1.08); }
-}
-
-.territories{
-  min-height:0;
-  display:grid;
-  grid-template-columns:repeat(12,1fr);
-  grid-template-rows:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-.territory{
-  min-height:0;
-  background:#f8fafc;
-  color:#111;
-  border:5px solid #c8d2df;
-  border-radius:22px;
-  overflow:hidden;
-  display:grid;
-  grid-template-rows:25px minmax(0,1fr)23px;
-  cursor:pointer;
-  box-shadow:0 8px 18px rgba(0,0,0,.32);
-}
-
-.territory:hover{
-  transform:translateY(-2px);
-}
-
-.territory.hinted{
-  animation: territoryHint 1s infinite alternate;
-  border-color:#fff24c!important;
-  box-shadow:0 0 0 6px rgba(255,242,76,.8),0 0 24px rgba(255,242,76,.8),0 8px 18px rgba(0,0,0,.32)!important;
-}
-
-@keyframes territoryHint{
-  from{ transform:scale(1); }
-  to{ transform:scale(1.025); }
-}
-
-.territory.orange-owned{
-  border-color:var(--orange);
-  box-shadow:0 0 0 5px rgba(255,135,0,.32),0 8px 18px rgba(0,0,0,.32);
-}
-
-.territory.green-owned{
-  border-color:var(--green);
-  box-shadow:0 0 0 5px rgba(64,201,31,.32),0 8px 18px rgba(0,0,0,.32);
-}
-
-.t-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-  padding:0 8px;
-  font-size:10px;
-  font-weight:1000;
-  background:linear-gradient(180deg,#f3f6fb,#dce4ee);
-  border-bottom:2px solid #c6d0dd;
-  text-transform:uppercase;
-}
-
-.t-head span:first-child{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.t-body{
-  min-height:0;
-  padding:4px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  position:relative;
-}
-
-.t-foot{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(180deg,#303a48,#171d28);
-  color:white;
-  font-size:10px;
-  font-weight:1000;
-  text-transform:uppercase;
-  text-align:center;
-  padding:0 6px;
-}
-
-.orange-owned .t-foot{
-  background:linear-gradient(180deg,#ff9e28,#b94e00);
-}
-
-.green-owned .t-foot{
-  background:linear-gradient(180deg,#62e842,#247c10);
-}
-
-.t1{grid-column:1/span 5;grid-row:1;}
-.t2{grid-column:6/span 7;grid-row:1;}
-.t3{grid-column:1/span 4;grid-row:2;}
-.t4{grid-column:5/span 4;grid-row:2;}
-.t5{grid-column:9/span 4;grid-row:2;}
-
-.jacked-tag{
-  position:absolute;
-  right:7px;
-  top:6px;
-  z-index:5;
-  background:linear-gradient(180deg,#e8ff6b,#89cf00);
-  color:#244600;
-  border:3px solid #2e5c00;
-  border-radius:14px;
-  padding:4px 8px;
-  font-size:12px;
-  font-weight:1000;
-  transform:rotate(-8deg);
-}
-
-.multi-wholes{
-  width:100%;
-  height:100%;
-  min-height:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:3px;
-  overflow:hidden;
-}
-
-.whole-row{
-  display:flex;
-  align-items:center;
-  gap:3px;
-  min-height:0;
-  flex:1 1 0;
-}
-
-.whole-label{
-  width:12px;
-  flex:0 0 12px;
-  font-size:10px;
-  font-weight:1000;
-  text-align:center;
-  color:#333;
-}
-
-.bar-model{
-  flex:1;
-  height:100%;
-  min-height:10px;
-  max-height:30px;
-  border:2px solid #555;
-  display:grid;
-  background:white;
-}
-
-.bar-cell{
-  border-right:1px solid #888;
-}
-
-.bar-cell:last-child{
-  border-right:none;
-}
-
-.area-whole{
-  width:100%;
-  flex:1 1 0;
-  min-height:0;
-  display:grid;
-  background:white;
-  border:2px solid #555;
-}
-
-.area-cell{
-  border-right:1px solid #888;
-  border-bottom:1px solid #888;
-}
-
-.number-stack{
-  width:100%;
-  height:100%;
-  min-height:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:4px;
-  overflow:hidden;
-}
-
-.number-row{
-  display:flex;
-  align-items:center;
-  gap:4px;
-  flex:1 1 0;
-  min-height:0;
-}
-
-.number-line{
-  flex:1;
-  display:grid;
-  height:14px;
-  border-bottom:3px solid #222;
-}
-
-.number-cell{
-  border-left:1px solid #222;
-  position:relative;
-  height:14px;
-}
-
-.number-cell:last-child{
-  border-right:1px solid #222;
-}
-
-.number-cell::after{
-  content:"";
-  position:absolute;
-  left:-1px;
-  bottom:-4px;
-  height:9px;
-  width:2px;
-  background:#222;
-}
-
-.number-cell:last-child::before{
-  content:"";
-  position:absolute;
-  right:-1px;
-  bottom:-4px;
-  height:9px;
-  width:2px;
-  background:#222;
-}
-
-.set-wrap{
-  width:100%;
-  height:100%;
-  min-height:0;
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  overflow:hidden;
-}
-
-.set-whole{
-  min-width:0;
-  max-width:220px;
-  flex:1 1 118px;
-  max-height:100%;
-  overflow:hidden;
-  display:grid;
-  gap:5px;
-  padding:5px;
-  border:2px solid #aaa;
-  border-radius:12px;
-  background:#fff8ef;
-}
-
-.set-item{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:0;
-  background:transparent;
-}
-
-.set-shape{
-  font-size:clamp(20px, 2.3vw, 40px);
-  line-height:1;
-  color:white;
-  -webkit-text-stroke:1.5px #111;
-  text-shadow:
-    0 2px 0 rgba(0,0,0,.35),
-    0 0 2px #111;
-}
-
-.set-shape.fill-red{
-  color:var(--red);
-  -webkit-text-stroke:1.4px #111;
-}
-
-.set-shape.fill-blue{
-  color:var(--blue);
-  -webkit-text-stroke:1.4px #111;
-}
-
-.circle-wrap{
-  width:100%;
-  height:100%;
-  min-height:0;
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  overflow:hidden;
-}
-
-.circle-model{
-  width:50px;
-  height:50px;
-  border-radius:50%;
-  border:2px solid #555;
-  background:white;
-  position:relative;
-  overflow:hidden;
-}
-
-.circle-spoke{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:4px;
-  height:50%;
-  background:#111;
-  transform-origin:50% 0%;
-  border-radius:999px;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.55),
-    0 0 5px rgba(0,0,0,.75);
-  z-index:5;
-  pointer-events:none;
-}
-
-.circle-center-dot{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:8px;
-  height:8px;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  background:#111;
-  box-shadow:0 0 0 1px rgba(255,255,255,.7);
-  z-index:6;
-  pointer-events:none;
-}
-
-.fill-red{background:var(--red)!important;}
-.fill-blue{background:var(--blue)!important;}
-
-.overlay{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:90;
-}
-
-.pow{
-  min-width:390px;
-  max-width:760px;
-  padding:26px 30px;
-  text-align:center;
-  color:white;
-  border:6px solid white;
-  opacity:0;
-  transform:scale(.72);
-  transition:.18s;
-  text-shadow:0 3px 0 rgba(0,0,0,.45);
-  box-shadow:0 14px 28px rgba(0,0,0,.4);
-  clip-path:polygon(50% 0%,59% 12%,74% 4%,73% 18%,92% 14%,84% 30%,100% 34%,90% 49%,100% 63%,83% 69%,92% 86%,73% 82%,74% 96%,59% 88%,50% 100%,41% 88%,26% 96%,27% 82%,8% 86%,17% 69%,0% 63%,10% 49%,0% 34%,16% 30%,8% 14%,27% 18%,26% 4%,41% 12%);
-}
-
-.pow.show{
-  opacity:1;
-  transform:scale(1);
-}
-
-.pow.orange{background:linear-gradient(180deg,#ffbc45,#ff7800);}
-.pow.green{background:linear-gradient(180deg,#8cf966,#35b715);}
-.pow.red{background:linear-gradient(180deg,#ff8b8b,#dc2020);}
-.pow.blue{background:linear-gradient(180deg,#69b9ff,#176ce8);}
-
-.pow-big{
-  font-size:44px;
-  font-weight:1000;
-  line-height:1;
-  text-transform:uppercase;
-}
-
-.pow-small{
-  font-size:23px;
-  font-weight:1000;
-  margin-top:8px;
-}
-
-.lesson-overlay,.rules-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.58);
-  z-index:100;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-}
-
-.lesson-card,.rules-card{
-  width:min(760px,94vw);
-  background:white;
-  color:#111;
-  border:7px solid #111;
-  border-radius:30px;
-  padding:24px;
-  box-shadow:0 18px 42px rgba(0,0,0,.48);
-  text-align:center;
-}
-
-.lesson-title,.rules-title{
-  font-size:46px;
-  font-weight:1000;
-  color:#df2525;
-  line-height:1;
-}
-
-.lesson-sub{
-  font-size:22px;
-  font-weight:1000;
-  margin:12px 0 18px;
-}
-
-.rules-text{
-  font-size:21px;
-  font-weight:900;
-  line-height:1.35;
-  text-align:left;
-  max-width:620px;
-  margin:18px auto;
-}
-
-.fit-strip{
-  width:min(520px,88%);
-  height:72px;
-  margin:0 auto 16px;
-  border:4px solid #111;
-  display:grid;
-  background:#fff7df;
-}
-
-.fit-cell{
-  border-right:1px solid rgba(0,0,0,.38);
-}
-
-.fit-cell:last-child{
-  border-right:none;
-}
-
-.fit-cell.need{
-  background:linear-gradient(180deg,#fff17a,#ffcc25);
-}
-
-.fit-answer{
-  display:flex;
-  justify-content:center;
-  gap:18px;
-  flex-wrap:wrap;
-  margin-bottom:18px;
-}
-
-.answer-pill{
-  background:#111;
-  color:white;
-  border-radius:18px;
-  padding:10px 18px;
-  font-size:25px;
-  font-weight:1000;
-}
-
-.continue-btn,.close-rules-btn{
-  border:0;
-  border-radius:999px;
-  padding:12px 28px;
-  font-size:19px;
-  font-weight:1000;
-  background:#111;
-  color:white;
-  cursor:pointer;
-}
-
-.continue-btn{
-  opacity:.42;
-}
-
-.continue-btn.ready{
-  opacity:1;
-}
-
-.victory-banner{
-  position:fixed;
-  top:116px;
-  left:50%;
-  transform:translateX(-50%) scale(.8);
-  z-index:95;
-  width:min(720px,70vw);
-  min-height:172px;
-  display:none;
-  grid-template-columns:1fr 160px;
-  gap:14px;
-  align-items:center;
-  padding:18px 22px;
-  border:7px solid var(--yellow);
-  border-radius:30px;
-  background:linear-gradient(135deg,#111,#372100);
-  box-shadow:0 18px 44px rgba(0,0,0,.55);
-}
-
-.victory-banner.show{
-  display:grid;
-  animation:victoryPop .25s forwards;
-}
-
-@keyframes victoryPop{
-  from{opacity:0;transform:translateX(-50%) scale(.75);}
-  to{opacity:1;transform:translateX(-50%) scale(1);}
-}
-
-.victory-text{
-  font-size:36px;
-  font-weight:1000;
-  line-height:1.05;
-}
-
-.victory-banner img{
-  max-width:150px;
-  max-height:150px;
-  object-fit:contain;
-}
-
-@media(max-width:1400px){
-  .game{grid-template-rows:116px 1fr;}
-  .topbar{grid-template-columns:230px 1fr 230px;}
-  .score-card{height:98px;}
-  .logo-zone img{max-height:132px;}
-  .main{grid-template-columns:225px 1fr 225px;}
-  .player-panel{grid-template-rows:minmax(0,1fr) 32px 158px;}
-  .trick-title{font-size:16px;}
-  .trick-btn{height:42px;font-size:14px;}
-  .side-mascot{
-    width:88%;
-    bottom:176px;
-  }
-  .frac-card{width:78px;height:42px;font-size:20px;}
-  .circle-model{width:46px;height:46px;}
-  .t-head{font-size:9px;}
-  .set-shape{font-size:clamp(18px, 2.1vw, 34px);}
-}
-
-
-.trash-overlay{
-  position:fixed;
-  inset:0;
-  z-index:120;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  background:
-    radial-gradient(circle at 50% 45%, rgba(255,135,0,.18), transparent 26%),
-    radial-gradient(circle at 52% 52%, rgba(64,201,31,.12), transparent 28%),
-    rgba(0,0,0,.78);
-  overflow:hidden;
-}
-
-.trash-overlay::before,
-.trash-overlay::after{
-  content:"";
-  position:absolute;
-  width:170px;
-  height:170px;
-  border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,.05) 45%, transparent 72%);
-  filter:blur(2px);
-  opacity:.7;
-  animation:smokeDrift 4s infinite ease-in-out;
-}
-
-.trash-overlay::before{
-  left:18%;
-  bottom:12%;
-}
-
-.trash-overlay::after{
-  right:16%;
-  top:16%;
-  animation-delay:-1.5s;
-}
-
-@keyframes smokeDrift{
-  0%{transform:translate(0,0) scale(.75); opacity:.25;}
-  45%{transform:translate(18px,-28px) scale(1.08); opacity:.58;}
-  100%{transform:translate(-10px,-58px) scale(1.25); opacity:.08;}
-}
-
-.trash-card{
-  position:relative;
-  width:min(620px,92vw);
-  border:7px solid white;
-  border-radius:34px;
-  padding:24px 28px 26px;
-  text-align:center;
-  color:white;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,255,255,.18), transparent 30%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 3px, transparent 3px 14px),
-    linear-gradient(180deg,#2b1111,#07090f 62%,#101824);
-  box-shadow:0 24px 60px rgba(0,0,0,.68),0 0 0 7px rgba(255,135,0,.28);
-  text-shadow:0 4px 0 rgba(0,0,0,.55);
-  overflow:hidden;
-}
-
-.trash-card::before{
-  content:"";
-  position:absolute;
-  inset:-30%;
-  background:radial-gradient(circle at 50% 50%, rgba(255,216,61,.16), transparent 28%);
-  animation:trashGlow 1.8s infinite alternate;
-  pointer-events:none;
-}
-
-@keyframes trashGlow{
-  from{transform:scale(.92); opacity:.3;}
-  to{transform:scale(1.08); opacity:.82;}
-}
-
-.trash-modal-img{
-  position:relative;
-  z-index:2;
-  width:118px;
-  height:118px;
-  object-fit:contain;
-  filter:drop-shadow(0 12px 10px rgba(0,0,0,.55));
-  animation:trashShake .18s infinite;
-}
-
-.trash-title{
-  position:relative;
-  z-index:2;
-  font-size:46px;
-  font-weight:1000;
-  color:#ffdf4c;
-  line-height:.95;
-  text-transform:uppercase;
-  margin-top:4px;
-}
-
-.trash-message{
-  position:relative;
-  z-index:2;
-  font-size:23px;
-  font-weight:1000;
-  line-height:1.25;
-  margin:12px auto 18px;
-  max-width:480px;
-}
-
-.trash-penalty{
-  display:inline-block;
-  position:relative;
-  z-index:2;
-  font-size:34px;
-  font-weight:1000;
-  color:white;
-  background:linear-gradient(180deg,#ff6a6a,#d41414);
-  border:4px solid white;
-  border-radius:20px;
-  padding:8px 18px;
-  transform:rotate(-3deg);
-  box-shadow:0 7px 0 rgba(0,0,0,.42);
-}
-
-.trash-continue-btn{
-  position:relative;
-  z-index:2;
-  margin-top:22px;
-  border:4px solid white;
-  border-radius:999px;
-  padding:12px 32px;
-  font-size:21px;
-  font-weight:1000;
-  color:#111;
-  background:linear-gradient(180deg,#ffe76a,#ff9d18);
-  cursor:pointer;
-  box-shadow:0 6px 0 rgba(0,0,0,.45);
-  text-transform:uppercase;
-}
-
-.trash-continue-btn:hover{
-  transform:translateY(-2px);
-}
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battle Clock!</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23ffe66d'/%3E%3Cstop offset='45%25' stop-color='%23ff9f1c'/%3E%3Cstop offset='100%25' stop-color='%235a189a'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23101018'/%3E%3Ccircle cx='32' cy='32' r='25' fill='url(%23g)' stroke='%23ffffff' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%23101018'/%3E%3Cpath d='M32 32 L32 15' stroke='%23101018' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M32 32 L45 39' stroke='%23101018' stroke-width='4.5' stroke-linecap='round'/%3E%3Ctext x='32' y='55' text-anchor='middle' font-family='Arial, sans-serif' font-size='14' font-weight='900' fill='%23ffffff'%3EBC!%3C/text%3E%3C/svg%3E" />
+
+  <style>
+    :root {
+      --bg: #101018;
+      --panel: #1b1b29;
+      --panel2: #252538;
+      --text: #f5f5f5;
+      --muted: #b8b8c8;
+      --p1: #20d7ff;
+      --p2: #ff4dd8;
+      --gold: #ffd166;
+      --danger: #ff5c5c;
+      --green: #7bed9f;
+      --neutral: #3b3b52;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255, 209, 102, 0.16) 0%, transparent 24%),
+        radial-gradient(circle at 88% 18%, rgba(255, 77, 216, 0.16) 0%, transparent 26%),
+        radial-gradient(circle at 50% 82%, rgba(32, 215, 255, 0.12) 0%, transparent 32%),
+        linear-gradient(135deg, #07070b 0%, #151522 42%, #050509 100%);
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      opacity: 0.42;
+      background-image:
+        linear-gradient(112deg, transparent 0 16%, rgba(255,255,255,0.18) 16.2%, transparent 17%),
+        linear-gradient(25deg, transparent 0 38%, rgba(255,255,255,0.11) 38.2%, transparent 39%),
+        linear-gradient(145deg, transparent 0 62%, rgba(255,255,255,0.09) 62.2%, transparent 63%),
+        linear-gradient(75deg, transparent 0 78%, rgba(255,255,255,0.12) 78.2%, transparent 79%);
+      background-size: 420px 260px, 520px 310px, 370px 230px, 610px 350px;
+      background-position: 30px 20px, 180px 110px, 80px 320px, 330px 40px;
+      mix-blend-mode: screen;
+    }
+
+    body::after {
+      opacity: 0.20;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.45) 0 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(255,209,102,0.32) 0 1px, transparent 1.6px),
+        linear-gradient(90deg, rgba(255,255,255,0.04), transparent 18%, rgba(0,0,0,0.12) 40%, transparent 72%);
+      background-size: 29px 31px, 47px 53px, 100% 7px;
+      filter: contrast(130%);
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100vw;
+      height: 100vh;
+      padding: clamp(12px, 1.4vw, 22px);
+      display: grid;
+      grid-template-columns: minmax(560px, 1fr) minmax(380px, 460px);
+      gap: clamp(14px, 1.4vw, 24px);
+    }
+
+    .board-panel,
+    .control-panel {
+      min-height: 0;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.04), transparent 24%, rgba(0,0,0,0.15) 60%),
+        rgba(15, 15, 25, 0.93);
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: clamp(18px, 1.8vw, 28px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.58), inset 0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .board-panel::before,
+    .control-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.27;
+      background-image:
+        linear-gradient(120deg, transparent 10%, rgba(255,255,255,0.22) 10.6%, transparent 11.4%),
+        linear-gradient(40deg, transparent 55%, rgba(255,255,255,0.12) 55.5%, transparent 56.2%),
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.18) 0 1px, transparent 2px),
+        radial-gradient(circle at 90% 75%, rgba(255,209,102,0.18) 0 1px, transparent 2px);
+      background-size: 500px 240px, 440px 320px, 38px 38px, 54px 54px;
+    }
+
+    .board-panel {
+      padding: clamp(14px, 1.5vw, 24px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: clamp(8px, 1vw, 16px);
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 5vw, 5.8rem);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 0.88;
+      color: #fff1a8;
+      text-shadow:
+        4px 4px 0 #111,
+        -2px 2px 0 #5a189a,
+        0 0 18px rgba(255, 209, 102, 0.58),
+        0 0 34px rgba(255, 77, 216, 0.24);
+      transform: rotate(-1deg);
+    }
+
+
+    .title-logo {
+      display: block;
+      width: min(620px, 44vw);
+      max-height: 150px;
+      object-fit: contain;
+      object-position: left center;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      color: #fff1a8;
+      font-weight: 900;
+      font-size: clamp(0.75rem, 1.1vw, 0.95rem);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      background: rgba(255, 209, 102, 0.12);
+      border: 1px solid rgba(255, 209, 102, 0.34);
+      box-shadow: 0 0 14px rgba(255, 209, 102, 0.13);
+    }
+
+    .top-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 46px;
+      font-weight: 950;
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, #34344c, #242436);
+      border: 2px solid rgba(255,255,255,0.10);
+      transition: transform 0.08s ease, filter 0.15s ease, opacity 0.15s ease;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.35), inset 0 0 16px rgba(255,255,255,0.07);
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background-image:
+        linear-gradient(110deg, transparent 0 30%, rgba(255,255,255,0.45) 31%, transparent 32%),
+        radial-gradient(circle, rgba(255,255,255,0.35) 0 1px, transparent 1.4px);
+      background-size: 180px 90px, 24px 25px;
+    }
+
+    button:hover:not(:disabled) { transform: translateY(-2px) rotate(-0.5deg); filter: brightness(1.14) saturate(1.12); }
+    button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.35), inset 0 0 16px rgba(255,255,255,0.07); }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    .primary { background: linear-gradient(135deg, #ffb703, #fb8500); color: #1c1200; }
+    .danger { background: linear-gradient(135deg, #ff5c5c, #b51730); }
+    .blue { background: linear-gradient(135deg, #20d7ff, #0077b6); color: #06131a; }
+    .pink { background: linear-gradient(135deg, #ff4dd8, #9b2cff); }
+    .green { background: linear-gradient(135deg, #7bed9f, #2ecc71); color: #06170b; }
+    .shield { background: linear-gradient(135deg, #ffd166, #8ecae6); color: #141414; }
+    .dash { background: linear-gradient(135deg, #c77dff, #5a189a); color: #ffffff; }
+    .quarter { background: linear-gradient(135deg, #fff200, #ff006e); color: #190014; }
+
+    .clock-zone {
+      position: relative;
+      z-index: 2;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(4px, 1vw, 16px);
+    }
+
+    .clock-zone::before {
+      content: "";
+      position: absolute;
+      width: min(78vh, 68vw);
+      height: min(78vh, 68vw);
+      border-radius: 50%;
+      background:
+        conic-gradient(from 12deg, rgba(255,209,102,0.0), rgba(255,209,102,0.24), rgba(32,215,255,0.10), rgba(255,77,216,0.20), rgba(255,209,102,0.0));
+      filter: blur(18px);
+      opacity: 0.45;
+      animation: arenaGlow 4s linear infinite;
+    }
+
+    @keyframes arenaGlow { to { transform: rotate(360deg); } }
+
+    svg {
+      width: min(78vh, 68vw);
+      max-width: 100%;
+      max-height: calc(100vh - 150px);
+      height: auto;
+      display: block;
+      overflow: visible;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 18px 35px rgba(0,0,0,0.6));
+    }
+
+    .control-panel {
+      padding: clamp(12px, 1.4vw, 20px);
+      display: grid;
+      grid-template-rows: auto minmax(360px, 1.1fr) minmax(160px, 0.65fr);
+      gap: clamp(10px, 1vw, 16px);
+    }
+
+    .panel-title {
+      position: relative;
+      z-index: 2;
+      color: var(--gold);
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: clamp(0.9rem, 1.2vw, 1.15rem);
+    }
+
+    .players {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .player {
+      border-radius: 18px;
+      padding: 14px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.045), transparent 28%, rgba(0,0,0,0.16) 70%),
+        rgba(23, 23, 36, 0.95);
+      border: 2px solid rgba(255,255,255,0.10);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.35), inset 0 0 20px rgba(0,0,0,0.18);
+    }
+
+    .player.active.p1 { border-color: var(--p1); box-shadow: 0 0 24px rgba(32, 215, 255, 0.30); }
+    .player.active.p2 { border-color: var(--p2); box-shadow: 0 0 24px rgba(255, 77, 216, 0.30); }
+
+    .player h2 { margin: 0 0 10px; font-size: clamp(1rem, 1.4vw, 1.3rem); }
+    .stat { display: flex; justify-content: space-between; gap: 10px; margin: 7px 0; color: var(--muted); font-size: clamp(0.88rem, 1vw, 1rem); }
+    .stat strong { color: white; }
+
+    .actions-panel {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .action-title { margin-bottom: 10px; }
+
+
+    .kids-art-panel {
+      position: relative;
+      z-index: 2;
+      min-height: 150px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      overflow: visible;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .kids-art-panel img {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      object-position: center bottom;
+      display: block;
+      filter: saturate(1.08) contrast(1.03);
+    }
+
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(3, minmax(70px, 1fr));
+      gap: clamp(10px, 1vw, 14px);
+      min-height: 0;
+    }
+
+    .actions button {
+      min-height: 70px;
+      font-size: clamp(0.84rem, 1.05vw, 1rem);
+      line-height: 1.12;
+      padding: 12px;
+    }
+
+    .modal, .winner, .how-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.42);
+      z-index: 20;
+      align-items: center;
+      justify-content: flex-end;
+      padding: clamp(16px, 3vw, 54px);
+      pointer-events: none;
+    }
+
+    .modal-card, .winner-card, .how-card {
+      width: min(440px, 92vw);
+      max-height: 88vh;
+      overflow-y: auto;
+      background: rgba(24, 24, 38, 0.90);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255, 209, 102, 0.8);
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: 0 0 70px rgba(255, 209, 102, 0.35);
+      pointer-events: auto;
+      position: relative;
+    }
+
+    .how-card {
+      width: min(680px, 92vw);
+    }
+
+    .modal-card h2, .how-card h2 {
+      font-size: 2rem;
+      margin: 0 0 10px;
+      text-transform: uppercase;
+    }
+
+    .modal-card p, .how-card p, .how-card li {
+      color: #e8e8ef;
+      line-height: 1.45;
+    }
+
+    .how-card h3 {
+      margin: 18px 0 8px;
+      color: var(--gold);
+    }
+
+    .how-card ul { padding-left: 22px; }
+
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .choice-grid button {
+      font-size: 1.18rem;
+      padding: 13px 8px;
+    }
+
+    .answer-input {
+      width: 100%;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: white;
+      font-size: 2rem;
+      font-weight: 950;
+      padding: 14px;
+      margin-top: 12px;
+      text-align: center;
+      outline: none;
+    }
+
+    .answer-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .answer-row button { flex: 1; }
+
+    .feedback-title.correct { color: var(--green); }
+    .feedback-title.wrong { color: var(--danger); }
+
+    .reveal-box {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 14px;
+      margin-top: 16px;
+      font-weight: 800;
+    }
+
+    .winner {
+      background: rgba(0,0,0,0.28);
+    }
+
+    .winner-card {
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .winner-card h2 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      margin: 0 0 12px;
+      text-transform: uppercase;
+    }
+
+    .winner-card p {
+      font-size: 1.05rem;
+      color: #f2f2f7;
+    }
+
+    .victory-clock {
+      width: 150px;
+      height: 150px;
+      margin: 16px auto;
+      position: relative;
+      border: 10px solid var(--gold);
+      border-radius: 50%;
+      box-shadow: 0 0 28px rgba(255, 209, 102, 0.65), inset 0 0 20px rgba(255,255,255,0.08);
+      background: radial-gradient(circle, #262640, #11111f);
+      animation: pulseClock 1s infinite alternate ease-in-out;
+    }
+
+    .victory-clock::before, .victory-clock::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-origin: 0 0;
+      border-radius: 999px;
+      background: white;
+    }
+
+    .victory-clock::before {
+      width: 58px;
+      height: 8px;
+      transform: rotate(-90deg);
+      animation: spinMinute 2s linear infinite;
+    }
+
+    .victory-clock::after {
+      width: 42px;
+      height: 12px;
+      background: var(--gold);
+      transform: rotate(-35deg);
+      animation: spinHour 8s linear infinite;
+    }
+
+    .confetti {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .confetti span {
+      position: absolute;
+      width: 9px;
+      height: 15px;
+      top: -20px;
+      opacity: 0.95;
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-30px) rotate(0deg); }
+      100% { transform: translateY(620px) rotate(720deg); }
+    }
+
+    @keyframes pulseClock { from { transform: scale(1); } to { transform: scale(1.06); } }
+    @keyframes spinMinute { to { transform: rotate(270deg); } }
+    @keyframes spinHour { to { transform: rotate(325deg); } }
+
+    .territory-label {
+      font-size: 18px;
+      font-weight: 950;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: white;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: rgba(0,0,0,0.75);
+      stroke-width: 4px;
+    }
+
+    .tick { stroke: #d8d8e8; stroke-linecap: round; opacity: 0.78; }
+    .tick.big { stroke-width: 4; opacity: 0.95; }
+    .tick.small { stroke-width: 1.5; }
+
+    .territory {
+      transition: 0.2s;
+    }
+
+    .hand { stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
+    .center-dot { fill: var(--gold); stroke: #111; stroke-width: 4; }
+
+    .territory-token {
+      font-size: 22px;
+      font-weight: 950;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: #111;
+      pointer-events: none;
+    }
+
+    .small { font-size: 0.85rem; color: var(--muted); }
+
+    @media (max-width: 1000px) {
+      .app {
+        grid-template-columns: 1fr 360px;
+      }
+      .actions {
+        grid-template-rows: repeat(3, minmax(70px, 1fr));
+      }
+      .actions button {
+        min-height: 62px;
+        font-size: 0.78rem;
+      }
+    }
+  </style>
 </head>
-
 <body>
-<div class="game" id="game">
-  <div class="topbar">
-    <div class="score-card orange">
-      <div class="score-name">JACKAL</div>
-      <div class="score-sub">JACK POINTS</div>
-      <div class="score-num" id="orangeScore">0</div>
-    </div>
-
-    <div class="logo-zone">
-      <img src="frac-jack-logo.png" alt="Frac Jack Logo">
-    </div>
-
-    <div class="score-card green">
-      <div class="score-name">JACKRABBIT</div>
-      <div class="score-sub">JACK POINTS</div>
-      <div class="score-num" id="greenScore">0</div>
-    </div>
-  </div>
-
-  <div class="main">
-    <aside class="player-panel orange active" id="orangePanel">
-      <img class="side-mascot orange-mascot" src="./jackal-orange.png" data-fallbacks="jackal-orange.png|orange-jackal.png|jackal.png|Jackal-orange.png|jackal-orange.PNG|jackal-orange.webp" alt="Jackal">
-
-      <div></div>
-
-      <div class="trick-title">JACK TRICKS</div>
-
-      <div class="trick-stack">
-        <button class="trick-btn" id="orange-hint" data-player="orange" data-trick="hint">Hint</button>
-        <button class="trick-btn" id="orange-refrac" data-player="orange" data-trick="refrac">Re-Frac</button>
-        <button class="trick-btn" id="orange-jackback" data-player="orange" data-trick="jackback">Jackback</button>
-      </div>
-    </aside>
-
-    <main class="center">
-      <div class="status-row">
-        <div class="timer" id="timerCard">--:--</div>
-
-        <div class="turn-burst orange" id="turnBurst">
-          READY?
+  <div class="app">
+    <main class="board-panel">
+      <div class="topbar">
+        <div>
+          <img class="title-logo" src="battle-clock-title.png" alt="Battle Clock!" />
+          <div class="subtitle">A Tim Bedley Learning Game</div>
         </div>
-
-        <div class="info">
-          <button class="control-btn start-btn" id="startBtn">Start</button>
-          <button class="control-btn" id="rulesBtn">Rules</button>
-          <button class="control-btn" id="levelsBtn">Levels</button>
-          <select class="level-select" id="levelSelect">
-            <option value="1">Level 1</option>
-            <option value="2" selected>Level 2</option>
-            <option value="3">Level 3</option>
-            <option value="4">Level 4</option>
-            <option value="5">Level 5</option>
-          </select>
-          <button class="control-btn" id="newGameBtn">New</button>
+        <div class="top-buttons">
+          <button onclick="openHowToPlay()">Rules</button>
+          <button class="primary" onclick="newGame()">New Game</button>
         </div>
       </div>
 
-      <div class="fraction-row hidden" id="fractionRow"></div>
-
-      <div class="territories" id="territories"></div>
+      <div class="clock-zone">
+        <svg id="clock" viewBox="0 0 700 700" aria-label="Battle Clock game board"></svg>
+      </div>
     </main>
 
-    <aside class="player-panel green" id="greenPanel">
-      <img class="side-mascot green-mascot" src="./jackrabbit-green.png" data-fallbacks="jackrabbit-green.png|green-jackrabbit.png|jackrabbit.png|Jackrabbit-green.png|jackrabbit-green.PNG|jackrabbit-green.webp" alt="Jackrabbit">
+    <aside class="control-panel">
+      <div class="players">
+        <div class="player p1 active" id="p1Panel">
+          <h2>Player 1</h2>
+          <div class="stat"><span>Energy</span><strong id="p1Energy">500</strong></div>
+          <div class="stat"><span>Territories</span><strong id="p1Territories">0</strong></div>
+          <div class="stat"><span>Late Captures</span><strong id="p1Late">0</strong></div>
+        </div>
 
-      <div></div>
-
-      <div class="trick-title">JACK TRICKS</div>
-
-      <div class="trick-stack">
-        <button class="trick-btn" id="green-hint" data-player="green" data-trick="hint">Hint</button>
-        <button class="trick-btn" id="green-refrac" data-player="green" data-trick="refrac">Re-Frac</button>
-        <button class="trick-btn" id="green-jackback" data-player="green" data-trick="jackback">Jackback</button>
+        <div class="player p2" id="p2Panel">
+          <h2>Player 2</h2>
+          <div class="stat"><span>Energy</span><strong id="p2Energy">500</strong></div>
+          <div class="stat"><span>Territories</span><strong id="p2Territories">0</strong></div>
+          <div class="stat"><span>Late Captures</span><strong id="p2Late">0</strong></div>
+        </div>
       </div>
+
+      <section class="actions-panel">
+        <div class="panel-title action-title">Choose Your Battle Move</div>
+        <div class="actions">
+          <button class="quarter" onclick="startQuarterPower()">Quarter Power Up<br><span style="font-size:.78em;">±25% Energy</span></button>
+          <button class="green" onclick="startAction('harvest')">Harvest Minute Energy<br><span style="font-size:.78em;">Earns Energy</span></button>
+          <button class="dash" onclick="startAction('countdown')">Countdown Dash<br><span style="font-size:.78em;">Earns 1.5×</span></button>
+          <button class="blue" onclick="startAction('capture')">Capture Current Hour<br><span style="font-size:.82em;">Cost: 1500 Energy</span></button>
+          <button class="danger" onclick="startAction('challenge')">Challenge Territory<br><span style="font-size:.82em;">Cost: 2200 Energy</span></button>
+          <button class="shield" onclick="startAction('fortify')">Fortify Territory<br><span style="font-size:.82em;">Cost: 1000 Energy</span></button>
+        </div>
+      </section>
+
+      <section class="kids-art-panel" aria-label="Two students celebrating Battle Clock">
+        <img src="battle-clock-kids-clean.png" alt="Two kids celebrating with fists raised for Battle Clock" />
+      </section>
     </aside>
   </div>
-</div>
 
-<div class="overlay">
-  <div class="pow" id="powPopup">
-    <div class="pow-big" id="powBig"></div>
-    <div class="pow-small" id="powSmall"></div>
-  </div>
-</div>
-
-<div class="lesson-overlay" id="lessonOverlay">
-  <div class="lesson-card">
-    <div class="lesson-title" id="lessonTitle">HIJACKED!</div>
-    <div class="lesson-sub" id="lessonSub">This amount would have filled it.</div>
-    <div class="fit-strip" id="fitStrip"></div>
-    <div class="fit-answer" id="fitAnswer"></div>
-    <button class="continue-btn" id="continueBtn">Continue</button>
-  </div>
-</div>
-
-<div class="rules-overlay" id="rulesOverlay">
-  <div class="rules-card">
-    <div class="rules-title">How to Play</div>
-    <div class="rules-text">
-      Pick one fraction and place it in a territory. Legal moves earn Jack Points.
-      Complete a territory to earn a big bonus. Go over, and your opponent hijacks the territory.
-      Some fractions do not fit some models. If it does not fit, your turn ends.
-      You may also toss a fraction into Frac Trash and get a replacement. If that fraction could have been played, lose 50 Jack Points.
-      Use Hint to reveal one legal move. Highest Jack Points wins when all territories are claimed.
+  <div class="modal" id="answerModal">
+    <div class="modal-card">
+      <h2 id="answerTitle">Declare Your Move</h2>
+      <p id="answerPrompt"></p>
+      <div id="answerArea"></div>
     </div>
-    <button class="close-rules-btn" id="closeRulesBtn">Close</button>
   </div>
-</div>
 
-
-
-<div class="trash-overlay" id="trashOverlay">
-  <div class="trash-card">
-    <img class="trash-modal-img" src="./frac-trash.png" alt="" draggable="false" onerror="this.style.display='none';">
-    <div class="trash-title">Not Frac Trash!</div>
-    <div class="trash-message">
-      That fraction still had a place to go.<br>
-      The trash can is offended.
+  <div class="modal" id="feedbackModal">
+    <div class="modal-card">
+      <h2 id="feedbackTitle" class="feedback-title">Result</h2>
+      <p id="feedbackMessage"></p>
+      <div class="reveal-box" id="revealBox"></div>
+      <div class="answer-row">
+        <button class="primary" onclick="continueAfterFeedback()">Continue</button>
+      </div>
     </div>
-    <div class="trash-penalty">-50 JACK POINTS</div><br>
-    <button class="trash-continue-btn" id="trashContinueBtn">Continue</button>
   </div>
-</div>
 
-<div class="victory-banner" id="victoryBanner">
-  <div class="victory-text" id="victoryText">Jackal is the Frac Jack Champ!</div>
-  <img id="victoryImg" src="jackal-orange.png" alt="Winner">
-</div>
+  <div class="winner" id="winnerOverlay">
+    <div class="winner-card">
+      <div class="confetti" id="confetti"></div>
+      <h2 id="winnerText">Player Wins!</h2>
+      <div class="victory-clock"></div>
+      <p id="winnerSubtext"></p>
+      <button class="primary" onclick="newGame()">Play Again</button>
+    </div>
+  </div>
 
-<script>
-var players={
-  orange:{name:"Jackal",points:0,img:"jackal-orange.png"},
-  green:{name:"Jackrabbit",points:0,img:"jackrabbit-green.png"}
-};
+  <div class="how-modal" id="howModal">
+    <div class="how-card">
+      <h2>Rules</h2>
+      <p><strong>Goal:</strong> Be the first player to control 4 Hour Territories. At least one capture must happen during a Late Hour time, on or after 45 past the hour.</p>
 
-var currentPlayer="orange";
-var currentFractions=[];
-var selectedFractionIndex=0;
-var territories=[];
-var gameLocked=true;
-var gameStarted=false;
-var pendingTrick=null;
-var timer=30;
-var timerId=null;
-var moveChunkIndex=0;
-var victoryReached=false;
-var soundOn=true;
+      <h3>The Big Clock Idea</h3>
+      <p>The time is hidden while you make your move. You have to read the analog clock to power your strategy.</p>
+      <p>At <strong>5:58</strong>, the short hand is close to 6, but the active territory is still <strong>5</strong>. The 6 Territory opens only when the minute hand reaches the top.</p>
 
-var trickUsed={
-  orange:{hint:false,refrac:false,jackback:false},
-  green:{hint:false,refrac:false,jackback:false}
-};
+      <h3>Battle Moves</h3>
+      <ul>
+        <li><strong>Quarter Power Up:</strong> If the clock shows :15 or :45, choose the correct quarter phrase and hour. Correct answers add 25% of your current energy. If you try it when the clock is not :15 or :45, you lose 25% of your current energy. This bonus does not use up your regular turn.</li>
+        <li><strong>Harvest Minute Energy:</strong> Type how many minute ticks the long hand has traveled. The farther after the hour, the more energy you earn.</li>
+        <li><strong>Countdown Dash:</strong> Type how many minutes remain until the next hour opens. This is harder, so it pays about 1.5 times as much as Harvest Minute Energy.</li>
+        <li><strong>Capture Current Hour:</strong> Choose the active Hour Territory. Spend <strong>1500</strong> energy to capture it.</li>
+        <li><strong>Challenge Territory:</strong> Choose the active Hour Territory. If your opponent owns it, spend <strong>2200</strong> energy to attack it. If it is fortified, the shield breaks but the opponent keeps the territory.</li>
+        <li><strong>Fortify Territory:</strong> Choose the active Hour Territory. If you control it, spend <strong>1000</strong> energy to protect it from one successful challenge.</li>
+      </ul>
 
-var slots=["t1","t2","t3","t4","t5"];
-var models=["Bar Model","Set Model","Number Line","Area Model","Circle Model"];
-var shapes=["●","★","▲","■","◆","♥","⬟","⬢","⬤","◆","▲","★","●","■","♥","⬟","⬢","◆","★","●"];
+      <h3>Wrong Answers</h3>
+      <p>Wrong answers show the correct answer and why. The explanation stays on screen until the player clicks Continue.</p>
 
-function gcd(a,b){
-  a=Math.abs(a);b=Math.abs(b);
-  while(b){var t=b;b=a%b;a=t;}
-  return a||1;
-}
+      <div class="answer-row">
+        <button class="primary" onclick="closeHowToPlay()">Close</button>
+      </div>
+    </div>
+  </div>
 
-function simplify(n,d){
-  var g=gcd(n,d);
-  return {n:n/g,d:d/g};
-}
+  <script>
+    const svg = document.getElementById("clock");
 
-function fractionKey(f){
-  return f.n + "/" + f.d;
-}
-
-function displayFraction(f){
-  if(f.d===1)return String(f.n);
-  if(f.n>f.d && Math.random()<.5){
-    var w=Math.floor(f.n/f.d);
-    var r=f.n%f.d;
-    if(r===0)return String(w);
-    return w+" "+r+"/"+f.d;
-  }
-  return f.n+"/"+f.d;
-}
-
-function fractionText(f){
-  return f.display || f.n+"/"+f.d;
-}
-
-function shuffle(a){
-  var c=a.slice();
-  for(var i=c.length-1;i>0;i--){
-    var j=Math.floor(Math.random()*(i+1));
-    var t=c[i];c[i]=c[j];c[j]=t;
-  }
-  return c;
-}
-
-function choose(a){
-  return a[Math.floor(Math.random()*a.length)];
-}
-
-function levelDenominators(){
-  var level=Number(document.getElementById("levelSelect").value);
-  if(level===1)return[2,3,4,6];
-  if(level===2)return[3,4,5,6,8];
-  if(level===3)return[4,5,6,8,10,12];
-  if(level===4)return[5,6,8,10,12,15];
-  return[6,8,10,12,15,20];
-}
-
-function denomWord(d){
-  var w={2:"halves",3:"thirds",4:"fourths",5:"fifths",6:"sixths",7:"sevenths",8:"eighths",9:"ninths",10:"tenths",11:"elevenths",12:"twelfths",15:"fifteenths",20:"twentieths"};
-  return w[d] || d+"ths";
-}
-
-function createTerritories(){
-  var dens=levelDenominators();
-  var m=shuffle(models);
-  var wholeCounts=[1,2,3,4,5];
-  var list=[];
-
-  for(var i=0;i<5;i++){
-    list.push({
-      id:i,
-      slot:slots[i],
-      name:"T"+(i+1),
-      model:m[i],
-      denominator:choose(dens),
-      wholes:wholeCounts[i],
-      filledUnits:0,
-      owner:null,
-      chunks:[]
-    });
-  }
-
-  return list;
-}
-
-function buildFractionPool(){
-  var dens=levelDenominators();
-  var level=Number(document.getElementById("levelSelect").value);
-  var pool=[];
-  var seen={};
-
-  dens.forEach(function(d){
-    var maxN=d-1;
-
-    if(level>=3){
-      maxN=Math.floor(d*1.5);
-    }
-
-    if(level>=5){
-      maxN=d*2;
-    }
-
-    for(var n=1;n<=maxN;n++){
-      var s=simplify(n,d);
-      var key=s.n+"/"+s.d;
-
-      if(!seen[key]){
-        seen[key]=true;
-        pool.push({n:s.n,d:s.d});
-      }
-    }
-  });
-
-  return shuffle(pool);
-}
-
-function finishFractionChoice(f,usedKeys){
-  var chosen={n:f.n,d:f.d};
-  chosen.display=displayFraction(chosen);
-  usedKeys[fractionKey(chosen)]=true;
-  return chosen;
-}
-
-function createFractionFromPool(usedKeys){
-  var pool=buildFractionPool();
-
-  for(var i=0;i<pool.length;i++){
-    var f=pool[i];
-    var key=fractionKey(f);
-
-    if(!usedKeys[key]){
-      return finishFractionChoice(f,usedKeys);
-    }
-  }
-
-  var fallback={n:1,d:2};
-  fallback.display="1/2";
-  return fallback;
-}
-
-function candidateHasLegalMove(f){
-  for(var i=0;i<territories.length;i++){
-    if(isLegalMove(f,territories[i]))return true;
-  }
-  return false;
-}
-
-function createSmartLegalFractionFromPool(usedKeys){
-  var pool=buildFractionPool();
-
-  // First try: legal replacement that is not already showing.
-  for(var i=0;i<pool.length;i++){
-    var f=pool[i];
-    var key=fractionKey(f);
-
-    if(!usedKeys[key] && candidateHasLegalMove(f)){
-      return finishFractionChoice(f,usedKeys);
-    }
-  }
-
-  // Endgame safety: if the only legal replacement is a duplicate, allow it.
-  // This prevents the trash can from giving another impossible fraction.
-  for(var j=0;j<pool.length;j++){
-    var f2=pool[j];
-    if(candidateHasLegalMove(f2)){
-      return finishFractionChoice(f2,usedKeys);
-    }
-  }
-
-  // Very rare fallback: no legal move exists anywhere.
-  return createFractionFromPool(usedKeys);
-}
-
-function rerollFractions(){
-  currentFractions=[];
-  var usedKeys={};
-
-  for(var i=0;i<3;i++){
-    currentFractions.push(createFractionFromPool(usedKeys));
-  }
-
-  selectedFractionIndex=0;
-  renderFractions();
-}
-
-function replaceSelectedFraction(){
-  replaceSelectedFractionSmart(false);
-}
-
-function replaceSelectedFractionSmart(requireLegalMove){
-  var usedKeys={};
-
-  currentFractions.forEach(function(f,index){
-    if(index!==selectedFractionIndex){
-      usedKeys[fractionKey(f)]=true;
-    }
-  });
-
-  currentFractions[selectedFractionIndex]=requireLegalMove ? createSmartLegalFractionFromPool(usedKeys) : createFractionFromPool(usedKeys);
-  selectedFractionIndex=0;
-}
-
-function setupNewGame(){
-  clearInterval(timerId);
-  players.orange.points=0;
-  players.green.points=0;
-  currentPlayer="orange";
-  selectedFractionIndex=0;
-  pendingTrick=null;
-  gameLocked=true;
-  gameStarted=false;
-  moveChunkIndex=0;
-  victoryReached=false;
-
-  trickUsed={
-    orange:{hint:false,refrac:false,jackback:false},
-    green:{hint:false,refrac:false,jackback:false}
-  };
-
-  territories=createTerritories();
-  document.getElementById("victoryBanner").classList.remove("show");
-  document.getElementById("timerCard").textContent="--:--";
-  document.getElementById("startBtn").style.display="inline-block";
-  document.getElementById("fractionRow").classList.add("hidden");
-
-  clearHints();
-  rerollFractions();
-  renderAll();
-  updateReadyUI();
-}
-
-function startGame(){
-  if(gameStarted || victoryReached)return;
-  gameStarted=true;
-  gameLocked=false;
-  document.getElementById("startBtn").style.display="none";
-  document.getElementById("fractionRow").classList.remove("hidden");
-  updateTurnUI();
-  startTimer();
-}
-
-function updateReadyUI(){
-  document.getElementById("orangePanel").classList.add("active");
-  document.getElementById("greenPanel").classList.remove("active");
-  var b=document.getElementById("turnBurst");
-  b.className="turn-burst orange";
-  b.innerHTML="READY?";
-}
-
-function renderAll(){
-  updateScores();
-  if(gameStarted){
-    updateTurnUI();
-  }
-  renderFractions();
-  renderTerritories();
-  renderTricks();
-}
-
-function updateScores(){
-  document.getElementById("orangeScore").textContent=players.orange.points;
-  document.getElementById("greenScore").textContent=players.green.points;
-}
-
-function updateTurnUI(){
-  document.getElementById("orangePanel").classList.toggle("active",currentPlayer==="orange");
-  document.getElementById("greenPanel").classList.toggle("active",currentPlayer==="green");
-
-  var b=document.getElementById("turnBurst");
-  if(currentPlayer==="orange"){
-    b.className="turn-burst orange";
-    b.innerHTML="JACKAL!";
-  }else{
-    b.className="turn-burst green";
-    b.innerHTML="JACKRABBIT!";
-  }
-}
-
-function renderFractions(){
-  var row=document.getElementById("fractionRow");
-  row.innerHTML="";
-
-  currentFractions.forEach(function(f,i){
-    var card=document.createElement("div");
-    card.className="frac-card";
-    if(i===selectedFractionIndex)card.classList.add("selected");
-    card.dataset.index=i;
-    var txt=fractionText(f);
-    card.innerHTML=txt.indexOf(" ")>=0 ? '<span class="mixed">'+txt+"</span>" : txt;
-
-    card.onclick=function(){
-      if(gameLocked||pendingTrick||!gameStarted)return;
-      clearHints();
-      selectedFractionIndex=Number(this.dataset.index);
-      renderFractions();
+    const state = {
+      currentPlayer: 1,
+      hour: 5,
+      minute: 58,
+      players: {
+        1: { energy: 500, lateCaptures: 0 },
+        2: { energy: 500, lateCaptures: 0 }
+      },
+      territories: {},
+      blocked: {},
+      fortified: {},
+      gameOver: false,
+      pendingNextTurn: true,
+      audioStarted: false,
+      pendingVictory: null,
+      quarterUsedThisTurn: false
     };
 
-    row.appendChild(card);
-  });
-
-  var trashBtn=document.createElement("button");
-  trashBtn.className="trash-can-btn";
-  trashBtn.id="trashCanBtn";
-  trashBtn.setAttribute("aria-label","Trash selected fraction");
-  trashBtn.innerHTML="<img class=\"trash-can-img\" src=\"./frac-trash.png\" alt=\"\" draggable=\"false\" onerror=\"this.style.display=\'none\';\">";
-  trashBtn.onclick=handleTrashClick;
-  row.appendChild(trashBtn);
-}
-
-function renderTricks(){
-  ["orange","green"].forEach(function(p){
-    ["hint","refrac","jackback"].forEach(function(t){
-      var btn=document.getElementById(p+"-"+t);
-      if(btn)btn.classList.toggle("used",trickUsed[p][t]);
-    });
-  });
-}
-
-function cellsFromChunks(t){
-  var total=t.denominator*t.wholes;
-  var cells=new Array(total).fill("");
-  var pos=0;
-
-  t.chunks.forEach(function(c){
-    for(var i=0;i<c.units&&pos<total;i++){
-      cells[pos]=c.color;
-      pos++;
-    }
-  });
-
-  return cells;
-}
-
-function renderTerritories(){
-  var area=document.getElementById("territories");
-  area.innerHTML="";
-
-  territories.forEach(function(t){
-    var card=document.createElement("div");
-    card.className="territory "+t.slot;
-    if(t.owner)card.classList.add(t.owner+"-owned");
-    card.dataset.id=t.id;
-
-    var head=document.createElement("div");
-    head.className="t-head";
-    head.innerHTML="<span>"+t.name+" · "+shortModelName(t.model)+"</span><span>"+t.wholes+" whole</span>";
-
-    var body=document.createElement("div");
-    body.className="t-body";
-    body.appendChild(renderModel(t));
-
-    if(t.owner){
-      var tag=document.createElement("div");
-      tag.className="jacked-tag";
-      tag.textContent="Jacked!";
-      body.appendChild(tag);
+    for (let h = 1; h <= 12; h++) {
+      state.territories[h] = 0;
+      state.blocked[h] = 0;
+      state.fortified[h] = false;
     }
 
-    var foot=document.createElement("div");
-    foot.className="t-foot";
-    foot.textContent=t.owner ? players[t.owner].name : "Open";
+    let audioCtx = null;
 
-    card.appendChild(head);
-    card.appendChild(body);
-    card.appendChild(foot);
-
-    card.onclick=function(){
-      if(gameLocked||!gameStarted)return;
-      clearHints();
-      handleTerritoryClick(Number(this.dataset.id));
-    };
-
-    area.appendChild(card);
-  });
-}
-
-function shortModelName(model){
-  if(model==="Bar Model")return "Bar";
-  if(model==="Set Model")return "Set";
-  if(model==="Number Line")return "Line";
-  if(model==="Area Model")return "Area";
-  return "Circle";
-}
-
-function renderModel(t){
-  if(t.model==="Bar Model")return renderBar(t);
-  if(t.model==="Set Model")return renderSet(t);
-  if(t.model==="Number Line")return renderNumber(t);
-  if(t.model==="Area Model")return renderArea(t);
-  return renderCircle(t);
-}
-
-function renderBar(t){
-  var cells=cellsFromChunks(t);
-  var wrap=document.createElement("div");
-  wrap.className="multi-wholes";
-
-  for(var w=0;w<t.wholes;w++){
-    var row=document.createElement("div");
-    row.className="whole-row";
-
-    var label=document.createElement("div");
-    label.className="whole-label";
-    label.textContent=w+1;
-
-    var bar=document.createElement("div");
-    bar.className="bar-model";
-    bar.style.gridTemplateColumns="repeat("+t.denominator+",1fr)";
-
-    for(var i=0;i<t.denominator;i++){
-      var c=document.createElement("div");
-      c.className="bar-cell";
-      var color=cells[w*t.denominator+i];
-      if(color)c.classList.add("fill-"+color);
-      bar.appendChild(c);
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      state.audioStarted = true;
     }
 
-    row.appendChild(label);
-    row.appendChild(bar);
-    wrap.appendChild(row);
-  }
-
-  return wrap;
-}
-
-function bestCols(d){
-  if(d===20)return 5;
-  if(d===15)return 5;
-  if(d===12)return 4;
-  if(d===10)return 5;
-  if(d===8)return 4;
-  if(d===6)return 3;
-  if(d===5)return 5;
-  if(d===4)return 4;
-  if(d===3)return 3;
-  return d;
-}
-
-function renderArea(t){
-  var cells=cellsFromChunks(t);
-  var wrap=document.createElement("div");
-  wrap.className="multi-wholes";
-
-  var cols=bestCols(t.denominator);
-  var rows=Math.ceil(t.denominator/cols);
-
-  for(var w=0;w<t.wholes;w++){
-    var whole=document.createElement("div");
-    whole.className="area-whole";
-    whole.style.gridTemplateColumns="repeat("+cols+",1fr)";
-    whole.style.gridTemplateRows="repeat("+rows+",1fr)";
-
-    for(var i=0;i<t.denominator;i++){
-      var c=document.createElement("div");
-      c.className="area-cell";
-      var color=cells[w*t.denominator+i];
-      if(color)c.classList.add("fill-"+color);
-      whole.appendChild(c);
+    function playTone(freq, duration, type = "sine", gainValue = 0.05, startOffset = 0) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startOffset);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime + startOffset);
+      gain.gain.linearRampToValueAtTime(gainValue, audioCtx.currentTime + startOffset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startOffset + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + startOffset);
+      osc.stop(audioCtx.currentTime + startOffset + duration + 0.03);
     }
 
-    wrap.appendChild(whole);
-  }
-
-  return wrap;
-}
-
-function renderNumber(t){
-  var cells=cellsFromChunks(t);
-  var stack=document.createElement("div");
-  stack.className="number-stack";
-
-  for(var w=0;w<t.wholes;w++){
-    var row=document.createElement("div");
-    row.className="number-row";
-
-    var label=document.createElement("div");
-    label.className="whole-label";
-    label.textContent=w;
-
-    var line=document.createElement("div");
-    line.className="number-line";
-    line.style.gridTemplateColumns="repeat("+t.denominator+",1fr)";
-
-    for(var i=0;i<t.denominator;i++){
-      var c=document.createElement("div");
-      c.className="number-cell";
-      var color=cells[w*t.denominator+i];
-      if(color)c.classList.add("fill-"+color);
-      line.appendChild(c);
+    function playVictoryMusic() {
+      ensureAudio();
+      const notes = [392, 494, 587, 784, 740, 784, 988, 1175, 988, 1175, 1568];
+      notes.forEach((n, i) => playTone(n, 0.22, i % 2 ? "sawtooth" : "square", 0.055, i * 0.18));
+      [196, 247, 294, 392].forEach((n, i) => playTone(n, 0.75, "sawtooth", 0.035, i * 0.36));
     }
 
-    row.appendChild(label);
-    row.appendChild(line);
-    stack.appendChild(row);
-  }
-
-  return stack;
-}
-
-function renderSet(t){
-  var cells=cellsFromChunks(t);
-  var wrap=document.createElement("div");
-  wrap.className="set-wrap";
-
-  for(var w=0;w<t.wholes;w++){
-    var group=document.createElement("div");
-    group.className="set-whole";
-    var cols=Math.ceil(Math.sqrt(t.denominator));
-    group.style.gridTemplateColumns="repeat("+cols+",1fr)";
-
-    for(var i=0;i<t.denominator;i++){
-      var item=document.createElement("div");
-      item.className="set-item";
-
-      var shape=document.createElement("div");
-      shape.className="set-shape";
-
-      var color=cells[w*t.denominator+i];
-      if(color)shape.classList.add("fill-"+color);
-
-      shape.textContent=shapes[i%shapes.length];
-      item.appendChild(shape);
-      group.appendChild(item);
+    function playCorrect() {
+      ensureAudio();
+      playTone(523, 0.12, "sine", 0.04, 0);
+      playTone(659, 0.12, "sine", 0.04, 0.12);
+      playTone(784, 0.18, "sine", 0.04, 0.24);
     }
 
-    wrap.appendChild(group);
-  }
-
-  return wrap;
-}
-
-function renderCircle(t){
-  var cells=cellsFromChunks(t);
-  var wrap=document.createElement("div");
-  wrap.className="circle-wrap";
-
-  for(var w=0;w<t.wholes;w++){
-    var circle=document.createElement("div");
-    circle.className="circle-model";
-
-    var stops=[];
-    for(var i=0;i<t.denominator;i++){
-      var color="#fff";
-      var cellColor=cells[w*t.denominator+i];
-      if(cellColor==="red")color="#e83434";
-      if(cellColor==="blue")color="#1878ff";
-      var a=(i*100/t.denominator).toFixed(3);
-      var b=((i+1)*100/t.denominator).toFixed(3);
-      stops.push(color+" "+a+"% "+b+"%");
+    function playWrong() {
+      ensureAudio();
+      playTone(190, 0.2, "sawtooth", 0.04, 0);
+      playTone(135, 0.28, "sawtooth", 0.04, 0.18);
     }
 
-    circle.style.background="conic-gradient("+stops.join(",")+")";
+    function openHowToPlay() { document.getElementById("howModal").style.display = "flex"; }
+    function closeHowToPlay() { document.getElementById("howModal").style.display = "none"; }
 
-    for(var s=0;s<t.denominator;s++){
-      var spoke=document.createElement("div");
-      spoke.className="circle-spoke";
-      spoke.style.transform="translateX(-50%) rotate("+(s*360/t.denominator)+"deg)";
-      circle.appendChild(spoke);
+    function polar(cx, cy, r, angleDeg) {
+      const angle = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
     }
 
-    var dot=document.createElement("div");
-    dot.className="circle-center-dot";
-    circle.appendChild(dot);
+    function sectorPath(cx, cy, rInner, rOuter, startAngle, endAngle) {
+      const p1 = polar(cx, cy, rOuter, startAngle);
+      const p2 = polar(cx, cy, rOuter, endAngle);
+      const p3 = polar(cx, cy, rInner, endAngle);
+      const p4 = polar(cx, cy, rInner, startAngle);
+      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+      return [`M ${p1.x} ${p1.y}`, `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${p2.x} ${p2.y}`, `L ${p3.x} ${p3.y}`, `A ${rInner} ${rInner} 0 ${largeArc} 0 ${p4.x} ${p4.y}`, "Z"].join(" ");
+    }
 
-    wrap.appendChild(circle);
-  }
+    function hourToAngle(hour) { return (hour % 12) * 30; }
+    function getHourTerritory(hour) { return hour === 0 ? 12 : hour; }
+    function getNextHour(hour) { return hour === 12 ? 1 : hour + 1; }
+    function isLateHour() { return state.minute >= 45; }
+    function countdownValue() { return state.minute === 0 ? 0 : 60 - state.minute; }
 
-  return wrap;
-}
+    function randomTime() {
+      state.hour = Math.floor(Math.random() * 12) + 1;
+      state.minute = Math.floor(Math.random() * 60);
+    }
 
-function selectedFraction(){
-  return currentFractions[selectedFractionIndex];
-}
+    function formatTime() { return `${state.hour}:${String(state.minute).padStart(2, "0")}`; }
+    function activeName() { return `Player ${state.currentPlayer}`; }
 
-function fractionFits(frac,t){
-  return (frac.n*t.denominator)%frac.d===0;
-}
+    function log(message) {
+      // Battle Log removed to keep the screen clean.
+    }
 
-function fractionUnits(frac,t){
-  return (frac.n*t.denominator)/frac.d;
-}
+    function render() {
+      svg.innerHTML = "";
+      const cx = 350, cy = 350;
+      const activeHour = getHourTerritory(state.hour);
 
-function isLegalMove(frac,t){
-  if(!t || t.owner)return false;
-  if(!fractionFits(frac,t))return false;
+      svg.innerHTML += `
+        <circle cx="${cx}" cy="${cy}" r="322" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+        <circle cx="${cx}" cy="${cy}" r="270" fill="rgba(0,0,0,0.15)" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+      `;
 
-  var units=fractionUnits(frac,t);
-  var max=t.denominator*t.wholes;
-  var remaining=max-t.filledUnits;
+      for (let h = 1; h <= 12; h++) {
+        const start = hourToAngle(h);
+        const end = start + 30;
+        const owner = Number(state.territories[h]);
+        let fill = "rgba(70,70,95,0.42)";
+        let stroke = "rgba(255,255,255,0.18)";
+        let strokeWidth = 2;
 
-  return units<=remaining;
-}
+        if (owner === 1) {
+          fill = "rgba(32, 215, 255, 0.58)";
+          stroke = "rgba(32, 215, 255, 0.95)";
+          strokeWidth = 5;
+        }
 
-function findHintMove(){
-  for(var i=0;i<currentFractions.length;i++){
-    for(var j=0;j<territories.length;j++){
-      if(isLegalMove(currentFractions[i],territories[j])){
-        return {fractionIndex:i,territoryId:territories[j].id};
+        if (owner === 2) {
+          fill = "rgba(255, 77, 216, 0.58)";
+          stroke = "rgba(255, 77, 216, 0.95)";
+          strokeWidth = 5;
+        }
+
+        svg.innerHTML += `<path class="territory" d="${sectorPath(cx, cy, 112, 258, start, end)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"></path>`;
+
+        if (owner !== 0) {
+          const tokenPoint = polar(cx, cy, 205, start + 15);
+          const color = owner === 1 ? "var(--p1)" : "var(--p2)";
+          svg.innerHTML += `
+            <circle cx="${tokenPoint.x}" cy="${tokenPoint.y}" r="34" fill="${color}" stroke="white" stroke-width="4"></circle>
+            <text class="territory-token" x="${tokenPoint.x}" y="${tokenPoint.y + 2}">P${owner}</text>
+          `;
+        }
+
+        if (Boolean(state.fortified[h])) {
+          const f = polar(cx, cy, 176, start + 15);
+          svg.innerHTML += `<text x="${f.x}" y="${f.y}" text-anchor="middle" dominant-baseline="middle" font-size="24">🛡️</text>`;
+        }
+      }
+
+      for (let m = 0; m < 60; m++) {
+        const angle = m * 6;
+        const outer = polar(cx, cy, 310, angle);
+        const inner = polar(cx, cy, m % 5 === 0 ? 286 : 296, angle);
+        const cls = m % 5 === 0 ? "tick big" : "tick small";
+        svg.innerHTML += `<line class="${cls}" x1="${inner.x}" y1="${inner.y}" x2="${outer.x}" y2="${outer.y}" stroke="#d8d8e8" stroke-width="${m % 5 === 0 ? 4 : 1.5}"></line>`;
+      }
+
+      for (let h = 1; h <= 12; h++) {
+        const labelPoint = polar(cx, cy, 262, hourToAngle(h));
+        svg.innerHTML += `<text class="territory-label" x="${labelPoint.x}" y="${labelPoint.y}">${h}</text>`;
+      }
+
+      const hourAngle = hourToAngle(activeHour) + (state.minute * 0.5);
+      const minuteAngle = state.minute * 6;
+      const hourEnd = polar(cx, cy, 118, hourAngle);
+      const minuteEnd = polar(cx, cy, 278, minuteAngle);
+
+      svg.innerHTML += `
+        <line class="hand" x1="${cx}" y1="${cy}" x2="${hourEnd.x}" y2="${hourEnd.y}" stroke="#f5f5f5" stroke-width="14"></line>
+        <line class="hand" x1="${cx}" y1="${cy}" x2="${minuteEnd.x}" y2="${minuteEnd.y}" stroke="var(--gold)" stroke-width="7"></line>
+        <circle class="center-dot" cx="${cx}" cy="${cy}" r="15"></circle>
+      `;
+
+      updateStats();
+      updateButtons();
+    }
+
+    function updateStats() {
+      for (let p = 1; p <= 2; p++) {
+        const territoryCount = Object.values(state.territories).filter(owner => Number(owner) === p).length;
+        document.getElementById(`p${p}Energy`).textContent = state.players[p].energy;
+        document.getElementById(`p${p}Territories`).textContent = territoryCount;
+        document.getElementById(`p${p}Late`).textContent = state.players[p].lateCaptures;
+        document.getElementById(`p${p}Panel`).classList.toggle("active", state.currentPlayer === p);
       }
     }
-  }
 
-  return null;
-}
-
-
-
-function selectedFractionHasLegalMove(frac){
-  for(var i=0;i<territories.length;i++){
-    if(isLegalMove(frac,territories[i]))return true;
-  }
-
-  return false;
-}
-
-function handleTrashClick(){
-  if(gameLocked||pendingTrick||!gameStarted||victoryReached)return;
-  clearHints();
-
-  var frac=selectedFraction();
-  if(!frac)return;
-
-  if(selectedFractionHasLegalMove(frac)){
-    badFracTrash();
-  }else{
-    goodFracTrash();
-  }
-}
-
-function burpTrashCan(){
-  var btn=document.getElementById("trashCanBtn");
-  if(!btn)return;
-
-  btn.classList.add("burp");
-  setTimeout(function(){
-    btn.classList.remove("burp");
-  },900);
-}
-
-function goodFracTrash(){
-  burpTrashCan();
-  players[currentPlayer].points+=10;
-  replaceSelectedFractionSmart(true);
-  renderAll();
-  showPow("FRAC TRASH!","+10 points! Timer reset!",currentPlayer,850);
-  startTimer();
-}
-
-function badFracTrash(){
-  gameLocked=true;
-  clearInterval(timerId);
-  burpTrashCan();
-
-  players[currentPlayer].points-=50;
-  replaceSelectedFractionSmart(true);
-  renderAll();
-  showTrashPenaltyOverlay();
-}
-
-function showTrashPenaltyOverlay(){
-  var overlay=document.getElementById("trashOverlay");
-  var btn=document.getElementById("trashContinueBtn");
-
-  overlay.style.display="flex";
-
-  btn.onclick=function(){
-    overlay.style.display="none";
-    if(victoryReached)return;
-    gameLocked=false;
-    renderAll();
-    resumeTimer();
-  };
-}
-
-function clearHints(){
-  document.querySelectorAll(".hinted").forEach(function(el){
-    el.classList.remove("hinted");
-  });
-}
-
-function showHint(){
-  clearHints();
-
-  var move=findHintMove();
-
-  if(!move){
-    showPow("NO LEGAL MOVES","Try a Jack Trick or wait.", "red", 1400);
-    return;
-  }
-
-  selectedFractionIndex=move.fractionIndex;
-  renderFractions();
-
-  setTimeout(function(){
-    var fractionCards=document.querySelectorAll(".frac-card");
-    var territoryCard=document.querySelector('.territory[data-id="'+move.territoryId+'"]');
-
-    if(fractionCards[move.fractionIndex]){
-      fractionCards[move.fractionIndex].classList.add("hinted");
+    function updateButtons() {
+      document.querySelectorAll("button").forEach(btn => {
+        if (!btn.textContent.includes("New Game") && !btn.textContent.includes("Play Again") && !btn.textContent.includes("Rules") && !btn.textContent.includes("Close") && !btn.textContent.includes("Continue")) {
+          btn.disabled = state.gameOver;
+        }
+      });
     }
 
-    if(territoryCard){
-      territoryCard.classList.add("hinted");
+    function showHourChoices(title, prompt, actionType) {
+      document.getElementById("answerModal").dataset.cancelOutside = "true";
+      document.getElementById("answerTitle").textContent = title;
+      document.getElementById("answerPrompt").innerHTML = prompt;
+      const area = document.getElementById("answerArea");
+      area.innerHTML = `
+        <div class="choice-grid">${Array.from({length: 12}, (_, i) => `<button onclick="submitAnswer('${actionType}', ${i + 1})">${i + 1}</button>`).join("")}</div>
+        <div class="answer-row">
+          <button onclick="closeAnswerModal()">Cancel</button>
+        </div>
+      `;
+      document.getElementById("answerModal").style.display = "flex";
     }
 
-    showPow("HINT!", "Try this move.", currentPlayer, 900);
-  },50);
-}
-
-function handleTerritoryClick(id){
-  var t=territories[id];
-  if(!t||t.owner)return;
-
-  if(pendingTrick==="jackback"){
-    applyJackback(t);
-    return;
-  }
-
-  var frac=selectedFraction();
-  if(!frac)return;
-
-  if(!fractionFits(frac,t)){
-    invalidFit(frac,t);
-    return;
-  }
-
-  var units=fractionUnits(frac,t);
-  var max=t.denominator*t.wholes;
-  var remaining=max-t.filledUnits;
-
-  if(units>remaining){
-    hijackTerritory(t,remaining);
-    return;
-  }
-
-  placeFraction(t,units);
-}
-
-function nextChunkColor(){
-  var c=moveChunkIndex%2===0?"red":"blue";
-  moveChunkIndex++;
-  return c;
-}
-
-function placeFraction(t,units){
-  gameLocked=true;
-  var placementPoints=units*10;
-  players[currentPlayer].points+=placementPoints;
-
-  t.chunks.push({units:units,color:nextChunkColor()});
-  t.filledUnits+=units;
-  replaceSelectedFraction();
-  renderAll();
-
-  var max=t.denominator*t.wholes;
-
-  if(t.filledUnits===max){
-    var bonus=t.wholes*100;
-    showPow("+"+(placementPoints+bonus),players[currentPlayer].name+" JACKED IT!",currentPlayer,1000);
-
-    setTimeout(function(){
-      players[currentPlayer].points+=bonus;
-      t.owner=currentPlayer;
-      renderAll();
-      gameLocked=false;
-      if(checkGameOver())return;
-      switchTurn();
-    },1000);
-  }else{
-    showPow("+"+placementPoints,players[currentPlayer].name,currentPlayer,750);
-
-    setTimeout(function(){
-      gameLocked=false;
-      switchTurn();
-    },750);
-  }
-}
-
-function hijackTerritory(t,remaining){
-  gameLocked=true;
-  var opp=otherPlayer();
-  var bonus=t.wholes*100;
-  replaceSelectedFraction();
-
-  showPow("HIJACKED!",players[opp].name+" +"+bonus,"red",1000);
-
-  setTimeout(function(){
-    showHijackLesson(t,remaining,function(){
-      players[opp].points+=bonus;
-      t.owner=opp;
-      renderAll();
-      gameLocked=false;
-      if(checkGameOver())return;
-      currentPlayer=opp;
-      updateTurnUI();
-      startTimer();
-    });
-  },1000);
-}
-
-function invalidFit(frac,t){
-  gameLocked=true;
-  playDoingSound();
-
-  var cards=document.querySelectorAll(".frac-card");
-  if(cards[selectedFractionIndex])cards[selectedFractionIndex].classList.add("flyback");
-
-  showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".","red",1600);
-
-  setTimeout(function(){
-    var cards2=document.querySelectorAll(".frac-card");
-    if(cards2[selectedFractionIndex])cards2[selectedFractionIndex].classList.remove("flyback");
-    gameLocked=false;
-    switchTurn();
-  },1700);
-}
-
-function otherPlayer(){
-  return currentPlayer==="orange"?"green":"orange";
-}
-
-function switchTurn(){
-  clearHints();
-  currentPlayer=otherPlayer();
-  pendingTrick=null;
-  renderAll();
-  startTimer();
-}
-
-function armTimer(){
-  clearInterval(timerId);
-
-  timerId=setInterval(function(){
-    if(gameLocked||victoryReached||!gameStarted)return;
-    timer--;
-    if(timer<0)timer=0;
-
-    document.getElementById("timerCard").textContent="00:"+String(timer).padStart(2,"0");
-
-    if(timer<=0){
-      clearInterval(timerId);
-      gameLocked=true;
-      clearHints();
-      showPow("TIME'S UP!","Turn lost!","red",1000);
-
-      setTimeout(function(){
-        gameLocked=false;
-        switchTurn();
-      },1000);
+    function showNumberInput(title, prompt, actionType) {
+      document.getElementById("answerModal").dataset.cancelOutside = "true";
+      document.getElementById("answerTitle").textContent = title;
+      document.getElementById("answerPrompt").innerHTML = prompt;
+      document.getElementById("answerArea").innerHTML = `
+        <input class="answer-input" id="numberAnswer" type="number" min="0" max="59" inputmode="numeric" />
+        <div class="answer-row">
+          <button onclick="closeAnswerModal()">Cancel</button>
+          <button class="primary" onclick="submitNumberAnswer('${actionType}')">Lock It In</button>
+        </div>
+      `;
+      document.getElementById("answerModal").style.display = "flex";
+      setTimeout(() => document.getElementById("numberAnswer").focus(), 50);
     }
-  },1000);
-}
 
-function startTimer(){
-  timer=30;
-  document.getElementById("timerCard").textContent="00:30";
-  armTimer();
-}
-
-function resumeTimer(){
-  if(!gameStarted||victoryReached)return;
-  document.getElementById("timerCard").textContent="00:"+String(timer).padStart(2,"0");
-  armTimer();
-}
-
-function showPow(big,small,color,duration){
-  var pow=document.getElementById("powPopup");
-  document.getElementById("powBig").textContent=big;
-  document.getElementById("powSmall").textContent=small;
-  pow.className="pow "+color;
-
-  requestAnimationFrame(function(){
-    pow.classList.add("show");
-  });
-
-  setTimeout(function(){
-    pow.classList.remove("show");
-  },duration||1000);
-}
-
-
-function showHijackLesson(t,remaining,callback){
-  clearInterval(timerId);
-
-  var overlay=document.getElementById("lessonOverlay");
-  var strip=document.getElementById("fitStrip");
-  var answer=document.getElementById("fitAnswer");
-  var btn=document.getElementById("continueBtn");
-
-  strip.innerHTML="";
-  strip.style.gridTemplateColumns="repeat("+t.denominator+",1fr)";
-
-  var need=remaining%t.denominator;
-  if(need===0)need=t.denominator;
-
-  for(var i=0;i<t.denominator;i++){
-    var cell=document.createElement("div");
-    cell.className="fit-cell";
-    if(i<need)cell.classList.add("need");
-    strip.appendChild(cell);
-  }
-
-  var raw={n:remaining,d:t.denominator};
-  var simp=simplify(remaining,t.denominator);
-
-  answer.innerHTML="";
-  var p1=document.createElement("div");
-  p1.className="answer-pill";
-  p1.textContent=raw.n+"/"+raw.d;
-  answer.appendChild(p1);
-
-  if(!(simp.n===raw.n && simp.d===raw.d)){
-    var p2=document.createElement("div");
-    p2.className="answer-pill";
-    p2.textContent=simp.n+"/"+simp.d;
-    answer.appendChild(p2);
-  }
-
-  btn.disabled=true;
-  btn.classList.remove("ready");
-  btn.textContent="Look closely...";
-  overlay.style.display="flex";
-
-  setTimeout(function(){
-    btn.disabled=false;
-    btn.classList.add("ready");
-    btn.textContent="Continue";
-  },3000);
-
-  btn.onclick=function(){
-    if(btn.disabled)return;
-    overlay.style.display="none";
-    callback();
-  };
-}
-
-function useTrick(player,trick){
-  if(gameLocked||victoryReached||!gameStarted)return;
-  if(player!==currentPlayer)return;
-  if(trickUsed[player][trick])return;
-
-  trickUsed[player][trick]=true;
-  renderTricks();
-
-  if(trick==="hint"){
-    showHint();
-    return;
-  }
-
-  if(trick==="refrac"){
-    clearHints();
-    rerollFractions();
-    showPow("RE-FRAC!","New choices",currentPlayer,800);
-    return;
-  }
-
-  if(trick==="jackback"){
-    clearHints();
-    pendingTrick="jackback";
-    showPow("JACKBACK","Pick territory",currentPlayer,900);
-  }
-}
-
-function applyJackback(t){
-  if(t.owner)return;
-
-  pendingTrick=null;
-  gameLocked=true;
-  showPow("JACKBACK","One whole cleared",currentPlayer,900);
-
-  setTimeout(function(){
-    removeUnits(t,t.denominator);
-    renderAll();
-    gameLocked=false;
-    switchTurn();
-  },900);
-}
-
-function removeUnits(t,amount){
-  var left=Math.min(amount,t.filledUnits);
-
-  while(left>0 && t.chunks.length>0){
-    var last=t.chunks[t.chunks.length-1];
-
-    if(last.units<=left){
-      left-=last.units;
-      t.filledUnits-=last.units;
-      t.chunks.pop();
-    }else{
-      last.units-=left;
-      t.filledUnits-=left;
-      left=0;
+    function showQuarterChoices() {
+      document.getElementById("answerModal").dataset.cancelOutside = "false";
+      document.getElementById("answerTitle").textContent = "Quarter Power Up";
+      document.getElementById("answerPrompt").innerHTML = "Choose the quarter phrase and the hour it belongs with.";
+      const hourButtons = Array.from({length: 12}, (_, i) => `<button onclick="chooseQuarterHour(${i + 1})">${i + 1}</button>`).join("");
+      document.getElementById("answerArea").innerHTML = `
+        <div class="answer-row">
+          <button class="primary" id="qpPast" onclick="chooseQuarterType('past')">Quarter Past</button>
+          <button class="primary" id="qpTo" onclick="chooseQuarterType('to')">Quarter To</button>
+        </div>
+        <div class="choice-grid">${hourButtons}</div>
+        <p class="small" style="margin-top:12px;">Pick a phrase first, then pick the matching hour.</p>
+      `;
+      quarterPick.type = null;
+      quarterPick.hour = null;
+      document.getElementById("answerModal").style.display = "flex";
     }
-  }
 
-  if(t.filledUnits<0)t.filledUnits=0;
-}
+    function closeAnswerModal() { document.getElementById("answerModal").style.display = "none"; }
 
-function checkGameOver(){
-  var claimed=territories.filter(function(t){return t.owner;}).length;
-  if(claimed>=5){
-    var winner="orange";
-    if(players.green.points>players.orange.points)winner="green";
-    showVictory(winner);
-    return true;
-  }
-  return false;
-}
+    const quarterPick = { type: null, hour: null };
 
-function showVictory(player){
-  victoryReached=true;
-  clearInterval(timerId);
-  gameLocked=true;
+    function roundToNearest50(value) {
+      return Math.round(value / 50) * 50;
+    }
 
-  var tie=players.orange.points===players.green.points;
-  var text=tie ? "Frac Jack Tie!" : players[player].name+" is the Frac Jack Champ!";
-  document.getElementById("victoryText").textContent=text;
-  document.getElementById("victoryImg").src=tie ? "frac-jack-logo.png" : players[player].img;
-  document.getElementById("victoryBanner").classList.add("show");
+    function quarterCorrectType() {
+      if (state.minute === 15) return "past";
+      if (state.minute === 45) return "to";
+      return null;
+    }
 
-  showPow(tie ? "TIE!" : "CHAMP!",tie ? "Same Jack Points!" : players[player].points+" Jack Points",tie ? "blue" : player,1400);
-}
+    function quarterCorrectHour() {
+      const activeHour = getHourTerritory(state.hour);
+      if (state.minute === 15) return activeHour;
+      if (state.minute === 45) return getNextHour(activeHour);
+      return null;
+    }
 
-function playDoingSound(){
-  if(!soundOn)return;
+    function startQuarterPower() {
+      ensureAudio();
+      if (state.gameOver) return;
 
-  try{
-    var AudioContext=window.AudioContext||window.webkitAudioContext;
-    var ctx=new AudioContext();
-    var osc=ctx.createOscillator();
-    var gain=ctx.createGain();
-
-    osc.type="square";
-    osc.frequency.setValueAtTime(180,ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(95,ctx.currentTime+.18);
-
-    gain.gain.setValueAtTime(.18,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.22);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime+.22);
-  }catch(e){}
-}
-
-function installImageFallbacks(){
-  document.querySelectorAll("img[data-fallbacks]").forEach(function(img){
-    var list=img.dataset.fallbacks.split("|");
-    img.dataset.fallbackIndex="0";
-
-    img.onerror=function(){
-      var nextIndex=Number(img.dataset.fallbackIndex||"0")+1;
-
-      if(nextIndex<list.length){
-        img.dataset.fallbackIndex=String(nextIndex);
-        img.src="./"+list[nextIndex];
+      if (state.quarterUsedThisTurn) {
+        showBonusFeedback(
+          "Quarter Power Already Used",
+          `<strong>${activeName()}</strong> already tried Quarter Power Up on this clock. Choose your regular move now.`,
+          `Quarter Power Up can only be attempted once per turn.`,
+          false
+        );
         return;
       }
 
-      img.onerror=null;
-      img.style.display="none";
-
-      if(img.parentNode && !img.parentNode.querySelector(".mascot-fallback."+img.alt.toLowerCase())){
-        var fallback=document.createElement("div");
-        fallback.className=img.className+" mascot-fallback "+img.alt.toLowerCase();
-        fallback.innerHTML=img.alt+"<br>image missing";
-        img.parentNode.appendChild(fallback);
+      if (state.minute !== 15 && state.minute !== 45) {
+        state.quarterUsedThisTurn = true;
+        const p = state.currentPlayer;
+        const loss = Math.min(state.players[p].energy, roundToNearest50(state.players[p].energy * 0.25));
+        state.players[p].energy -= loss;
+        playWrong();
+        render();
+        showBonusFeedback(
+          "Quarter Power Miss!",
+          `<strong>${activeName()}</strong> lost <strong>${loss} energy</strong> because the clock was not showing :15 or :45. You still get your regular turn.`,
+          quarterRevealExplanation(false),
+          false
+        );
+        return;
       }
-    };
-  });
-}
 
-function wireEvents(){
-  installImageFallbacks();
+      showQuarterChoices();
+    }
 
-  document.querySelectorAll(".trick-btn").forEach(function(btn){
-    btn.onclick=function(){
-      useTrick(this.dataset.player,this.dataset.trick);
-    };
-  });
+    function chooseQuarterType(type) {
+      quarterPick.type = type;
+      document.getElementById("qpPast").style.filter = type === "past" ? "brightness(1.35)" : "brightness(0.75)";
+      document.getElementById("qpTo").style.filter = type === "to" ? "brightness(1.35)" : "brightness(0.75)";
+    }
 
-  document.getElementById("startBtn").onclick=startGame;
-  document.getElementById("newGameBtn").onclick=setupNewGame;
+    function chooseQuarterHour(hour) {
+      if (!quarterPick.type) return;
+      quarterPick.hour = hour;
+      submitQuarterAnswer();
+    }
 
-  document.getElementById("levelsBtn").onclick=function(){
-    document.getElementById("levelSelect").classList.toggle("show");
-  };
+    function submitQuarterAnswer() {
+      closeAnswerModal();
+      state.quarterUsedThisTurn = true;
+      const p = state.currentPlayer;
+      const correctType = quarterCorrectType();
+      const correctHour = quarterCorrectHour();
+      const correct = quarterPick.type === correctType && quarterPick.hour === correctHour;
 
-  document.getElementById("levelSelect").onchange=setupNewGame;
+      if (correct) {
+        const bonus = roundToNearest50(state.players[p].energy * 0.25);
+        state.players[p].energy += bonus;
+        playCorrect();
+        render();
+        showBonusFeedback(
+          "Quarter Power Up!",
+          `<strong>${activeName()}</strong> identified <strong>${formatQuarterPhrase(correctType, correctHour)}</strong> and gained <strong>${bonus} energy</strong>. You still get your regular turn.`,
+          quarterRevealExplanation(true),
+          true
+        );
+      } else {
+        playWrong();
+        render();
+        showBonusFeedback(
+          "Quarter Power Miss!",
+          `<strong>${activeName()}</strong> chose <strong>${formatQuarterPhrase(quarterPick.type, quarterPick.hour)}</strong>, but the correct answer was <strong>${formatQuarterPhrase(correctType, correctHour)}</strong>. No bonus, but you still get your regular turn.`,
+          quarterRevealExplanation(true),
+          false
+        );
+      }
+    }
 
-  document.getElementById("rulesBtn").onclick=function(){
-    document.getElementById("rulesOverlay").style.display="flex";
-  };
+    function formatQuarterPhrase(type, hour) {
+      if (!type || !hour) return "no complete answer";
+      return type === "past" ? `Quarter Past ${hour}` : `Quarter To ${hour}`;
+    }
 
-  document.getElementById("closeRulesBtn").onclick=function(){
-    document.getElementById("rulesOverlay").style.display="none";
-  };
-}
+    function quarterRevealExplanation(isQuarterTime) {
+      const activeHour = getHourTerritory(state.hour);
+      const nextHour = getNextHour(activeHour);
+      if (!isQuarterTime) {
+        return `<strong>Actual time:</strong> ${formatTime()}<br>This is not :15 or :45, so Quarter Power Up was not available. The player loses 25% of current energy for taking the risk.`;
+      }
+      if (state.minute === 15) {
+        return `<strong>Actual time:</strong> ${formatTime()}<br>The minute hand has traveled 15 ticks, so this is <strong>Quarter Past ${activeHour}</strong>. The active hour territory is still ${activeHour}.`;
+      }
+      return `<strong>Actual time:</strong> ${formatTime()}<br>The minute hand has traveled 45 ticks. That means 15 minutes remain before the next hour, so this is <strong>Quarter To ${nextHour}</strong>. The active hour territory is still ${activeHour}.`;
+    }
 
-try{
-  wireEvents();
-  setupNewGame();
-}catch(error){
-  document.body.innerHTML=
-    "<div style='background:white;color:black;font-family:Arial;padding:40px;min-height:100vh;'>" +
-    "<h1>Frac Jack Error</h1>" +
-    "<p>The page loaded, but the game code hit an error.</p>" +
-    "<pre style='white-space:pre-wrap;background:#eee;padding:20px;border-radius:12px;'>" +
-    error +
-    "</pre></div>";
-  console.error(error);
-}
-</script>
+    function showBonusFeedback(title, message, reveal, isCorrect) {
+      document.getElementById("feedbackTitle").textContent = title;
+      document.getElementById("feedbackTitle").className = `feedback-title ${isCorrect ? "correct" : "wrong"}`;
+      document.getElementById("feedbackMessage").innerHTML = message;
+      document.getElementById("revealBox").innerHTML = reveal;
+      document.getElementById("feedbackModal").style.display = "flex";
+      state.pendingNextTurn = false;
+      state.pendingVictory = null;
+    }
+
+    function startAction(type) {
+      ensureAudio();
+      if (state.gameOver) return;
+      if (type === "capture") showHourChoices("Declare the Territory", "Which <strong>Hour Territory</strong> is active right now?", "capture");
+      if (type === "challenge") showHourChoices("Declare the Battle Zone", "Which <strong>Hour Territory</strong> is active right now?", "challenge");
+      if (type === "fortify") showHourChoices("Fortify Your Territory", "Which <strong>Hour Territory</strong> is active right now?", "fortify");
+      if (type === "harvest") showNumberInput("Harvest Minute Energy", "How many <strong>minute ticks</strong> has the long hand traveled from the top?", "harvest");
+      if (type === "countdown") showNumberInput("Countdown Dash", "How many <strong>minutes remain</strong> until the next hour opens?", "countdown");
+    }
+
+    function submitNumberAnswer(actionType) {
+      const raw = document.getElementById("numberAnswer").value;
+      if (raw === "") return;
+      submitAnswer(actionType, Number(raw));
+    }
+
+    function submitAnswer(actionType, answer) {
+      closeAnswerModal();
+      let correct;
+      if (actionType === "capture" || actionType === "challenge" || actionType === "fortify") correct = getHourTerritory(state.hour);
+      if (actionType === "harvest") correct = state.minute;
+      if (actionType === "countdown") correct = countdownValue();
+
+      const isCorrect = Number(answer) === correct;
+      resolveAction(actionType, Number(answer), correct, isCorrect);
+    }
+
+    function revealExplanation(actionType) {
+      const activeHour = getHourTerritory(state.hour);
+      const nextHour = getNextHour(activeHour);
+      const base = `<strong>Actual time:</strong> ${formatTime()}<br><strong>Active Hour Territory:</strong> ${activeHour}<br><strong>Minute ticks traveled:</strong> ${state.minute}<br><strong>Minutes until next hour:</strong> ${countdownValue()}`;
+      let why = "";
+      if (actionType === "capture" || actionType === "challenge" || actionType === "fortify") why = `The correct territory is <strong>${activeHour}</strong>. Even if the short hand is close to ${nextHour}, the next hour does not open until the minute hand reaches the top.`;
+      if (actionType === "harvest") why = `The long hand has traveled <strong>${state.minute}</strong> minute tick${state.minute === 1 ? "" : "s"} from the top.`;
+      if (actionType === "countdown") why = `There are <strong>${countdownValue()}</strong> minute tick${countdownValue() === 1 ? "" : "s"} left before the next hour opens.`;
+      return `${base}<br><br>${why}`;
+    }
+
+    function resolveAction(actionType, answer, correct, isCorrect) {
+      if (isCorrect) playCorrect(); else playWrong();
+
+      const p = state.currentPlayer;
+      const opponent = p === 1 ? 2 : 1;
+      const activeHour = getHourTerritory(state.hour);
+      let title = isCorrect ? "Correct!" : "Not Quite";
+      let message = "";
+      let shouldCheckWin = false;
+
+      if (!isCorrect) {
+        message = `<strong>${activeName()}</strong> answered <strong>${answer}</strong>, but the correct answer was <strong>${correct}</strong>. The move does not work this turn.`;
+      } else if (actionType === "harvest") {
+        let gain = 100 + (state.minute * 10);
+        state.players[p].energy += gain;
+        message = `<strong>${activeName()}</strong> read the minute hand correctly and harvested <strong>${gain} energy</strong>. The farther the minute hand travels after the hour, the more energy it creates.`;
+      } else if (actionType === "countdown") {
+        let gain = 150 + (countdownValue() * 15);
+        state.players[p].energy += gain;
+        message = `<strong>${activeName()}</strong> nailed the Countdown Dash and earned <strong>${gain} energy</strong>. This harder move pays about 1.5 times compared to harvesting minutes after the hour.`;
+      } else if (actionType === "capture") {
+        if (state.territories[activeHour] === p) {
+          message = `You already control Territory ${activeHour}. Try fortifying it if you want to protect it.`;
+        } else if (state.players[p].energy < 1500) {
+          message = `You need 1500 energy to capture Territory ${activeHour}. Build more energy first.`;
+        } else {
+          state.players[p].energy -= 1500;
+          state.territories[activeHour] = Number(p);
+          state.fortified[activeHour] = false;
+          if (isLateHour()) state.players[p].lateCaptures++;
+          message = `<strong>${activeName()}</strong> captured <strong>${isLateHour() ? "Late " : ""}${activeHour} Territory</strong>!`;
+          shouldCheckWin = true;
+        }
+      } else if (actionType === "challenge") {
+        if (state.territories[activeHour] !== opponent) {
+          message = `You read the active territory correctly, but Player ${opponent} does not control Territory ${activeHour}. No challenge available.`;
+        } else if (state.players[p].energy < 2200) {
+          message = `You need 2200 energy to challenge Territory ${activeHour}.`;
+        } else {
+          state.players[p].energy -= 2200;
+          if (state.fortified[activeHour]) {
+            state.fortified[activeHour] = false;
+            message = `<strong>${activeName()}</strong> challenged Territory ${activeHour} and broke its shield. Player ${opponent} still controls the territory.`;
+          } else {
+            state.territories[activeHour] = 0;
+            message = `<strong>${activeName()}</strong> challenged Territory ${activeHour} and knocked it back to open territory.`;
+          }
+        }
+      } else if (actionType === "fortify") {
+        if (state.territories[activeHour] !== p) {
+          message = `You read the active territory correctly, but you can only fortify Territory ${activeHour} if you already control it.`;
+        } else if (state.fortified[activeHour]) {
+          message = `Territory ${activeHour} is already fortified.`;
+        } else if (state.players[p].energy < 1000) {
+          message = `You need 1000 energy to fortify Territory ${activeHour}.`;
+        } else {
+          state.players[p].energy -= 1000;
+          state.fortified[activeHour] = true;
+          message = `<strong>${activeName()}</strong> fortified Territory ${activeHour}. The next successful challenge will break the shield instead of removing control.`;
+        }
+      }
+
+      render();
+      showFeedback(title, message, revealExplanation(actionType), isCorrect, shouldCheckWin);
+    }
+
+    function showFeedback(title, message, reveal, isCorrect, shouldCheckWin) {
+      document.getElementById("feedbackTitle").textContent = title;
+      document.getElementById("feedbackTitle").className = `feedback-title ${isCorrect ? "correct" : "wrong"}`;
+      document.getElementById("feedbackMessage").innerHTML = message;
+      document.getElementById("revealBox").innerHTML = reveal;
+      document.getElementById("feedbackModal").style.display = "flex";
+
+      state.pendingNextTurn = true;
+      if (shouldCheckWin) {
+        const winner = getWinner();
+        if (winner) {
+          state.gameOver = true;
+          state.pendingNextTurn = false;
+          state.pendingVictory = winner;
+        }
+      }
+    }
+
+    function continueAfterFeedback() {
+      document.getElementById("feedbackModal").style.display = "none";
+
+      if (state.pendingVictory) {
+        showVictory(state.pendingVictory);
+        state.pendingVictory = null;
+        return;
+      }
+
+      if (!state.gameOver && state.pendingNextTurn) nextTurn();
+    }
+
+    function getWinner() {
+      for (let p = 1; p <= 2; p++) {
+        const territoryCount = Object.values(state.territories).filter(owner => Number(owner) === p).length;
+        if (territoryCount >= 4 && state.players[p].lateCaptures >= 1) return p;
+      }
+      return null;
+    }
+
+    function showVictory(playerNumber) {
+      const territoryCount = Object.values(state.territories).filter(owner => Number(owner) === playerNumber).length;
+      document.getElementById("winnerText").textContent = `Player ${playerNumber} Wins!`;
+      document.getElementById("winnerSubtext").innerHTML = `Player ${playerNumber} controls <strong>${territoryCount}</strong> territories and made a Late-Hour Capture.<br>Victory belongs to the player who mastered the clock!`;
+      buildConfetti();
+      document.getElementById("winnerOverlay").style.display = "flex";
+      playVictoryMusic();
+    }
+
+    function buildConfetti() {
+      const box = document.getElementById("confetti");
+      const colors = ["#ffd166", "#20d7ff", "#ff4dd8", "#7bed9f", "#ffffff", "#ff5c5c"];
+      box.innerHTML = "";
+      for (let i = 0; i < 70; i++) {
+        const s = document.createElement("span");
+        s.style.left = Math.random() * 100 + "%";
+        s.style.background = colors[i % colors.length];
+        s.style.animationDuration = (2.2 + Math.random() * 2.8) + "s";
+        s.style.animationDelay = (Math.random() * 1.6) + "s";
+        box.appendChild(s);
+      }
+    }
+
+    function nextTurn() {
+      if (state.gameOver) return;
+      state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+      state.quarterUsedThisTurn = false;
+      randomTime();
+      render();
+    }
+
+    function newGame() {
+      ensureAudio();
+      state.currentPlayer = 1;
+      state.gameOver = false;
+      state.pendingNextTurn = true;
+      state.pendingVictory = null;
+      state.quarterUsedThisTurn = false;
+      state.players = { 1: { energy: 500, lateCaptures: 0 }, 2: { energy: 500, lateCaptures: 0 } };
+      for (let h = 1; h <= 12; h++) {
+        state.territories[h] = 0;
+        state.blocked[h] = 0;
+        state.fortified[h] = false;
+      }
+      document.getElementById("winnerOverlay").style.display = "none";
+      document.getElementById("feedbackModal").style.display = "none";
+      document.getElementById("answerModal").style.display = "none";
+      randomTime();
+      render();
+    }
+
+    document.getElementById("answerModal").addEventListener("click", function(event) {
+      if (event.target === this && this.dataset.cancelOutside === "true") {
+        closeAnswerModal();
+      }
+    });
+
+    randomTime();
+    render();
+  </script>
 </body>
 </html>
