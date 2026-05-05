@@ -675,55 +675,79 @@ body::after{
   height:100%;
   min-height:0;
   display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:4px;
-  overflow:hidden;
-}
-
-.number-row{
-  display:flex;
   align-items:center;
-  gap:4px;
-  flex:1 1 0;
-  min-height:0;
+  justify-content:center;
+  overflow:visible;
+  padding:10px 12px 16px;
 }
 
-.number-line{
-  flex:1;
+.number-line-shell{
+  width:100%;
+  max-width:100%;
+  height:72px;
+  position:relative;
+  overflow:visible;
+  background:linear-gradient(180deg,#fffdf3,#eef5ff);
+  border:2px solid rgba(17,17,17,.22);
+  border-radius:14px;
+  padding:0 18px;
+}
+
+.number-line-track{
+  position:absolute;
+  left:18px;
+  right:18px;
+  top:25px;
   display:grid;
-  height:14px;
-  border-bottom:3px solid #222;
+  height:24px;
+  border-bottom:5px solid #111;
+  z-index:2;
 }
 
 .number-cell{
-  border-left:1px solid #222;
+  border-left:2px solid #111;
   position:relative;
-  height:14px;
+  height:24px;
 }
 
 .number-cell:last-child{
-  border-right:1px solid #222;
+  border-right:2px solid #111;
 }
 
 .number-cell::after{
   content:"";
   position:absolute;
-  left:-1px;
-  bottom:-4px;
-  height:9px;
-  width:2px;
-  background:#222;
+  left:-2px;
+  bottom:-7px;
+  height:17px;
+  width:4px;
+  background:#111;
+  border-radius:2px;
+  z-index:5;
 }
 
 .number-cell:last-child::before{
   content:"";
   position:absolute;
-  right:-1px;
-  bottom:-4px;
-  height:9px;
-  width:2px;
-  background:#222;
+  right:-2px;
+  bottom:-7px;
+  height:17px;
+  width:4px;
+  background:#111;
+  border-radius:2px;
+  z-index:5;
+}
+
+.number-whole-label{
+  position:absolute;
+  top:50px;
+  transform:translateX(-50%);
+  color:#111;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1;
+  z-index:6;
+  text-shadow:0 1px 0 white;
 }
 
 .set-wrap{
@@ -1408,16 +1432,24 @@ function denomWord(d){
 
 function createTerritories(){
   var dens=levelDenominators();
-  var m=shuffle(models);
   var wholeCounts=[1,2,3,4,5];
   var list=[];
 
+  // Number lines need extra visual room. Keep the single Number Line territory
+  // in T1 or T2 only so its whole-number labels can be shown clearly.
+  var numberLineSlot=Math.random()<.5 ? 0 : 1;
+  var remainingModels=shuffle(models.filter(function(model){
+    return model!=="Number Line";
+  }));
+
   for(var i=0;i<5;i++){
+    var model=i===numberLineSlot ? "Number Line" : remainingModels.shift();
+
     list.push({
       id:i,
       slot:slots[i],
       name:"T"+(i+1),
-      model:m[i],
+      model:model,
       denominator:choose(dens),
       wholes:wholeCounts[i],
       filledUnits:0,
@@ -1822,34 +1854,37 @@ function renderArea(t){
 
 function renderNumber(t){
   var cells=cellsFromChunks(t);
+  var total=t.denominator*t.wholes;
+
   var stack=document.createElement("div");
   stack.className="number-stack";
 
-  for(var w=0;w<t.wholes;w++){
-    var row=document.createElement("div");
-    row.className="number-row";
+  var shell=document.createElement("div");
+  shell.className="number-line-shell";
 
-    var label=document.createElement("div");
-    label.className="whole-label";
-    label.textContent=w;
+  var line=document.createElement("div");
+  line.className="number-line-track";
+  line.style.gridTemplateColumns="repeat("+total+",1fr)";
 
-    var line=document.createElement("div");
-    line.className="number-line";
-    line.style.gridTemplateColumns="repeat("+t.denominator+",1fr)";
-
-    for(var i=0;i<t.denominator;i++){
-      var c=document.createElement("div");
-      c.className="number-cell";
-      var color=cells[w*t.denominator+i];
-      if(color)c.classList.add("fill-"+color);
-      line.appendChild(c);
-    }
-
-    row.appendChild(label);
-    row.appendChild(line);
-    stack.appendChild(row);
+  for(var i=0;i<total;i++){
+    var c=document.createElement("div");
+    c.className="number-cell";
+    var color=cells[i];
+    if(color)c.classList.add("fill-"+color);
+    line.appendChild(c);
   }
 
+  shell.appendChild(line);
+
+  for(var whole=0;whole<=t.wholes;whole++){
+    var label=document.createElement("div");
+    label.className="number-whole-label";
+    label.textContent=whole;
+    label.style.left="calc(18px + (100% - 36px) * "+(whole/t.wholes)+")";
+    shell.appendChild(label);
+  }
+
+  stack.appendChild(shell);
   return stack;
 }
 
