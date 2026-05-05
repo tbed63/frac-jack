@@ -45,8 +45,6 @@ html,body{
   gap:10px;
 }
 
-/* TOP */
-
 .topbar{
   display:grid;
   grid-template-columns:260px 1fr 260px;
@@ -107,8 +105,6 @@ html,body{
   object-fit:contain;
   filter:drop-shadow(0 8px 12px rgba(0,0,0,.45));
 }
-
-/* MAIN LAYOUT */
 
 .main{
   min-height:0;
@@ -215,8 +211,6 @@ html,body{
   cursor:default;
 }
 
-/* CENTER */
-
 .center{
   min-width:0;
   min-height:0;
@@ -307,8 +301,6 @@ html,body{
   display:block;
 }
 
-/* FRACTIONS */
-
 .fraction-row{
   display:flex;
   align-items:center;
@@ -361,8 +353,6 @@ html,body{
   40%{transform:translateY(-32px) rotate(-8deg) scale(1.06);}
   100%{transform:translateY(0) rotate(0) scale(1);}
 }
-
-/* TERRITORIES */
 
 .territories{
   min-height:0;
@@ -469,8 +459,6 @@ html,body{
   font-weight:1000;
   transform:rotate(-8deg);
 }
-
-/* MODELS */
 
 .multi-wholes{
   width:100%;
@@ -658,8 +646,6 @@ html,body{
 
 .fill-red{background:var(--red)!important;}
 .fill-blue{background:var(--blue)!important;}
-
-/* POPUPS */
 
 .overlay{
   position:fixed;
@@ -1016,6 +1002,10 @@ function simplify(n,d){
   return {n:n/g,d:d/g};
 }
 
+function fractionKey(f){
+  return f.n + "/" + f.d;
+}
+
 function shuffle(a){
   var c=a.slice();
   for(var i=c.length-1;i>0;i--){
@@ -1106,9 +1096,47 @@ function createFraction(){
   return f;
 }
 
+function createUniqueFraction(usedKeys){
+  var attempt;
+  var key;
+
+  for(var tries=0; tries<100; tries++){
+    attempt=createFraction();
+    key=fractionKey(attempt);
+    if(!usedKeys[key]){
+      usedKeys[key]=true;
+      return attempt;
+    }
+  }
+
+  var dens=levelDenominators();
+  for(var dIndex=0; dIndex<dens.length; dIndex++){
+    var d=dens[dIndex];
+    for(var n=1; n<=d; n++){
+      var s=simplify(n,d);
+      var fallback={n:s.n,d:s.d};
+      key=fractionKey(fallback);
+      if(!usedKeys[key]){
+        fallback.display=displayFraction(fallback);
+        usedKeys[key]=true;
+        return fallback;
+      }
+    }
+  }
+
+  attempt=createFraction();
+  usedKeys[fractionKey(attempt)]=true;
+  return attempt;
+}
+
 function rerollFractions(){
   currentFractions=[];
-  for(var i=0;i<3;i++)currentFractions.push(createFraction());
+  var usedKeys={};
+
+  for(var i=0;i<3;i++){
+    currentFractions.push(createUniqueFraction(usedKeys));
+  }
+
   selectedFractionIndex=0;
   renderFractions();
 }
@@ -1502,7 +1530,15 @@ function nextChunkColor(){
 }
 
 function replaceSelectedFraction(){
-  currentFractions[selectedFractionIndex]=createFraction();
+  var usedKeys={};
+
+  currentFractions.forEach(function(f,index){
+    if(index!==selectedFractionIndex){
+      usedKeys[fractionKey(f)]=true;
+    }
+  });
+
+  currentFractions[selectedFractionIndex]=createUniqueFraction(usedKeys);
   selectedFractionIndex=0;
 }
 
