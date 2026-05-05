@@ -354,6 +354,11 @@ html,body{
   box-shadow:0 0 0 5px var(--yellow),0 8px 14px rgba(0,0,0,.38);
 }
 
+.frac-card.hinted{
+  animation: hintPulse 1s infinite alternate;
+  box-shadow:0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)!important;
+}
+
 .frac-card .mixed{
   font-size:18px;
 }
@@ -366,6 +371,11 @@ html,body{
   0%{transform:translateY(-3px) scale(1.04);}
   40%{transform:translateY(-32px) rotate(-8deg) scale(1.06);}
   100%{transform:translateY(0) rotate(0) scale(1);}
+}
+
+@keyframes hintPulse{
+  from{ transform:scale(1); }
+  to{ transform:scale(1.08); }
 }
 
 .territories{
@@ -391,6 +401,17 @@ html,body{
 
 .territory:hover{
   transform:translateY(-2px);
+}
+
+.territory.hinted{
+  animation: territoryHint 1s infinite alternate;
+  border-color:#fff24c!important;
+  box-shadow:0 0 0 6px rgba(255,242,76,.8),0 0 24px rgba(255,242,76,.8),0 8px 18px rgba(0,0,0,.32)!important;
+}
+
+@keyframes territoryHint{
+  from{ transform:scale(1); }
+  to{ transform:scale(1.025); }
 }
 
 .territory.orange-owned{
@@ -901,7 +922,7 @@ html,body{
       <div class="trick-title">JACK TRICKS</div>
 
       <div class="trick-stack">
-        <button class="trick-btn" id="orange-slipjack" data-player="orange" data-trick="slipjack">Slipjack</button>
+        <button class="trick-btn" id="orange-hint" data-player="orange" data-trick="hint">Hint</button>
         <button class="trick-btn" id="orange-refrac" data-player="orange" data-trick="refrac">Re-Frac</button>
         <button class="trick-btn" id="orange-jackback" data-player="orange" data-trick="jackback">Jackback</button>
       </div>
@@ -943,7 +964,7 @@ html,body{
       <div class="trick-title">JACK TRICKS</div>
 
       <div class="trick-stack">
-        <button class="trick-btn" id="green-slipjack" data-player="green" data-trick="slipjack">Slipjack</button>
+        <button class="trick-btn" id="green-hint" data-player="green" data-trick="hint">Hint</button>
         <button class="trick-btn" id="green-refrac" data-player="green" data-trick="refrac">Re-Frac</button>
         <button class="trick-btn" id="green-jackback" data-player="green" data-trick="jackback">Jackback</button>
       </div>
@@ -975,7 +996,7 @@ html,body{
       Pick one fraction and place it in a territory. Legal moves earn Jack Points.
       Complete a territory to earn a big bonus. Go over, and your opponent hijacks the territory.
       Some fractions do not fit some models. If it does not fit, your turn ends.
-      Highest Jack Points wins when all territories are claimed.
+      Use Hint to reveal one legal move. Highest Jack Points wins when all territories are claimed.
     </div>
     <button class="close-rules-btn" id="closeRulesBtn">Close</button>
   </div>
@@ -1006,8 +1027,8 @@ var victoryReached=false;
 var soundOn=true;
 
 var trickUsed={
-  orange:{slipjack:false,refrac:false,jackback:false},
-  green:{slipjack:false,refrac:false,jackback:false}
+  orange:{hint:false,refrac:false,jackback:false},
+  green:{hint:false,refrac:false,jackback:false}
 };
 
 var slots=["t1","t2","t3","t4","t5"];
@@ -1177,8 +1198,8 @@ function setupNewGame(){
   victoryReached=false;
 
   trickUsed={
-    orange:{slipjack:false,refrac:false,jackback:false},
-    green:{slipjack:false,refrac:false,jackback:false}
+    orange:{hint:false,refrac:false,jackback:false},
+    green:{hint:false,refrac:false,jackback:false}
   };
 
   territories=createTerritories();
@@ -1187,6 +1208,7 @@ function setupNewGame(){
   document.getElementById("startBtn").style.display="inline-block";
   document.getElementById("fractionRow").classList.add("hidden");
 
+  clearHints();
   rerollFractions();
   renderAll();
   updateReadyUI();
@@ -1254,6 +1276,7 @@ function renderFractions(){
 
     card.onclick=function(){
       if(gameLocked||pendingTrick||!gameStarted)return;
+      clearHints();
       selectedFractionIndex=Number(this.dataset.index);
       renderFractions();
     };
@@ -1264,7 +1287,7 @@ function renderFractions(){
 
 function renderTricks(){
   ["orange","green"].forEach(function(p){
-    ["slipjack","refrac","jackback"].forEach(function(t){
+    ["hint","refrac","jackback"].forEach(function(t){
       var btn=document.getElementById(p+"-"+t);
       if(btn)btn.classList.toggle("used",trickUsed[p][t]);
     });
@@ -1321,6 +1344,7 @@ function renderTerritories(){
 
     card.onclick=function(){
       if(gameLocked||!gameStarted)return;
+      clearHints();
       handleTerritoryClick(Number(this.dataset.id));
     };
 
@@ -1517,6 +1541,64 @@ function fractionUnits(frac,t){
   return (frac.n*t.denominator)/frac.d;
 }
 
+function isLegalMove(frac,t){
+  if(!t || t.owner)return false;
+  if(!fractionFits(frac,t))return false;
+
+  var units=fractionUnits(frac,t);
+  var max=t.denominator*t.wholes;
+  var remaining=max-t.filledUnits;
+
+  return units<=remaining;
+}
+
+function findHintMove(){
+  for(var i=0;i<currentFractions.length;i++){
+    for(var j=0;j<territories.length;j++){
+      if(isLegalMove(currentFractions[i],territories[j])){
+        return {fractionIndex:i,territoryId:territories[j].id};
+      }
+    }
+  }
+
+  return null;
+}
+
+function clearHints(){
+  document.querySelectorAll(".hinted").forEach(function(el){
+    el.classList.remove("hinted");
+  });
+}
+
+function showHint(){
+  clearHints();
+
+  var move=findHintMove();
+
+  if(!move){
+    showPow("NO LEGAL MOVES","Try a Jack Trick or wait.", "red", 1400);
+    return;
+  }
+
+  selectedFractionIndex=move.fractionIndex;
+  renderFractions();
+
+  setTimeout(function(){
+    var fractionCards=document.querySelectorAll(".frac-card");
+    var territoryCard=document.querySelector('.territory[data-id="'+move.territoryId+'"]');
+
+    if(fractionCards[move.fractionIndex]){
+      fractionCards[move.fractionIndex].classList.add("hinted");
+    }
+
+    if(territoryCard){
+      territoryCard.classList.add("hinted");
+    }
+
+    showPow("HINT!", "Try this move.", currentPlayer, 900);
+  },50);
+}
+
 function handleTerritoryClick(id){
   var t=territories[id];
   if(!t||t.owner)return;
@@ -1644,6 +1726,7 @@ function otherPlayer(){
 }
 
 function switchTurn(){
+  clearHints();
   currentPlayer=otherPlayer();
   pendingTrick=null;
   renderAll();
@@ -1666,6 +1749,7 @@ function startTimer(){
     if(timer<=0){
       clearInterval(timerId);
       gameLocked=true;
+      clearHints();
       showPow("TIME'S UP!","Turn lost!","red",1000);
 
       setTimeout(function(){
@@ -1758,23 +1842,20 @@ function useTrick(player,trick){
   trickUsed[player][trick]=true;
   renderTricks();
 
-  if(trick==="slipjack"){
-    rerollFractions();
-    showPow("SLIPJACK!",players[otherPlayer()].name,currentPlayer,900);
-
-    setTimeout(function(){
-      switchTurn();
-    },900);
+  if(trick==="hint"){
+    showHint();
     return;
   }
 
   if(trick==="refrac"){
+    clearHints();
     rerollFractions();
     showPow("RE-FRAC!","New choices",currentPlayer,800);
     return;
   }
 
   if(trick==="jackback"){
+    clearHints();
     pendingTrick="jackback";
     showPow("JACKBACK","Pick territory",currentPlayer,900);
   }
