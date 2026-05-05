@@ -41,7 +41,7 @@ html,body{
   height:100vh;
   padding:10px;
   display:grid;
-  grid-template-rows:108px 1fr;
+  grid-template-rows:106px 1fr;
   gap:10px;
 }
 
@@ -55,7 +55,7 @@ html,body{
 }
 
 .score-card{
-  height:94px;
+  height:92px;
   border:5px solid white;
   border-radius:24px;
   box-shadow:0 8px 18px rgba(0,0,0,.38);
@@ -75,7 +75,7 @@ html,body{
 }
 
 .score-name{
-  font-size:27px;
+  font-size:26px;
   font-weight:1000;
   line-height:1;
 }
@@ -88,21 +88,21 @@ html,body{
 }
 
 .score-num{
-  font-size:34px;
+  font-size:32px;
   font-weight:1000;
   line-height:1;
   margin-top:3px;
 }
 
 .logo-zone{
-  height:108px;
+  height:106px;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
 .logo-zone img{
-  max-height:104px;
+  max-height:102px;
   max-width:100%;
   object-fit:contain;
   filter:drop-shadow(0 8px 12px rgba(0,0,0,.45));
@@ -113,7 +113,7 @@ html,body{
 .main{
   min-height:0;
   display:grid;
-  grid-template-columns:270px 1fr 270px;
+  grid-template-columns:265px 1fr 265px;
   gap:12px;
 }
 
@@ -125,51 +125,26 @@ html,body{
   overflow:hidden;
   box-shadow:0 10px 24px rgba(0,0,0,.45);
   display:grid;
-  grid-template-rows:86px 1fr 222px;
+  grid-template-rows:minmax(0,1fr) 206px;
 }
 
 .player-panel.orange{
   background:
-    radial-gradient(circle at 30% 14%, rgba(255,255,255,.25), transparent 26%),
+    radial-gradient(circle at 32% 12%, rgba(255,255,255,.25), transparent 25%),
+    radial-gradient(circle at 80% 54%, rgba(255,255,255,.10), transparent 38%),
     linear-gradient(180deg,#ff9b19 0%,#d56500 55%,#853700 100%);
 }
 
 .player-panel.green{
   background:
-    radial-gradient(circle at 70% 14%, rgba(255,255,255,.25), transparent 26%),
+    radial-gradient(circle at 68% 12%, rgba(255,255,255,.25), transparent 25%),
+    radial-gradient(circle at 20% 54%, rgba(255,255,255,.10), transparent 38%),
     linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#185c0b 100%);
 }
 
 .player-panel.active{
   outline:6px solid var(--yellow);
   outline-offset:-9px;
-}
-
-.panel-title{
-  position:relative;
-  z-index:5;
-  padding:10px;
-  text-align:center;
-  border-bottom:3px solid rgba(255,255,255,.35);
-  background:rgba(0,0,0,.12);
-}
-
-.panel-title .big{
-  font-size:27px;
-  font-weight:1000;
-  line-height:1;
-  text-shadow:0 3px 0 rgba(0,0,0,.35);
-}
-
-.panel-title .small{
-  width:82%;
-  margin:8px auto 0;
-  border:3px solid rgba(255,255,255,.7);
-  border-radius:14px;
-  padding:6px;
-  background:rgba(0,0,0,.22);
-  font-size:14px;
-  font-weight:1000;
 }
 
 .mascot-stage{
@@ -182,7 +157,7 @@ html,body{
 .mascot-stage img{
   position:absolute;
   bottom:-18px;
-  width:142%;
+  width:152%;
   max-width:none;
   height:auto;
   object-fit:contain;
@@ -207,16 +182,17 @@ html,body{
   padding:12px;
   display:flex;
   flex-direction:column;
-  gap:12px;
-  background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.28));
+  gap:10px;
+  background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.28));
+  border-top:3px solid rgba(255,255,255,.25);
 }
 
 .trick-btn{
-  height:60px;
+  height:54px;
   border-radius:18px;
   border:4px solid rgba(255,255,255,.78);
   color:white;
-  font-size:18px;
+  font-size:17px;
   font-weight:1000;
   cursor:pointer;
   text-transform:uppercase;
@@ -245,13 +221,13 @@ html,body{
   min-width:0;
   min-height:0;
   display:grid;
-  grid-template-rows:62px 106px 1fr;
-  gap:10px;
+  grid-template-rows:58px 96px minmax(0,1fr);
+  gap:9px;
 }
 
 .status-row{
   display:grid;
-  grid-template-columns:165px 1fr 255px;
+  grid-template-columns:150px 1fr 210px;
   gap:10px;
 }
 
@@ -267,13 +243,13 @@ html,body{
 }
 
 .timer{
-  font-size:30px;
+  font-size:28px;
 }
 
 .turn-burst{
   border:4px solid white;
   color:white;
-  font-size:24px;
+  font-size:23px;
   font-weight:1000;
   line-height:.95;
   text-align:center;
@@ -326,12 +302,12 @@ select,.small-btn{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:22px;
+  gap:20px;
 }
 
 .frac-card{
-  width:166px;
-  height:98px;
+  width:158px;
+  height:90px;
   background:white;
   color:#111;
   border:5px solid white;
@@ -339,7 +315,7 @@ select,.small-btn{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:40px;
+  font-size:38px;
   font-weight:1000;
   line-height:.95;
   cursor:pointer;
@@ -357,7 +333,7 @@ select,.small-btn{
 }
 
 .frac-card .mixed{
-  font-size:33px;
+  font-size:31px;
 }
 
 .frac-card.flyback{
@@ -388,7 +364,7 @@ select,.small-btn{
   border-radius:22px;
   overflow:hidden;
   display:grid;
-  grid-template-rows:32px minmax(0,1fr)28px;
+  grid-template-rows:26px minmax(0,1fr)24px;
   cursor:pointer;
   box-shadow:0 8px 18px rgba(0,0,0,.32);
 }
@@ -412,8 +388,8 @@ select,.small-btn{
   justify-content:space-between;
   align-items:center;
   gap:8px;
-  padding:0 9px;
-  font-size:11px;
+  padding:0 8px;
+  font-size:10px;
   font-weight:1000;
   background:linear-gradient(180deg,#f3f6fb,#dce4ee);
   border-bottom:2px solid #c6d0dd;
@@ -428,7 +404,7 @@ select,.small-btn{
 
 .t-body{
   min-height:0;
-  padding:7px;
+  padding:5px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -442,7 +418,7 @@ select,.small-btn{
   justify-content:center;
   background:linear-gradient(180deg,#303a48,#171d28);
   color:white;
-  font-size:11px;
+  font-size:10px;
   font-weight:1000;
   text-transform:uppercase;
   text-align:center;
@@ -465,15 +441,15 @@ select,.small-btn{
 
 .jacked-tag{
   position:absolute;
-  right:9px;
-  top:8px;
+  right:7px;
+  top:6px;
   z-index:5;
   background:linear-gradient(180deg,#e8ff6b,#89cf00);
   color:#244600;
   border:3px solid #2e5c00;
   border-radius:14px;
-  padding:5px 9px;
-  font-size:13px;
+  padding:4px 8px;
+  font-size:12px;
   font-weight:1000;
   transform:rotate(-8deg);
 }
@@ -487,22 +463,22 @@ select,.small-btn{
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:4px;
+  gap:3px;
   overflow:hidden;
 }
 
 .whole-row{
   display:flex;
   align-items:center;
-  gap:4px;
+  gap:3px;
   min-height:0;
   flex:1 1 0;
 }
 
 .whole-label{
-  width:14px;
-  flex:0 0 14px;
-  font-size:11px;
+  width:12px;
+  flex:0 0 12px;
+  font-size:10px;
   font-weight:1000;
   text-align:center;
   color:#333;
@@ -511,9 +487,9 @@ select,.small-btn{
 .bar-model{
   flex:1;
   height:100%;
-  min-height:14px;
-  max-height:34px;
-  border:3px solid #555;
+  min-height:10px;
+  max-height:28px;
+  border:2px solid #555;
   display:grid;
   background:white;
 }
@@ -532,7 +508,7 @@ select,.small-btn{
   min-height:0;
   display:grid;
   background:white;
-  border:3px solid #555;
+  border:2px solid #555;
 }
 
 .area-cell{
@@ -547,14 +523,14 @@ select,.small-btn{
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:6px;
+  gap:4px;
   overflow:hidden;
 }
 
 .number-row{
   display:flex;
   align-items:center;
-  gap:5px;
+  gap:4px;
   flex:1 1 0;
   min-height:0;
 }
@@ -562,26 +538,26 @@ select,.small-btn{
 .number-line{
   flex:1;
   display:grid;
-  height:18px;
-  border-bottom:4px solid #222;
+  height:14px;
+  border-bottom:3px solid #222;
 }
 
 .number-cell{
-  border-left:2px solid #222;
+  border-left:1px solid #222;
   position:relative;
-  height:18px;
+  height:14px;
 }
 
 .number-cell:last-child{
-  border-right:2px solid #222;
+  border-right:1px solid #222;
 }
 
 .number-cell::after{
   content:"";
   position:absolute;
   left:-1px;
-  bottom:-5px;
-  height:12px;
+  bottom:-4px;
+  height:9px;
   width:2px;
   background:#222;
 }
@@ -590,8 +566,8 @@ select,.small-btn{
   content:"";
   position:absolute;
   right:-1px;
-  bottom:-5px;
-  height:12px;
+  bottom:-4px;
+  height:9px;
   width:2px;
   background:#222;
 }
@@ -604,21 +580,21 @@ select,.small-btn{
   flex-wrap:wrap;
   align-items:center;
   justify-content:center;
-  gap:6px;
+  gap:4px;
   overflow:hidden;
 }
 
 .set-whole{
   min-width:0;
-  max-width:220px;
-  flex:1 1 130px;
+  max-width:210px;
+  flex:1 1 118px;
   max-height:100%;
   overflow:hidden;
   display:grid;
-  gap:4px;
-  padding:6px;
-  border:3px solid #aaa;
-  border-radius:14px;
+  gap:3px;
+  padding:4px;
+  border:2px solid #aaa;
+  border-radius:10px;
   background:#fff8ef;
 }
 
@@ -627,9 +603,9 @@ select,.small-btn{
   align-items:center;
   justify-content:center;
   min-height:0;
-  font-size:18px;
+  font-size:14px;
   border:1px solid rgba(0,0,0,.18);
-  border-radius:7px;
+  border-radius:6px;
   background:white;
 }
 
@@ -641,15 +617,15 @@ select,.small-btn{
   flex-wrap:wrap;
   align-items:center;
   justify-content:center;
-  gap:8px;
+  gap:6px;
   overflow:hidden;
 }
 
 .circle-model{
-  width:70px;
-  height:70px;
+  width:54px;
+  height:54px;
   border-radius:50%;
-  border:3px solid #555;
+  border:2px solid #555;
   background:white;
   position:relative;
   overflow:hidden;
@@ -849,11 +825,16 @@ select,.small-btn{
 
 @media(max-width:1400px){
   .main{grid-template-columns:250px 1fr 250px;}
-  .player-panel{grid-template-rows:82px 1fr 204px;}
-  .trick-btn{height:56px;font-size:16px;}
-  .frac-card{width:145px;}
-  .circle-model{width:62px;height:62px;}
-  .t-head{font-size:10px;}
+  .player-panel{grid-template-rows:minmax(0,1fr) 196px;}
+  .trick-btn{height:52px;font-size:16px;}
+  .frac-card{width:145px;height:86px;}
+  .circle-model{width:48px;height:48px;}
+  .t-head{font-size:9px;}
+  .set-item{font-size:12px;}
+  .mascot-stage img{
+    width:148%;
+    bottom:-16px;
+  }
 }
 </style>
 </head>
@@ -863,8 +844,8 @@ select,.small-btn{
   <div class="topbar">
     <div class="score-card orange">
       <div class="score-name">JACKAL</div>
-      <div class="score-sub">TERRITORIES</div>
-      <div class="score-num" id="orangeScore">0 / 3</div>
+      <div class="score-sub">JACK POINTS</div>
+      <div class="score-num" id="orangeScore">0</div>
     </div>
 
     <div class="logo-zone">
@@ -873,18 +854,13 @@ select,.small-btn{
 
     <div class="score-card green">
       <div class="score-name">JACKRABBIT</div>
-      <div class="score-sub">TERRITORIES</div>
-      <div class="score-num" id="greenScore">0 / 3</div>
+      <div class="score-sub">JACK POINTS</div>
+      <div class="score-num" id="greenScore">0</div>
     </div>
   </div>
 
   <div class="main">
     <aside class="player-panel orange active" id="orangePanel">
-      <div class="panel-title">
-        <div class="big">JACKAL</div>
-        <div class="small">JACK TRICKS</div>
-      </div>
-
       <div class="mascot-stage">
         <img src="jackal-orange.png" alt="Jackal">
       </div>
@@ -901,11 +877,10 @@ select,.small-btn{
         <div class="timer" id="timerCard">00:30</div>
 
         <div class="turn-burst orange" id="turnBurst">
-          YOUR TURN,<br>JACKAL!
+          JACKAL!
         </div>
 
         <div class="info">
-          <div>First to jack 3 territories wins!</div>
           <div class="level-row">
             <span>Level</span>
             <select id="levelSelect">
@@ -915,7 +890,7 @@ select,.small-btn{
               <option value="4">4</option>
               <option value="5">5</option>
             </select>
-            <button class="small-btn" id="newGameBtn">New Game</button>
+            <button class="small-btn" id="newGameBtn">New</button>
           </div>
         </div>
       </div>
@@ -926,11 +901,6 @@ select,.small-btn{
     </main>
 
     <aside class="player-panel green" id="greenPanel">
-      <div class="panel-title">
-        <div class="big">JACKRABBIT</div>
-        <div class="small">JACK TRICKS</div>
-      </div>
-
       <div class="mascot-stage">
         <img src="jackrabbit-green.png" alt="Jackrabbit">
       </div>
@@ -954,7 +924,7 @@ select,.small-btn{
 <div class="lesson-overlay" id="lessonOverlay">
   <div class="lesson-card">
     <div class="lesson-title" id="lessonTitle">HIJACKED!</div>
-    <div class="lesson-sub" id="lessonSub">This amount would have filled the territory.</div>
+    <div class="lesson-sub" id="lessonSub">This amount would have filled it.</div>
     <div class="fit-strip" id="fitStrip"></div>
     <div class="fit-answer" id="fitAnswer"></div>
     <button class="continue-btn" id="continueBtn">Continue</button>
@@ -968,8 +938,8 @@ select,.small-btn{
 
 <script>
 var players={
-  orange:{name:"Jackal",score:0,img:"jackal-orange.png"},
-  green:{name:"Jackrabbit",score:0,img:"jackrabbit-green.png"}
+  orange:{name:"Jackal",points:0,img:"jackal-orange.png"},
+  green:{name:"Jackrabbit",points:0,img:"jackrabbit-green.png"}
 };
 
 var currentPlayer="orange";
@@ -1060,7 +1030,7 @@ function createTerritories(){
     list.push({
       id:i,
       slot:slots[i],
-      name:"Territory "+(i+1),
+      name:"T"+(i+1),
       model:m[i],
       denominator:choose(dens),
       wholes:wholeCounts[i],
@@ -1107,8 +1077,8 @@ function rerollFractions(){
 
 function startGame(){
   clearInterval(timerId);
-  players.orange.score=0;
-  players.green.score=0;
+  players.orange.points=0;
+  players.green.points=0;
   currentPlayer="orange";
   selectedFractionIndex=0;
   pendingTrick=null;
@@ -1139,8 +1109,8 @@ function renderAll(){
 }
 
 function updateScores(){
-  document.getElementById("orangeScore").textContent=players.orange.score+" / 3";
-  document.getElementById("greenScore").textContent=players.green.score+" / 3";
+  document.getElementById("orangeScore").textContent=players.orange.points;
+  document.getElementById("greenScore").textContent=players.green.points;
 }
 
 function updateTurnUI(){
@@ -1150,10 +1120,10 @@ function updateTurnUI(){
   var b=document.getElementById("turnBurst");
   if(currentPlayer==="orange"){
     b.className="turn-burst orange";
-    b.innerHTML="YOUR TURN,<br>JACKAL!";
+    b.innerHTML="JACKAL!";
   }else{
     b.className="turn-burst green";
-    b.innerHTML="YOUR TURN,<br>JACKRABBIT!";
+    b.innerHTML="JACKRABBIT!";
   }
 }
 
@@ -1215,7 +1185,7 @@ function renderTerritories(){
 
     var head=document.createElement("div");
     head.className="t-head";
-    head.innerHTML="<span>"+t.name+": "+t.model+"</span><span>Whole(s): "+t.wholes+"</span>";
+    head.innerHTML="<span>"+t.name+" · "+shortModelName(t.model)+"</span><span>"+t.wholes+" whole</span>";
 
     var body=document.createElement("div");
     body.className="t-body";
@@ -1230,7 +1200,7 @@ function renderTerritories(){
 
     var foot=document.createElement("div");
     foot.className="t-foot";
-    foot.textContent=t.owner ? "Jacked by "+players[t.owner].name+"!" : "Claim this territory!";
+    foot.textContent=t.owner ? players[t.owner].name : "Open";
 
     card.appendChild(head);
     card.appendChild(body);
@@ -1243,6 +1213,14 @@ function renderTerritories(){
 
     area.appendChild(card);
   });
+}
+
+function shortModelName(model){
+  if(model==="Bar Model")return "Bar";
+  if(model==="Set Model")return "Set";
+  if(model==="Number Line")return "Line";
+  if(model==="Area Model")return "Area";
+  return "Circle";
 }
 
 function renderModel(t){
@@ -1468,6 +1446,9 @@ function replaceSelectedFraction(){
 
 function placeFraction(t,units){
   gameLocked=true;
+  var placementPoints=units*10;
+  players[currentPlayer].points+=placementPoints;
+
   t.chunks.push({units:units,color:nextChunkColor()});
   t.filledUnits+=units;
   replaceSelectedFraction();
@@ -1476,40 +1457,42 @@ function placeFraction(t,units){
   var max=t.denominator*t.wholes;
 
   if(t.filledUnits===max){
-    showPow("JACKED!",players[currentPlayer].name+" filled the territory!",currentPlayer,1000);
+    var bonus=t.wholes*100;
+    showPow("+"+(placementPoints+bonus),players[currentPlayer].name+" JACKED IT!",currentPlayer,1000);
 
     setTimeout(function(){
+      players[currentPlayer].points+=bonus;
       t.owner=currentPlayer;
-      players[currentPlayer].score++;
       renderAll();
       gameLocked=false;
-      if(checkVictory())return;
+      if(checkGameOver())return;
       switchTurn();
     },1000);
   }else{
-    showPow("NICE MOVE!","Now it's "+players[otherPlayer()].name+"'s turn!",currentPlayer,850);
+    showPow("+"+placementPoints,players[currentPlayer].name,currentPlayer,750);
 
     setTimeout(function(){
       gameLocked=false;
       switchTurn();
-    },850);
+    },750);
   }
 }
 
 function hijackTerritory(t,remaining){
   gameLocked=true;
   var opp=otherPlayer();
+  var bonus=t.wholes*100;
   replaceSelectedFraction();
 
-  showPow("HIJACKED!",players[opp].name+" gets the territory!","red",1000);
+  showPow("HIJACKED!",players[opp].name+" +"+bonus,"red",1000);
 
   setTimeout(function(){
     showHijackLesson(t,remaining,function(){
+      players[opp].points+=bonus;
       t.owner=opp;
-      players[opp].score++;
       renderAll();
       gameLocked=false;
-      if(checkVictory())return;
+      if(checkGameOver())return;
       currentPlayer=opp;
       updateTurnUI();
       showTurnPopup();
@@ -1525,14 +1508,14 @@ function invalidFit(frac,t){
   var cards=document.querySelectorAll(".frac-card");
   if(cards[selectedFractionIndex])cards[selectedFractionIndex].classList.add("flyback");
 
-  showPow("NO FIT!",denomWord(frac.d)+" can't fit into a "+oneDenomWord(t.denominator)+".","red",1800);
+  showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".","red",1600);
 
   setTimeout(function(){
     var cards2=document.querySelectorAll(".frac-card");
     if(cards2[selectedFractionIndex])cards2[selectedFractionIndex].classList.remove("flyback");
     gameLocked=false;
     switchTurn();
-  },1900);
+  },1700);
 }
 
 function otherPlayer(){
@@ -1588,7 +1571,7 @@ function showPow(big,small,color,duration){
 }
 
 function showTurnPopup(){
-  showPow("YOUR TURN!",players[currentPlayer].name,currentPlayer,900);
+  showPow("TURN",players[currentPlayer].name,currentPlayer,700);
 }
 
 function showHijackLesson(t,remaining,callback){
@@ -1656,23 +1639,23 @@ function useTrick(player,trick){
 
   if(trick==="slipjack"){
     rerollFractions();
-    showPow("SLIPJACK!","Your turn, "+players[otherPlayer()].name+"!",currentPlayer,1100);
+    showPow("SLIPJACK!",players[otherPlayer()].name,currentPlayer,900);
 
     setTimeout(function(){
       switchTurn();
-    },1100);
+    },900);
     return;
   }
 
   if(trick==="refrac"){
     rerollFractions();
-    showPow("RE-FRAC!","Three new choices!",currentPlayer,1000);
+    showPow("RE-FRAC!","New choices",currentPlayer,800);
     return;
   }
 
   if(trick==="jackback"){
     pendingTrick="jackback";
-    showPow("JACKBACK READY!","Click a territory.",currentPlayer,1100);
+    showPow("JACKBACK","Pick territory",currentPlayer,900);
   }
 }
 
@@ -1681,14 +1664,14 @@ function applyJackback(t){
 
   pendingTrick=null;
   gameLocked=true;
-  showPow("JACKBACK!","One whole cleared!",currentPlayer,1000);
+  showPow("JACKBACK","One whole cleared",currentPlayer,900);
 
   setTimeout(function(){
     removeUnits(t,t.denominator);
     renderAll();
     gameLocked=false;
     switchTurn();
-  },1000);
+  },900);
 }
 
 function removeUnits(t,amount){
@@ -1711,17 +1694,14 @@ function removeUnits(t,amount){
   if(t.filledUnits<0)t.filledUnits=0;
 }
 
-function checkVictory(){
-  if(players.orange.score>=3){
-    showVictory("orange");
+function checkGameOver(){
+  var claimed=territories.filter(function(t){return t.owner;}).length;
+  if(claimed>=5){
+    var winner="orange";
+    if(players.green.points>players.orange.points)winner="green";
+    showVictory(winner);
     return true;
   }
-
-  if(players.green.score>=3){
-    showVictory("green");
-    return true;
-  }
-
   return false;
 }
 
@@ -1730,11 +1710,13 @@ function showVictory(player){
   clearInterval(timerId);
   gameLocked=true;
 
-  document.getElementById("victoryText").textContent=players[player].name+" is the Frac Jack Champ!";
-  document.getElementById("victoryImg").src=players[player].img;
+  var tie=players.orange.points===players.green.points;
+  var text=tie ? "Frac Jack Tie!" : players[player].name+" is the Frac Jack Champ!";
+  document.getElementById("victoryText").textContent=text;
+  document.getElementById("victoryImg").src=tie ? "frac-jack-logo.png" : players[player].img;
   document.getElementById("victoryBanner").classList.add("show");
 
-  showPow("CHAMP!",players[player].name+" jacked the most territories!",player,1400);
+  showPow(tie ? "TIE!" : "CHAMP!",tie ? "Same Jack Points!" : players[player].points+" Jack Points",tie ? "blue" : player,1400);
 }
 
 function playDoingSound(){
