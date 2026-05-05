@@ -8,14 +8,10 @@
 <style>
 :root{
   --orange:#ff8700;
-  --orange2:#c95600;
   --green:#40c91f;
-  --green2:#227d10;
   --red:#e83434;
   --blue:#1878ff;
   --yellow:#ffd83d;
-  --dark:#061735;
-  --ink:#111;
 }
 
 *{
@@ -31,11 +27,9 @@ html,body{
   font-family:Arial, Helvetica, sans-serif;
   color:white;
   background:
-    radial-gradient(circle at 50% 18%, rgba(255,255,255,.13), transparent 17%),
-    radial-gradient(circle at 50% 48%, rgba(0,105,255,.28), transparent 30%),
-    repeating-radial-gradient(circle at 50% 48%, rgba(255,255,255,.07) 0 2px, transparent 2px 14px),
-    linear-gradient(115deg, transparent 0 47%, rgba(255,255,255,.10) 48%, transparent 49% 100%),
-    linear-gradient(65deg, transparent 0 45%, rgba(255,255,255,.08) 46%, transparent 47% 100%),
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%),
+    radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%),
+    repeating-radial-gradient(circle at 50% 48%, rgba(255,255,255,.06) 0 2px, transparent 2px 14px),
     radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%),
     radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%),
     linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%);
@@ -58,8 +52,7 @@ body::after{
   position:fixed;
   inset:0;
   pointer-events:none;
-  background:
-    radial-gradient(circle at 50% 45%, transparent 0 38%, rgba(0,0,0,.35) 75%, rgba(0,0,0,.58) 100%);
+  background:radial-gradient(circle at 50% 45%, transparent 0 38%, rgba(0,0,0,.38) 75%, rgba(0,0,0,.60) 100%);
   z-index:0;
 }
 
@@ -163,7 +156,7 @@ body::after{
   box-shadow:0 10px 24px rgba(0,0,0,.55);
   display:grid;
   grid-template-rows:minmax(0,1fr) 34px 164px;
-  z-index:7;
+  z-index:10;
 }
 
 .player-panel.orange{
@@ -182,69 +175,40 @@ body::after{
     linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#124b07 100%);
 }
 
-.player-panel.orange::before,
-.player-panel.green::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:25px;
-  pointer-events:none;
-  z-index:1;
-  opacity:.55;
-}
-
-.player-panel.orange::before{
-  background:
-    radial-gradient(circle at 58% 42%, rgba(255,255,255,.13), transparent 18%),
-    linear-gradient(135deg, transparent 0 45%, rgba(255,255,255,.16) 46% 48%, transparent 49% 100%);
-}
-
-.player-panel.green::before{
-  background:
-    radial-gradient(circle at 42% 42%, rgba(255,255,255,.13), transparent 18%),
-    linear-gradient(45deg, transparent 0 45%, rgba(255,255,255,.16) 46% 48%, transparent 49% 100%);
-}
-
 .player-panel.active{
   outline:6px solid var(--yellow);
   outline-offset:-9px;
 }
 
-.mascot-stage{
-  position:relative;
-  min-height:0;
-  overflow:visible;
-  pointer-events:none;
-  z-index:5;
-}
-
-.mascot-stage img{
+/* CHARACTER PLACEMENT — fixed */
+.side-mascot{
   position:absolute;
-  height:116%;
-  width:auto;
+  bottom:180px;
+  width:155%;
   max-width:none;
+  height:auto;
   object-fit:contain;
   filter:drop-shadow(0 18px 18px rgba(0,0,0,.65));
   background:transparent;
   border:none;
-  z-index:6;
+  z-index:35;
+  pointer-events:none;
+  display:block;
 }
 
-.player-panel.orange .mascot-stage img{
-  bottom:-24px;
-  left:-38px;
+.orange-mascot{
+  left:-72px;
   transform:rotate(-2deg);
 }
 
-.player-panel.green .mascot-stage img{
-  bottom:-24px;
-  right:-38px;
+.green-mascot{
+  right:-72px;
   transform:rotate(2deg);
 }
 
 .trick-title{
   position:relative;
-  z-index:9;
+  z-index:50;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -259,7 +223,7 @@ body::after{
 
 .trick-stack{
   position:relative;
-  z-index:9;
+  z-index:50;
   padding:10px 12px 12px;
   display:flex;
   flex-direction:column;
@@ -958,14 +922,12 @@ body::after{
   .player-panel{grid-template-rows:minmax(0,1fr) 32px 158px;}
   .trick-title{font-size:16px;}
   .trick-btn{height:42px;font-size:14px;}
-  .player-panel.orange .mascot-stage img{
-    height:112%;
-    left:-42px;
+  .side-mascot{
+    width:150%;
+    bottom:174px;
   }
-  .player-panel.green .mascot-stage img{
-    height:112%;
-    right:-42px;
-  }
+  .orange-mascot{left:-70px;}
+  .green-mascot{right:-70px;}
   .frac-card{width:78px;height:42px;font-size:20px;}
   .circle-model{width:46px;height:46px;}
   .t-head{font-size:9px;}
@@ -996,9 +958,9 @@ body::after{
 
   <div class="main">
     <aside class="player-panel orange active" id="orangePanel">
-      <div class="mascot-stage">
-        <img src="jackal-orange.png" alt="Jackal">
-      </div>
+      <img class="side-mascot orange-mascot" src="jackal-orange.png" alt="Jackal">
+
+      <div></div>
 
       <div class="trick-title">JACK TRICKS</div>
 
@@ -1038,9 +1000,9 @@ body::after{
     </main>
 
     <aside class="player-panel green" id="greenPanel">
-      <div class="mascot-stage">
-        <img src="jackrabbit-green.png" alt="Jackrabbit">
-      </div>
+      <img class="side-mascot green-mascot" src="jackrabbit-green.png" alt="Jackrabbit">
+
+      <div></div>
 
       <div class="trick-title">JACK TRICKS</div>
 
@@ -1131,6 +1093,21 @@ function fractionKey(f){
   return f.n + "/" + f.d;
 }
 
+function displayFraction(f){
+  if(f.d===1)return String(f.n);
+  if(f.n>f.d && Math.random()<.5){
+    var w=Math.floor(f.n/f.d);
+    var r=f.n%f.d;
+    if(r===0)return String(w);
+    return w+" "+r+"/"+f.d;
+  }
+  return f.n+"/"+f.d;
+}
+
+function fractionText(f){
+  return f.display || f.n+"/"+f.d;
+}
+
 function shuffle(a){
   var c=a.slice();
   for(var i=c.length-1;i>0;i--){
@@ -1151,21 +1128,6 @@ function levelDenominators(){
   if(level===3)return[4,5,6,8,10,12];
   if(level===4)return[5,6,8,10,12,15];
   return[6,8,10,12,15,20];
-}
-
-function displayFraction(f){
-  if(f.d===1)return String(f.n);
-  if(f.n>f.d && Math.random()<.5){
-    var w=Math.floor(f.n/f.d);
-    var r=f.n%f.d;
-    if(r===0)return String(w);
-    return w+" "+r+"/"+f.d;
-  }
-  return f.n+"/"+f.d;
-}
-
-function fractionText(f){
-  return f.display || f.n+"/"+f.d;
 }
 
 function denomWord(d){
@@ -1196,62 +1158,56 @@ function createTerritories(){
   return list;
 }
 
-function createFraction(){
-  var active=territories.filter(function(t){return !t.owner;});
-  if(active.length===0)active=territories.slice();
-
-  var t=choose(active);
-  var d=t.denominator;
-  var level=Number(document.getElementById("levelSelect").value);
-  var allowBig=level>=3 && Math.random()<.22;
-  var maxWholeValue=Math.min(3,Math.max(1,t.wholes));
-  var maxN=d*maxWholeValue;
-  var n;
-
-  if(allowBig){
-    n=d+Math.floor(Math.random()*Math.max(2,d+3))+1;
-    if(n>maxN)n=Math.max(1,maxN-Math.floor(Math.random()*d));
-  }else{
-    n=1+Math.floor(Math.random()*Math.max(1,Math.min(d-1,9)));
-  }
-
-  var s=simplify(n,d);
-  var f={n:s.n,d:s.d};
-  f.display=displayFraction(f);
-  return f;
-}
-
-function createUniqueFraction(usedKeys){
-  var attempt;
-  var key;
-
-  for(var tries=0; tries<100; tries++){
-    attempt=createFraction();
-    key=fractionKey(attempt);
-    if(!usedKeys[key]){
-      usedKeys[key]=true;
-      return attempt;
-    }
-  }
-
+/* BETTER DRAW PILE GENERATOR */
+function buildFractionPool(){
   var dens=levelDenominators();
-  for(var dIndex=0; dIndex<dens.length; dIndex++){
-    var d=dens[dIndex];
-    for(var n=1; n<=d; n++){
+  var level=Number(document.getElementById("levelSelect").value);
+  var pool=[];
+  var seen={};
+
+  dens.forEach(function(d){
+    var maxN=d-1;
+
+    if(level>=3){
+      maxN=Math.floor(d*1.5);
+    }
+
+    if(level>=5){
+      maxN=d*2;
+    }
+
+    for(var n=1;n<=maxN;n++){
       var s=simplify(n,d);
-      var fallback={n:s.n,d:s.d};
-      key=fractionKey(fallback);
-      if(!usedKeys[key]){
-        fallback.display=displayFraction(fallback);
-        usedKeys[key]=true;
-        return fallback;
+      var key=s.n+"/"+s.d;
+
+      if(!seen[key]){
+        seen[key]=true;
+        pool.push({n:s.n,d:s.d});
       }
     }
+  });
+
+  return shuffle(pool);
+}
+
+function createFractionFromPool(usedKeys){
+  var pool=buildFractionPool();
+
+  for(var i=0;i<pool.length;i++){
+    var f=pool[i];
+    var key=fractionKey(f);
+
+    if(!usedKeys[key]){
+      var chosen={n:f.n,d:f.d};
+      chosen.display=displayFraction(chosen);
+      usedKeys[key]=true;
+      return chosen;
+    }
   }
 
-  attempt=createFraction();
-  usedKeys[fractionKey(attempt)]=true;
-  return attempt;
+  var fallback={n:1,d:2};
+  fallback.display="1/2";
+  return fallback;
 }
 
 function rerollFractions(){
@@ -1259,11 +1215,24 @@ function rerollFractions(){
   var usedKeys={};
 
   for(var i=0;i<3;i++){
-    currentFractions.push(createUniqueFraction(usedKeys));
+    currentFractions.push(createFractionFromPool(usedKeys));
   }
 
   selectedFractionIndex=0;
   renderFractions();
+}
+
+function replaceSelectedFraction(){
+  var usedKeys={};
+
+  currentFractions.forEach(function(f,index){
+    if(index!==selectedFractionIndex){
+      usedKeys[fractionKey(f)]=true;
+    }
+  });
+
+  currentFractions[selectedFractionIndex]=createFractionFromPool(usedKeys);
+  selectedFractionIndex=0;
 }
 
 function setupNewGame(){
@@ -1713,19 +1682,6 @@ function nextChunkColor(){
   var c=moveChunkIndex%2===0?"red":"blue";
   moveChunkIndex++;
   return c;
-}
-
-function replaceSelectedFraction(){
-  var usedKeys={};
-
-  currentFractions.forEach(function(f,index){
-    if(index!==selectedFractionIndex){
-      usedKeys[fractionKey(f)]=true;
-    }
-  });
-
-  currentFractions[selectedFractionIndex]=createUniqueFraction(usedKeys);
-  selectedFractionIndex=0;
 }
 
 function placeFraction(t,units){
