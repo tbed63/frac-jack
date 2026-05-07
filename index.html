@@ -86,6 +86,7 @@ function useGameSounds() {
     playTrash: () => beep(180, 0.12, "sawtooth"),
     playBuzz: () => beep(95, 0.18, "square"),
     playBrand: () => playFile(SOUND_BRAND),
+    playTerritoryVictory: () => playFile(SOUND_TERRITORY_VICTORY),
   };
 }
 
@@ -158,6 +159,7 @@ const IMG_JACKAL     = "https://media.base44.com/images/public/69fa82e0877a38539
 const IMG_JACKRABBIT = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/52f7ec8e4_jackrabbit-green.png";
 const IMG_TRASH      = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/ca01e9af6_frac-trash.png";
 const SOUND_BRAND    = "ZoodleBugBrandSound.wav"; // Put this WAV file in the same GitHub folder as index.html.
+const SOUND_TERRITORY_VICTORY = "FracJackTerritoryVictory.wav"; // Put this WAV file in the same GitHub folder as index.html.
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { let t = b; b = a % b; a = t; } return a || 1; }
@@ -618,7 +620,7 @@ function FracJack() {
   const [victoryData, setVictoryData] = useState(null);
   const [lessonReady, setLessonReady] = useState(false);
 
-  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz, playBrand } = useGameSounds();
+  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz, playBrand, playTerritoryVictory } = useGameSounds();
 
   const timerRef = useRef(null);
   const timerVal = useRef(30);
@@ -952,7 +954,7 @@ function FracJack() {
       let bonus = updatedT.wholes * 100;
       if (activeLevel() === 1) bonus = updatedT.wholes * 50;
       if (activeLevel() === 2) bonus = updatedT.wholes * 75;
-      playCapture();
+      playTerritoryVictory();
       const speedLabel = mult >= 2.5 ? " ⚡FAST!" : mult >= 1.5 ? " ⚡" : "";
       showPow("+" + (placePts + bonus), currentPlayer === "orange" ? "Jackal JACKED IT!" + speedLabel : "Jackrabbit JACKED IT!" + speedLabel, currentPlayer, () => {
         const ownedT = { ...updatedT, owner: currentPlayer };
