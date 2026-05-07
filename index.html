@@ -259,67 +259,114 @@ function createTerritories(level) {
   return list;
 }
 
-function createFractionFromPool(level, usedKeys, discardedKeys) {
-  const pool = buildFractionPool(level);
-  for (const f of pool) {
-    const key = fractionKey(f);
-    if (!usedKeys[key] && !discardedKeys[key]) {
-      const chosen = { n: f.n, d: f.d };
-      chosen.display = displayFraction(chosen);
-      usedKeys[key] = true;
-      return chosen;
-    }
-  }
-  const fb = { n: 1, d: 2 }; fb.display = "1/2"; return fb;
+function makeChoice(f) {
+  const chosen = { n: f.n, d: f.d };
+  chosen.display = displayFraction(chosen);
+  return chosen;
 }
 
-function createSmartLegalFraction(level, usedKeys, discardedKeys, territories) {
+function handHasLegalMove(hand, territories) {
+  return !!(territories && territories.length && hand && hand.some(f => f && territories.some(t => isLegalMove(f, t))));
+}
+
+function createFractionFromPool(level, usedKeys = {}, discardedKeys = {}) {
   const pool = buildFractionPool(level);
+
+  // First choice: new, not already in the hand, and not previously trashed.
   for (const f of pool) {
     const key = fractionKey(f);
     if (!usedKeys[key] && !discardedKeys[key]) {
-      const hasMove = territories.some(t => isLegalMove(f, t));
-      if (hasMove) {
-        const chosen = { n: f.n, d: f.d }; chosen.display = displayFraction(chosen); usedKeys[key] = true; return chosen;
-      }
+      usedKeys[key] = true;
+      return makeChoice(f);
     }
   }
+
+  // If the discard pile is too large, still protect the hand from duplicates.
   for (const f of pool) {
-    if (!discardedKeys[fractionKey(f)]) {
-      const hasMove = territories.some(t => isLegalMove(f, t));
-      if (hasMove) { const chosen = { n: f.n, d: f.d }; chosen.display = displayFraction(chosen); usedKeys[fractionKey(f)] = true; return chosen; }
+    const key = fractionKey(f);
+    if (!usedKeys[key]) {
+      usedKeys[key] = true;
+      return makeChoice(f);
     }
   }
+
+  // True emergency fallback. This should almost never happen, but it prevents a crash.
+  const fb = { n: 1, d: 2 };
+  usedKeys[fractionKey(fb)] = true;
+  fb.display = "1/2";
+  return fb;
+}
+
+function createSmartLegalFraction(level, usedKeys = {}, discardedKeys = {}, territories = []) {
+  const pool = shuffle(buildFractionPool(level));
+
+  // Best choice: legal, not a duplicate, and not already trashed.
+  for (const f of pool) {
+    const key = fractionKey(f);
+    if (!usedKeys[key] && !discardedKeys[key] && territories.some(t => isLegalMove(f, t))) {
+      usedKeys[key] = true;
+      return makeChoice(f);
+    }
+  }
+
+  // If needed, ignore the discard pile so the game can still guarantee a playable option.
+  for (const f of pool) {
+    const key = fractionKey(f);
+    if (!usedKeys[key] && territories.some(t => isLegalMove(f, t))) {
+      usedKeys[key] = true;
+      return makeChoice(f);
+    }
+  }
+
   return createFractionFromPool(level, usedKeys, discardedKeys);
+}
+
+function cleanFractionHand(level, hand, discardedKeys = {}, territories = []) {
+  const usedKeys = {};
+  const cleaned = [];
+
+  // Keep existing choices when possible, but remove duplicates.
+  for (const f of hand || []) {
+    if (!f) continue;
+    const key = fractionKey(f);
+    if (!usedKeys[key]) {
+      usedKeys[key] = true;
+      cleaned.push({ ...f, display: f.display || displayFraction(f) });
+    }
+  }
+
+  // Fill back to 3 choices without duplicates.
+  while (cleaned.length < 3) {
+    cleaned.push(createFractionFromPool(level, usedKeys, discardedKeys));
+  }
+
+  // Guarantee at least one playable fraction whenever a legal move exists on the board.
+  const legalExistsOnBoard = territories && territories.some(t => !t.owner && buildFractionPool(level).some(f => isLegalMove(f, t)));
+  if (legalExistsOnBoard && !handHasLegalMove(cleaned, territories)) {
+    const replaceIndex = cleaned.length - 1;
+    const usedExceptReplace = {};
+    cleaned.forEach((f, i) => { if (i !== replaceIndex) usedExceptReplace[fractionKey(f)] = true; });
+    cleaned[replaceIndex] = createSmartLegalFraction(level, usedExceptReplace, discardedKeys, territories);
+  }
+
+  return cleaned.slice(0, 3);
 }
 
 function rollFractions(level, discardedKeys, territories) {
   const usedKeys = {};
   const result = [];
 
-  // Pick 2 guaranteed legal fractions first
+  // First guarantee one playable fraction if the board has any legal move available.
   if (territories && territories.length) {
-    let legalCount = 0;
-    const pool = shuffle(buildFractionPool(level));
-    for (const f of pool) {
-      if (legalCount >= 2) break;
-      const key = fractionKey(f);
-      if (usedKeys[key] || discardedKeys[key]) continue;
-      if (territories.some(t => isLegalMove(f, t))) {
-        const chosen = { n: f.n, d: f.d }; chosen.display = displayFraction(chosen);
-        usedKeys[key] = true;
-        result.push(chosen);
-        legalCount++;
-      }
-    }
+    result.push(createSmartLegalFraction(level, usedKeys, discardedKeys, territories));
   }
 
-  // Fill remaining slots (up to 3 total) from pool freely
+  // Fill remaining slots up to 3 total with unique fractions.
   while (result.length < 3) {
     result.push(createFractionFromPool(level, usedKeys, discardedKeys));
   }
 
-  return shuffle(result);
+  return shuffle(cleanFractionHand(level, result, discardedKeys, territories));
 }
 
 function bestCols(d) {
@@ -794,7 +841,7 @@ function FracJack() {
       const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
       const arr = fractions.slice();
       arr[selectedFracIdx] = newF;
-      return arr;
+      return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
 
     const newTerrs = territories.map(tt => tt.id === t.id ? updatedT : tt);
@@ -843,7 +890,9 @@ function FracJack() {
       const usedKeys = {};
       fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
       const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
-      const arr = fractions.slice(); arr[selectedFracIdx] = newF; return arr;
+      const arr = fractions.slice();
+      arr[selectedFracIdx] = newF;
+      return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
 
     showPow("HIJACKED!", players[opp].name + " +" + bonus, "red", () => {
@@ -940,8 +989,11 @@ function FracJack() {
     const usedKeys = {};
     fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
     const newFrac = createSmartLegalFraction(activeLevel(), usedKeys, newDisc, territories);
-    const newFracs = fractions.slice();
-    newFracs[selectedFracIdx] = newFrac;
+    const newFracs = cleanFractionHand(activeLevel(), (() => {
+      const arr = fractions.slice();
+      arr[selectedFracIdx] = newFrac;
+      return arr;
+    })(), newDisc, territories);
     setFractions(newFracs);
     setSelectedFracIdx(0);
 
@@ -991,7 +1043,7 @@ function FracJack() {
       "The trash can called your bluff.",
       "That fraction files a formal complaint.",
       "Even the trash can has standards. That fraction stays.",
-      "The trash can has seen things, but THIS? -100 points.",
+      "The trash can has seen things, but THIS? Bad trash move.",
     ];
     setTrashPenaltyMsg(badLines[Math.floor(Math.random() * badLines.length)]);
     setTrashPenaltyOverlay(true);
