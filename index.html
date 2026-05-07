@@ -146,16 +146,28 @@ const SLOTS  = ["t1","t2","t3","t4","t5"];
 const MODELS = ["Bar Model","Set Model","Number Line","Area Model","Circle Model"];
 const SHAPES = ["●","★","▲","■","◆","♥","⬟","⬢","⬤","◆","▲","★","●","■","♥","⬟","⬢","◆","★","●"];
 
-function levelDenominators(level) {
+function normalizeLevel(level) {
   const lv = Number(level);
-  // Level 1: friendly denominators only, with enough variety to prevent boring boards.
+  return lv === 1 || lv === 2 || lv === 3 ? lv : 1;
+}
+
+function maxDenominatorForLevel(level) {
+  const lv = normalizeLevel(level);
+  if (lv === 1) return 6;
+  if (lv === 2) return 12;
+  return 12;
+}
+
+function levelDenominators(level) {
+  const lv = normalizeLevel(level);
+  // Level 1 is HARD-LOCKED to halves, thirds, fourths, fifths, and sixths only.
   if (lv === 1) return [2, 3, 4, 5, 6];
   if (lv === 2) return [3, 4, 5, 6, 8, 10, 12];
   return [4, 5, 6, 8, 10, 12];
 }
 
 function buildFractionPool(level) {
-  const lv = Number(level);
+  const lv = normalizeLevel(level);
   const dens = levelDenominators(lv);
   const pool = []; const seen = {};
   dens.forEach(d => {
@@ -163,7 +175,10 @@ function buildFractionPool(level) {
     if (lv === 2) maxN = d - 1;
     if (lv === 3) maxN = Math.floor(d * 1.5);
     for (let n = 1; n <= maxN; n++) {
-      const s = simplify(n, d); const key = s.n + "/" + s.d;
+      const s = simplify(n, d);
+      // Absolute guardrail: Level 1 fractions may never display or behave as anything beyond sixths.
+      if (lv === 1 && s.d > 6) continue;
+      const key = s.n + "/" + s.d;
       if (!seen[key]) { 
         // At level 3, exclude whole numbers (d === 1)
         if (lv === 3 && s.d === 1) continue;
@@ -198,7 +213,7 @@ function isLegalMove(frac, t) {
 function randWholes() { return 2 + Math.floor(Math.random() * 3); } // 2, 3, or 4
 
 function createTerritories(level) {
-  const lv = Number(level);
+  const lv = normalizeLevel(level);
   const dens = levelDenominators(lv);
 
   // Model variety: every board always has all 5 visual models.
@@ -458,7 +473,7 @@ function shortModelName(m) {
 
 // ─── Main Game Component ──────────────────────────────────────────────────────
 function FracJack() {
-  const [level, setLevel] = useState(2);
+  const [level, setLevel] = useState(1);
   // level select removed
   const [gameStarted, setGameStarted] = useState(false);
   const [gameLocked, setGameLocked] = useState(true);
@@ -495,6 +510,7 @@ function FracJack() {
   const victoryRef = useRef(false);
   const startedRef = useRef(false);
   const moveChunkRef = useRef(0);
+  const currentLevelRef = useRef(normalizeLevel(level));
 
   // Initialize game board on mount
   useEffect(() => { setupNewGame(level); }, []); // eslint-disable-line
@@ -513,6 +529,9 @@ function FracJack() {
   useEffect(() => { victoryRef.current = victoryReached; }, [victoryReached]);
   useEffect(() => { startedRef.current = gameStarted; }, [gameStarted]);
   useEffect(() => { moveChunkRef.current = moveChunkIndex; }, [moveChunkIndex]);
+  useEffect(() => { currentLevelRef.current = normalizeLevel(level); }, [level]);
+
+  function activeLevel() { return currentLevelRef.current; }
 
   function stopTimer() { clearInterval(timerRef.current); }
 
@@ -599,7 +618,7 @@ function FracJack() {
         lockedRef.current = false;
         setGameLocked(false);
         setCurrentPlayer(nextP);
-        const newFracs = rollFractions(level, discardedArg, territoriesArg);
+        const newFracs = rollFractions(activeLevel(), discardedArg, territoriesArg);
         setFractions(newFracs);
         setSelectedFracIdx(0);
         startTimer(makeTimerZeroHandler(nextP, territoriesArg, newFracs, discardedArg, moveChunkArg));
@@ -610,7 +629,9 @@ function FracJack() {
 
   // ── New Game ─────────────────────────────────────────────────────────────
   function setupNewGame(newLevel) {
-    const lv = newLevel ?? level;
+    const lv = normalizeLevel(newLevel ?? activeLevel());
+    currentLevelRef.current = lv;
+    setLevel(lv);
     clearInterval(timerRef.current);
     timerVal.current = timerLimit;
     lockedRef.current = true;
@@ -641,7 +662,8 @@ function FracJack() {
   }
 
   function changeLevel(newLevel) {
-    const numericLevel = Number(newLevel);
+    const numericLevel = normalizeLevel(newLevel);
+    currentLevelRef.current = numericLevel;
     setLevel(numericLevel);
     // Important: rebuild the board immediately when the player changes level on the intro screen.
     // The previous version changed the level button but kept the old pre-generated Level 2 board.
@@ -660,7 +682,7 @@ function FracJack() {
       showPow("TIME'S UP!", "Turn lost!", "red", () => {
         setCurrentPlayer(prev => {
           const next = prev === "orange" ? "green" : "orange";
-          const newFracs = rollFractions(level, discardedKeys, territories);
+          const newFracs = rollFractions(activeLevel(), discardedKeys, territories);
           setFractions(newFracs);
           setSelectedFracIdx(0);
           lockedRef.current = false;
@@ -692,7 +714,7 @@ function FracJack() {
     setHints({ fractionIdx:null, territoryId:null });
     setCurrentPlayer(nextPlayer);
     setPendingTrick(null);
-    const fracsToUse = newFracs ?? rollFractions(level, newDisc ?? discardedKeys, territories);
+    const fracsToUse = newFracs ?? rollFractions(activeLevel(), newDisc ?? discardedKeys, territories);
     if (newFracs === undefined) setFractions(fracsToUse);
     setSelectedFracIdx(0);
     lockedRef.current = false;
@@ -702,7 +724,7 @@ function FracJack() {
       setGameLocked(true);
       showPow("TIME'S UP!", "Turn lost!", "red", () => {
         const nxt = nextPlayer === "orange" ? "green" : "orange";
-        const nf = rollFractions(level, newDisc ?? discardedKeys, territories);
+        const nf = rollFractions(activeLevel(), newDisc ?? discardedKeys, territories);
         setFractions(nf);
         setSelectedFracIdx(0);
         lockedRef.current = false;
@@ -765,7 +787,7 @@ function FracJack() {
     const newFracs = (() => {
       const usedKeys = {};
       fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
-      const newF = createFractionFromPool(level, usedKeys, discardedKeys);
+      const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
       const arr = fractions.slice();
       arr[selectedFracIdx] = newF;
       return arr;
@@ -775,8 +797,8 @@ function FracJack() {
 
     if (updatedT.filledUnits >= max) {
       let bonus = updatedT.wholes * 100;
-      if (level === 1) bonus = updatedT.wholes * 50;
-      if (level === 2) bonus = updatedT.wholes * 75;
+      if (activeLevel() === 1) bonus = updatedT.wholes * 50;
+      if (activeLevel() === 2) bonus = updatedT.wholes * 75;
       playCapture();
       const speedLabel = mult >= 2.5 ? " ⚡FAST!" : mult >= 1.5 ? " ⚡" : "";
       showPow("+" + (placePts + bonus), currentPlayer === "orange" ? "Jackal JACKED IT!" + speedLabel : "Jackrabbit JACKED IT!" + speedLabel, currentPlayer, () => {
@@ -810,13 +832,13 @@ function FracJack() {
     setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
     let bonus = t.wholes * 100;
-    if (level === 1) bonus = t.wholes * 50;
-    if (level === 2) bonus = t.wholes * 75;
+    if (activeLevel() === 1) bonus = t.wholes * 50;
+    if (activeLevel() === 2) bonus = t.wholes * 75;
 
     const newFracs = (() => {
       const usedKeys = {};
       fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
-      const newF = createFractionFromPool(level, usedKeys, discardedKeys);
+      const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
       const arr = fractions.slice(); arr[selectedFracIdx] = newF; return arr;
     })();
 
@@ -892,7 +914,7 @@ function FracJack() {
     // Replace with smart legal fraction
     const usedKeys = {};
     fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
-    const newFrac = createSmartLegalFraction(level, usedKeys, newDisc, territories);
+    const newFrac = createSmartLegalFraction(activeLevel(), usedKeys, newDisc, territories);
     const newFracs = fractions.slice();
     newFracs[selectedFracIdx] = newFrac;
     setFractions(newFracs);
@@ -934,7 +956,7 @@ function FracJack() {
     stopTimer();
     playBuzz();
     burpTrash();
-    const penalty = level === 1 ? 50 : level === 2 ? 50 : 100;
+    const penalty = activeLevel() === 1 ? 50 : activeLevel() === 2 ? 50 : 100;
     setPlayers(prev => ({ ...prev, [currentPlayer]: { ...prev[currentPlayer], points: prev[currentPlayer].points - penalty } }));
     const badLines = [
       "That fraction was perfectly good! The trash can is FURIOUS.",
@@ -975,7 +997,7 @@ function FracJack() {
 
     if (trick === "refrac") {
       setHints({ fractionIdx:null, territoryId:null });
-      setFractions(rollFractions(level, discardedKeys, territories));
+      setFractions(rollFractions(activeLevel(), discardedKeys, territories));
       setSelectedFracIdx(0);
       showPow("RE-FRAC!", "New choices", currentPlayer, null);
       return;
