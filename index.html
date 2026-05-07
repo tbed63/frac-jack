@@ -52,6 +52,23 @@ function useGameSounds() {
     }
   }
 
+  function playFile(src) {
+    if (muted) return;
+    try {
+      const audio = new Audio(src);
+      audio.volume = 0.82;
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {
+          // File audio is optional. Ignore browser restrictions or missing files.
+        });
+      }
+    } catch (e) {
+      // File audio is optional. Ignore errors.
+    }
+  }
+
   return {
     muted,
     toggleMute: () => setMuted(m => !m),
@@ -59,6 +76,7 @@ function useGameSounds() {
     playCapture: () => { beep(660, 0.09, "triangle"); setTimeout(() => beep(880, 0.11, "triangle"), 90); },
     playTrash: () => beep(180, 0.12, "sawtooth"),
     playBuzz: () => beep(95, 0.18, "square"),
+    playBrand: () => playFile(SOUND_BRAND),
   };
 }
 
@@ -130,6 +148,7 @@ const IMG_LOGO       = "https://media.base44.com/images/public/69fa82e0877a38539
 const IMG_JACKAL     = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/b4c6884ac_jackal-orange.png";
 const IMG_JACKRABBIT = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/52f7ec8e4_jackrabbit-green.png";
 const IMG_TRASH      = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/ca01e9af6_frac-trash.png";
+const SOUND_BRAND    = "ZoodleBugBrandSound.wav"; // Put this WAV file in the same GitHub folder as index.html.
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { let t = b; b = a % b; a = t; } return a || 1; }
@@ -550,7 +569,7 @@ function FracJack() {
   const [victoryData, setVictoryData] = useState(null);
   const [lessonReady, setLessonReady] = useState(false);
 
-  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz } = useGameSounds();
+  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz, playBrand } = useGameSounds();
 
   const timerRef = useRef(null);
   const timerVal = useRef(30);
@@ -721,6 +740,7 @@ function FracJack() {
 
   function handleStart() {
     if (gameStarted || victoryReached) return;
+    playBrand();
     startedRef.current = true;
     lockedRef.current = false;
     setGameStarted(true);
@@ -751,6 +771,7 @@ function FracJack() {
       lockedRef.current = true;
       setVictoryReached(true);
       setGameLocked(true);
+      playBrand();
       const tie = playersState.orange.points === playersState.green.points;
       const winner = playersState.green.points > playersState.orange.points ? "green" : "orange";
       setVictoryData({ winner: tie ? "tie" : winner, tie, points: playersState });
