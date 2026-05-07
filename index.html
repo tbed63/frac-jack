@@ -492,6 +492,7 @@ function FracJack() {
   const [timerDisplay, setTimerDisplay] = useState("00:30");
   const [hints, setHints] = useState({ fractionIdx: null, territoryId: null });
   const [trashBurp, setTrashBurp] = useState(false);
+  const [trashTripsThisTurn, setTrashTripsThisTurn] = useState(0);
   // Overlays
   const [pow, setPow] = useState({ show:false, big:"", small:"", color:"orange", onContinue:null });
   const [lessonOverlay, setLessonOverlay] = useState(null); // { t, remaining, callback }
@@ -659,6 +660,7 @@ function FracJack() {
     setLessonOverlay(null);
     setTrashPenaltyOverlay(false);
     setTrashPenaltyMsg("");
+    setTrashTripsThisTurn(0);
   }
 
   function changeLevel(newLevel) {
@@ -676,6 +678,7 @@ function FracJack() {
     lockedRef.current = false;
     setGameStarted(true);
     setGameLocked(false);
+    setTrashTripsThisTurn(0);
     startTimer(() => {
       lockedRef.current = true;
       setGameLocked(true);
@@ -714,6 +717,7 @@ function FracJack() {
     setHints({ fractionIdx:null, territoryId:null });
     setCurrentPlayer(nextPlayer);
     setPendingTrick(null);
+    setTrashTripsThisTurn(0);
     const fracsToUse = newFracs ?? rollFractions(activeLevel(), newDisc ?? discardedKeys, territories);
     if (newFracs === undefined) setFractions(fracsToUse);
     setSelectedFracIdx(0);
@@ -884,11 +888,32 @@ function FracJack() {
   }
 
   // ── Trash ────────────────────────────────────────────────────────────────
+  function handleTrashLimitReached() {
+    lockedRef.current = true;
+    setGameLocked(true);
+    stopTimer();
+    playBuzz();
+    showPow("TRASH LIMIT!", "Max 3 trash trips per turn. Play a fraction now.", "red", () => {
+      lockedRef.current = false;
+      setGameLocked(false);
+      resumeTimer(() => {
+        lockedRef.current = true;
+        setGameLocked(true);
+        showPow("TIME'S UP!", "Turn lost!", "red", () => doSwitchTurn(currentPlayer === "orange" ? "green" : "orange"));
+      });
+    });
+  }
+
   function handleTrashClick() {
     if (gameLocked || pendingTrick || !gameStarted || victoryReached) return;
     setHints({ fractionIdx:null, territoryId:null });
     const frac = fractions[selectedFracIdx];
     if (!frac) return;
+    if (trashTripsThisTurn >= 3) {
+      handleTrashLimitReached();
+      return;
+    }
+    setTrashTripsThisTurn(prev => prev + 1);
     const hasMove = territories.some(t => isLegalMove(frac, t));
     if (hasMove) {
       badTrash();
@@ -1104,15 +1129,18 @@ function FracJack() {
                   </div>
                 );
               })}
-              <button onClick={handleTrashClick} style={{
-                width:62, height:50, border:"3px solid rgba(255,255,255,.98)", borderRadius:16,
-                background:"#d0d4da",
-                display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer",
-                boxShadow:"0 5px 10px rgba(0,0,0,.45)",
-                padding:4, overflow:"hidden", transition:".15s"
-              }}>
-                <img src={IMG_TRASH} alt="Trash" style={{ width:50, height:42, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
-              </button>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
+                  width:62, height:50, border:"3px solid rgba(255,255,255,.98)", borderRadius:16,
+                  background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
+                  display:"flex", alignItems:"center", justifyContent:"center", cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
+                  boxShadow:"0 5px 10px rgba(0,0,0,.45)",
+                  padding:4, overflow:"hidden", transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
+                }}>
+                  <img src={IMG_TRASH} alt="Trash" style={{ width:50, height:42, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
+                </button>
+                <div style={{ fontSize:10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+              </div>
             </div>
 
           {/* Territories */}
@@ -1222,7 +1250,7 @@ function FracJack() {
               Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by the speed bonus — up to <strong>3×</strong> if you move in the first 3 seconds of the turn, then gradually dropping to 1×. ⚡ Speed pays!<br /><br />
               Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br /><br />
               Some fractions do not fit some models. If it does not fit, your turn ends.<br /><br />
-              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +20 points plus a replacement — and your timer resets to full! If the fraction could have been played, lose 100 Jack Points.<br /><br />
+              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +20 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
               <strong>Jack Tricks:</strong> Hint reveals a legal move • Re-Frac deals new fractions • Jackback clears one whole from a territory.<br /><br />
               <strong>Turn Timer:</strong> Before the game starts, click the clock to set each player's turn time — anywhere from 10 seconds up to 2 minutes. Once you press <em>Start</em>, the timer is locked in for the whole game. Press <em>New</em> to reset the game and adjust the clock again.<br /><br />
               Highest Jack Points wins when all 5 territories are Jacked!
