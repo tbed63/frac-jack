@@ -1102,7 +1102,7 @@ function FracJack() {
     setSelectedFracIdx(0);
 
     // Award points based on level
-    const trashPts = 20;
+    const trashPts = 50;
     setPlayers(prev => ({ ...prev, [scoringPlayer]: { ...prev[scoringPlayer], points: prev[scoringPlayer].points + trashPts } }));
 
     const trashLines = [
@@ -1408,7 +1408,7 @@ function FracJack() {
               Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by the speed bonus — up to <strong>3×</strong> if you move in the first 3 seconds of the turn, then gradually dropping to 1×. ⚡ Speed pays!<br /><br />
               Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br /><br />
               Some fractions do not fit some models. If it does not fit, your turn ends.<br /><br />
-              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +20 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
+              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
               <strong>Jack Tricks:</strong> Hint reveals a legal move • Re-Frac deals new fractions • Jackback clears one whole from a territory.<br /><br />
               <strong>Turn Timer:</strong> Before the game starts, click the clock to set each player's turn time — anywhere from 10 seconds up to 2 minutes. Once you press <em>Start</em>, the timer is locked in for the whole game. Press <em>New</em> to reset the game and adjust the clock again.<br /><br />
               Highest Jack Points wins when all 5 territories are Jacked!
