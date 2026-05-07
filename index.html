@@ -1,6 +1,129 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useGameSounds } from "@/hooks/useGameSounds";
-import IntroScreen from "@/components/IntroScreen";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frac Jack</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    html, body, #root {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #020916;
+    }
+    * { box-sizing: border-box; }
+    button { font-family: Arial, Helvetica, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// Simple browser-safe sound hook replacing the Base44 import.
+function useGameSounds() {
+  const [muted, setMuted] = useState(false);
+  const audioCtxRef = useRef(null);
+
+  function beep(freq = 440, duration = 0.08, type = "square") {
+    if (muted) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {
+      // Sound is optional. Ignore browser audio restrictions.
+    }
+  }
+
+  return {
+    muted,
+    toggleMute: () => setMuted(m => !m),
+    playMove: () => beep(520, 0.08, "triangle"),
+    playCapture: () => { beep(660, 0.09, "triangle"); setTimeout(() => beep(880, 0.11, "triangle"), 90); },
+    playTrash: () => beep(180, 0.12, "sawtooth"),
+    playBuzz: () => beep(95, 0.18, "square"),
+  };
+}
+
+// Intro screen replacing the Base44 component import.
+function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart }) {
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:200,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:24,
+      fontFamily:"Arial, Helvetica, sans-serif",
+      color:"white",
+      background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"
+    }}>
+      <div style={{
+        width:"min(720px,94vw)", border:"7px solid white", borderRadius:34,
+        padding:"26px 30px 30px", textAlign:"center",
+        background:"rgba(0,0,0,.48)", boxShadow:"0 24px 70px rgba(0,0,0,.65)"
+      }}>
+        <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"min(520px,90%)", maxHeight:210, objectFit:"contain", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))" }} />
+        <div style={{ fontSize:22, fontWeight:900, margin:"8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
+          Pick fractions. Claim territories. Jack the board.
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, margin:"0 auto 24px", maxWidth:560 }}>
+          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding:16, background:"rgba(255,255,255,.10)" }}>
+            <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Level</div>
+            <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+              {[1,2,3].map(lv => (
+                <button key={lv} onClick={() => onLevelChange(lv)} style={{
+                  width:54, height:42, borderRadius:14, border:"3px solid white",
+                  fontSize:18, fontWeight:1000, cursor:"pointer",
+                  color: level === lv ? "#111" : "white",
+                  background: level === lv ? "linear-gradient(180deg,#ffe76a,#ffb21b)" : "rgba(0,0,0,.28)"
+                }}>{lv}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding:16, background:"rgba(255,255,255,.10)" }}>
+            <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Turn Timer</div>
+            <select value={timerLimit} onChange={e => onTimerChange(Number(e.target.value))} style={{
+              width:"100%", height:42, borderRadius:12, border:"3px solid white",
+              fontSize:17, fontWeight:900, textAlign:"center", color:"#111", background:"white"
+            }}>
+              <option value={10}>10 seconds</option>
+              <option value={20}>20 seconds</option>
+              <option value={30}>30 seconds</option>
+              <option value={45}>45 seconds</option>
+              <option value={60}>1 minute</option>
+              <option value={90}>1 minute 30 seconds</option>
+              <option value={120}>2 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <button onClick={onStart} style={{
+          border:"5px solid white", borderRadius:999, padding:"14px 46px",
+          fontSize:26, fontWeight:1000, color:"#111", cursor:"pointer",
+          background:"linear-gradient(180deg,#fff36c,#ff9d18)",
+          boxShadow:"0 8px 0 rgba(0,0,0,.45)", textTransform:"uppercase"
+        }}>Start Game</button>
+      </div>
+    </div>
+  );
+}
 
 // ─── Image URLs (uploaded assets) ───────────────────────────────────────────
 const IMG_LOGO       = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/fb1a14b1b_frac-jack-logo.png";
@@ -325,7 +448,7 @@ function shortModelName(m) {
 }
 
 // ─── Main Game Component ──────────────────────────────────────────────────────
-export default function FracJack() {
+function FracJack() {
   const [level, setLevel] = useState(2);
   // level select removed
   const [gameStarted, setGameStarted] = useState(false);
@@ -1159,3 +1282,8 @@ function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick
     </aside>
   );
 }
+
+ReactDOM.createRoot(document.getElementById("root")).render(<FracJack />);
+  </script>
+</body>
+</html>
