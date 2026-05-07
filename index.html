@@ -5,212 +5,216 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Frac Jack</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body { font-family: system-ui, sans-serif; }
-    .territory { transition: all 0.2s; }
-    .territory:hover { transform: scale(1.03); }
+    body { font-family: 'system-ui', sans-serif; }
+    .territory { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .territory:active { transform: scale(0.95); }
+    .frac-option { transition: all 0.2s; }
   </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-950 via-blue-950 to-purple-950 text-white min-h-screen">
+<body class="bg-gradient-to-br from-[#020b1f] via-[#06245d] to-[#020916] text-white min-h-screen">
 
-  <div class="max-w-5xl mx-auto p-4">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <div class="text-3xl font-bold">🐺 Jackal <span id="orange-score" class="text-orange-400">0</span></div>
-      <div class="text-center">
-        <h1 class="text-4xl font-black tracking-wider text-yellow-300">FRAC JACK</h1>
-        <div id="timer" class="text-5xl font-mono font-bold text-white mt-2">00:30</div>
-      </div>
-      <div class="text-3xl font-bold text-right">🐰 Jackrabbit <span id="green-score" class="text-green-400">0</span></div>
+<div class="max-w-6xl mx-auto p-4">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-6">
+    <div class="text-3xl font-bold text-orange-400">🐺 Jackal <span id="orange-score">0</span></div>
+    <div class="text-center">
+      <h1 class="text-5xl font-black tracking-widest text-yellow-300">FRAC JACK</h1>
+      <div id="timer" class="text-6xl font-mono font-bold mt-1">30</div>
     </div>
-
-    <!-- Fractions -->
-    <div class="bg-white/10 backdrop-blur rounded-2xl p-4 mb-6">
-      <p class="text-center text-sm mb-3 text-yellow-200">Choose a fraction</p>
-      <div id="fractions" class="flex justify-center gap-4 flex-wrap"></div>
-    </div>
-
-    <!-- Territories -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="territories"></div>
-
-    <!-- Controls -->
-    <div class="flex justify-center gap-4 mt-8">
-      <button onclick="trashFraction()" 
-              class="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-2xl text-xl font-bold flex items-center gap-2">
-        🗑️ TRASH
-      </button>
-      <button onclick="newGame()" 
-              class="bg-white text-black hover:bg-gray-200 px-8 py-4 rounded-2xl text-xl font-bold">
-        New Game
-      </button>
-    </div>
+    <div class="text-3xl font-bold text-green-400 text-right">Jackrabbit <span id="green-score">0</span> 🐰</div>
   </div>
 
-  <script>
-    let currentPlayer = "orange";
-    let orangeScore = 0;
-    let greenScore = 0;
-    let timerInterval;
-    let timeLeft = 30;
-    let selectedFraction = null;
+  <!-- Fractions -->
+  <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-6 mb-8">
+    <p class="text-center text-yellow-200 mb-4 font-medium">YOUR FRACTIONS — Click one to select</p>
+    <div id="fractions-container" class="flex justify-center gap-6 flex-wrap"></div>
+  </div>
 
-    const territories = [
-      { id: 0, name: "T1", model: "Bar", wholes: 2, denominator: 4, filled: 0, owner: null },
-      { id: 1, name: "T2", model: "Circle", wholes: 3, denominator: 6, filled: 0, owner: null },
-      { id: 2, name: "T3", model: "Set", wholes: 2, denominator: 5, filled: 0, owner: null },
-      { id: 3, name: "T4", model: "Line", wholes: 2, denominator: 8, filled: 0, owner: null },
-      { id: 4, name: "T5", model: "Area", wholes: 3, denominator: 4, filled: 0, owner: null }
-    ];
+  <!-- Territories -->
+  <div id="territories-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
-    const fractionPool = [
-      {n:1,d:2}, {n:1,d:3}, {n:1,d:4}, {n:2,d:3}, {n:1,d:5},
-      {n:3,d:4}, {n:2,d:5}, {n:3,d:5}, {n:1,d:6}, {n:5,d:6}
-    ];
+  <!-- Controls -->
+  <div class="flex justify-center gap-6 mt-10">
+    <button onclick="trashCurrent()" 
+            class="flex items-center gap-3 bg-red-600 hover:bg-red-700 px-10 py-5 rounded-2xl text-xl font-bold shadow-xl">
+      <i class="fas fa-trash"></i> TRASH FRACTION
+    </button>
+    <button onclick="newGame()" 
+            class="bg-white/20 hover:bg-white/30 px-8 py-5 rounded-2xl text-xl font-bold">
+      New Game
+    </button>
+  </div>
+</div>
 
-    let currentFractions = [];
+<script>
+// ==================== GAME STATE ====================
+let currentPlayer = "orange";
+let scores = { orange: 0, green: 0 };
+let timeLeft = 30;
+let timerInterval = null;
+let selectedFracIndex = -1;
+let gameOver = false;
 
-    function shuffle(array) {
-      return array.sort(() => Math.random() - 0.5);
-    }
+let territories = [];
+let currentFractions = [];
+let discardedKeys = {};
 
-    function startTimer() {
-      clearInterval(timerInterval);
-      timeLeft = 30;
-      updateTimer();
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimer();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          switchPlayer();
-        }
-      }, 1000);
-    }
+// ==================== HELPERS ====================
+function fractionKey(f) { return `${f.n}/${f.d}`; }
 
-    function updateTimer() {
-      document.getElementById("timer").textContent = 
-        String(timeLeft).padStart(2, '0');
-    }
+function generateTerritories() {
+  territories = [
+    {id:0, slot:"t1", name:"T1", model:"Set",   den:4, wholes:2, filled:0, owner:null, color:"orange"},
+    {id:1, slot:"t2", name:"T2", model:"Line",  den:6, wholes:2, filled:0, owner:null, color:"blue"},
+    {id:2, slot:"t3", name:"T3", model:"Circle",den:4, wholes:3, filled:0, owner:null, color:"red"},
+    {id:3, slot:"t4", name:"T4", model:"Bar",   den:5, wholes:2, filled:0, owner:null, color:"blue"},
+    {id:4, slot:"t5", name:"T5", model:"Area",  den:8, wholes:2, filled:0, owner:null, color:"red"}
+  ];
+}
 
-    function switchPlayer() {
-      currentPlayer = currentPlayer === "orange" ? "green" : "orange";
-      startTimer();
-      render();
-    }
+function generateFractions() {
+  const pool = [
+    {n:1,d:2},{n:1,d:3},{n:1,d:4},{n:2,d:3},{n:3,d:4},
+    {n:1,d:5},{n:2,d:5},{n:3,d:5},{n:1,d:6},{n:5,d:6},{n:3,d:8}
+  ];
+  currentFractions = pool.sort(() => Math.random() - 0.5).slice(0, 3);
+  selectedFracIndex = -1;
+}
 
-    function generateFractions() {
-      currentFractions = shuffle([...fractionPool]).slice(0, 3);
-    }
+// ==================== TIMER ====================
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = 30;
+  document.getElementById("timer").textContent = timeLeft;
+  
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").textContent = timeLeft;
+    if (timeLeft <= 0) endTurn();
+  }, 1000);
+}
 
-    function selectFraction(index) {
-      selectedFraction = currentFractions[index];
-      render();
-    }
+function endTurn() {
+  clearInterval(timerInterval);
+  currentPlayer = currentPlayer === "orange" ? "green" : "orange";
+  generateFractions();
+  render();
+  startTimer();
+}
 
-    function claimTerritory(territoryId) {
-      if (!selectedFraction) return;
-      
-      const terr = territories[territoryId];
-      if (terr.owner) return;
+// ==================== RENDER ====================
+function render() {
+  // Fractions
+  let fracHTML = "";
+  currentFractions.forEach((f, i) => {
+    const isSelected = i === selectedFracIndex;
+    fracHTML += `
+      <div onclick="selectFraction(${i})" 
+           class="frac-option bg-white text-black font-bold text-4xl px-10 py-8 rounded-3xl cursor-pointer shadow-xl ${isSelected ? 'ring-4 ring-yellow-400 scale-110' : 'hover:scale-105'}">
+        ${f.n}/${f.d}
+      </div>`;
+  });
+  document.getElementById("fractions-container").innerHTML = fracHTML;
 
-      const units = Math.round((selectedFraction.n / selectedFraction.d) * terr.denominator);
-      
-      if (units + terr.filled > terr.denominator * terr.wholes) {
-        alert("Too big! Try a smaller fraction or trash it.");
-        return;
-      }
-
-      terr.filled += units;
-
-      if (terr.filled >= terr.denominator * terr.wholes) {
-        terr.owner = currentPlayer;
-        const points = terr.wholes * 100;
-        if (currentPlayer === "orange") orangeScore += points;
-        else greenScore += points;
-        alert(`JACKED IT! +${points} points`);
-      } else {
-        const points = 30;
-        if (currentPlayer === "orange") orangeScore += points;
-        else greenScore += points;
-      }
-
-      selectedFraction = null;
-      generateFractions();
-      render();
-      startTimer();
-
-      // Check if game over
-      if (territories.every(t => t.owner)) {
-        setTimeout(() => {
-          alert(`Game Over! ${orangeScore > greenScore ? "Jackal" : "Jackrabbit"} Wins!`);
-        }, 300);
-      }
-    }
-
-    function trashFraction() {
-      if (!selectedFraction) return;
-      const points = 20;
-      if (currentPlayer === "orange") orangeScore += points;
-      else greenScore += points;
-      
-      alert("Fraction trashed! +20 points");
-      selectedFraction = null;
-      generateFractions();
-      render();
-      startTimer();
-    }
-
-    function render() {
-      // Render fractions
-      const fracDiv = document.getElementById("fractions");
-      fracDiv.innerHTML = currentFractions.map((f, i) => `
-        <div onclick="selectFraction(${i})" 
-             class="bg-white/90 text-black font-bold text-2xl px-8 py-6 rounded-2xl cursor-pointer hover:scale-110 transition ${selectedFraction === currentFractions[i] ? 'ring-4 ring-yellow-400' : ''}">
-          ${f.n}/${f.d}
-        </div>
-      `).join("");
-
-      // Render territories
-      const terrDiv = document.getElementById("territories");
-      terrDiv.innerHTML = territories.map((t, i) => `
-        <div onclick="claimTerritory(${i})" class="territory bg-white/10 backdrop-blur rounded-3xl p-6 cursor-pointer border-4 ${t.owner === 'orange' ? 'border-orange-400' : t.owner === 'green' ? 'border-green-400' : 'border-white/30'}">
-          <div class="text-center">
-            <div class="text-xl font-bold">${t.name} • ${t.model}</div>
-            <div class="text-5xl font-black my-4">${t.wholes} wholes</div>
-            <div class="h-3 bg-white/20 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all" 
-                   style="width: ${(t.filled / (t.denominator * t.wholes)) * 100}%"></div>
-            </div>
-            <div class="text-sm mt-2">${t.filled}/${t.denominator * t.wholes} filled</div>
-            ${t.owner ? `<div class="mt-4 font-bold text-lg">${t.owner === 'orange' ? '🐺 JACKED' : '🐰 JACKED'}</div>` : ''}
+  // Territories
+  let terrHTML = "";
+  territories.forEach(t => {
+    const percent = Math.min(100, (t.filled / (t.wholes * t.den)) * 100);
+    terrHTML += `
+      <div onclick="placeFraction(${t.id})" class="territory bg-white/10 backdrop-blur-xl border-4 ${t.owner ? (t.owner==='orange'?'border-orange-500':'border-green-500') : 'border-white/40'} rounded-3xl p-6 cursor-pointer">
+        <div class="text-center">
+          <div class="font-bold text-lg">${t.name} • ${t.model}</div>
+          <div class="text-6xl font-black my-4">${t.wholes}</div>
+          <div class="h-5 bg-white/20 rounded-full overflow-hidden mb-3">
+            <div class="h-full bg-gradient-to-r from-yellow-400 to-orange-500" style="width: ${percent}%"></div>
           </div>
+          <div class="text-sm">${t.filled} / ${t.wholes * t.den} units</div>
+          ${t.owner ? `<div class="mt-4 text-xl font-bold">${t.owner === 'orange' ? '🐺 JACKED!' : '🐰 JACKED!'}</div>` : ''}
         </div>
-      `).join("");
+      </div>`;
+  });
+  document.getElementById("territories-container").innerHTML = terrHTML;
 
-      document.getElementById("orange-score").textContent = orangeScore;
-      document.getElementById("green-score").textContent = greenScore;
-    }
+  document.getElementById("orange-score").textContent = scores.orange;
+  document.getElementById("green-score").textContent = scores.green;
+}
 
-    function newGame() {
-      orangeScore = 0;
-      greenScore = 0;
-      territories.forEach(t => {
-        t.filled = 0;
-        t.owner = null;
-      });
-      currentPlayer = "orange";
-      generateFractions();
-      selectedFraction = null;
-      render();
-      startTimer();
-    }
+// ==================== ACTIONS ====================
+function selectFraction(i) {
+  selectedFracIndex = i;
+  render();
+}
 
-    // Start the game
-    window.onload = () => {
-      generateFractions();
-      render();
-      startTimer();
-    };
-  </script>
+function placeFraction(terrId) {
+  if (selectedFracIndex === -1 || gameOver) return;
+  
+  const frac = currentFractions[selectedFracIndex];
+  const terr = territories.find(t => t.id === terrId);
+  if (!terr || terr.owner) return;
+
+  const unitsAdded = Math.round((frac.n / frac.d) * terr.den);
+  
+  if (unitsAdded + terr.filled > terr.wholes * terr.den) {
+    alert("This fraction is too big for the remaining space!");
+    return;
+  }
+
+  terr.filled += unitsAdded;
+  const points = unitsAdded * 15 + 20;
+
+  if (currentPlayer === "orange") scores.orange += points;
+  else scores.green += points;
+
+  // Check if territory completed
+  if (terr.filled >= terr.wholes * terr.den) {
+    terr.owner = currentPlayer;
+    alert(`🎉 ${currentPlayer.toUpperCase()} JACKED ${terr.name}!`);
+  }
+
+  generateFractions();
+  render();
+
+  if (territories.every(t => t.owner)) {
+    gameOver = true;
+    clearInterval(timerInterval);
+    setTimeout(() => {
+      const winner = scores.orange > scores.green ? "Jackal" : "Jackrabbit";
+      alert(`🏆 GAME OVER! ${winner} Wins!`);
+    }, 400);
+  } else {
+    endTurn();
+  }
+}
+
+function trashCurrent() {
+  if (selectedFracIndex === -1) return;
+  
+  const points = 25;
+  if (currentPlayer === "orange") scores.orange += points;
+  else scores.green += points;
+
+  alert("🗑️ Good trash! +25 points");
+  generateFractions();
+  render();
+  startTimer();
+}
+
+function newGame() {
+  scores = { orange: 0, green: 0 };
+  gameOver = false;
+  generateTerritories();
+  generateFractions();
+  currentPlayer = "orange";
+  render();
+  startTimer();
+}
+
+// Start the game
+window.onload = () => {
+  newGame();
+};
+</script>
 </body>
 </html>
