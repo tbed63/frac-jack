@@ -87,6 +87,7 @@ function useGameSounds() {
     playBuzz: () => beep(95, 0.18, "square"),
     playBrand: () => playFile(SOUND_BRAND),
     playTerritoryVictory: () => playFile(SOUND_TERRITORY_VICTORY),
+    playBadTrash: () => playFile(SOUND_BAD_TRASH),
   };
 }
 
@@ -160,6 +161,7 @@ const IMG_JACKRABBIT = "https://media.base44.com/images/public/69fa82e0877a38539
 const IMG_TRASH      = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/ca01e9af6_frac-trash.png";
 const SOUND_BRAND    = "ZoodleBugBrandSound.wav"; // Put this WAV file in the same GitHub folder as index.html.
 const SOUND_TERRITORY_VICTORY = "FracJackTerritoryVictory.wav"; // Put this WAV file in the same GitHub folder as index.html.
+const SOUND_BAD_TRASH = "FracJackBadTrash.wav"; // Put this WAV file in the same GitHub folder as index.html.
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { let t = b; b = a % b; a = t; } return a || 1; }
@@ -620,7 +622,7 @@ function FracJack() {
   const [victoryData, setVictoryData] = useState(null);
   const [lessonReady, setLessonReady] = useState(false);
 
-  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz, playBrand, playTerritoryVictory } = useGameSounds();
+  const { muted, toggleMute, playMove, playCapture, playTrash, playBuzz, playBrand, playTerritoryVictory, playBadTrash } = useGameSounds();
 
   const timerRef = useRef(null);
   const timerVal = useRef(30);
@@ -1144,7 +1146,8 @@ function FracJack() {
     lockedRef.current = true;
     setGameLocked(true);
     stopTimer();
-    playBuzz();
+    playBadTrash();
+    setTimeout(() => playBuzz(), 180); // fallback/extra sting if file audio is blocked
     burpTrash();
     const penalty = activeLevel() === 1 ? 50 : activeLevel() === 2 ? 50 : 100;
     setPlayers(prev => ({ ...prev, [currentPlayer]: { ...prev[currentPlayer], points: prev[currentPlayer].points - penalty } }));
@@ -1386,9 +1389,16 @@ function FracJack() {
               textShadow: pow.variant === "trashSuccess" ? "0 4px 0 #111, 0 8px 18px rgba(0,0,0,.45)" : "0 2px 8px rgba(0,0,0,.4)"
             }}>
               {pow.variant === "trashSuccess" && (
-                <div style={{ display:"inline-block", transform:"rotate(-4deg)", background:"linear-gradient(180deg,#fff45c,#ffb000)", color:"#111", border:"5px solid #111", borderRadius:999, padding:"6px 18px", fontSize:20, fontWeight:1000, boxShadow:"0 7px 0 rgba(0,0,0,.42)", textTransform:"uppercase", marginBottom:12 }}>
-                  Nice Dump!
-                </div>
+                <div style={{
+              fontSize:42,
+              fontWeight:1000,
+              color:"#ffdf4c",
+              lineHeight:1,
+              textTransform:"uppercase",
+              letterSpacing:1,
+              marginTop:10,
+              textShadow:"0 3px 0 rgba(0,0,0,.55)"
+            }}>NICE DUMP!</div>
               )}
               <div style={{
                 fontSize: pow.variant === "trashSuccess" ? "clamp(44px,8vw,76px)" : 62,
