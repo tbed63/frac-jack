@@ -26,7 +26,20 @@
     }
     * { box-sizing: border-box; }
     button { font-family: Arial, Helvetica, sans-serif; }
-  </style>
+  
+/* Intro screen safety restore: keep start screen full-width and superimposed over game */
+.fracjack-intro-overlay,
+.intro-screen,
+.start-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  z-index: 80 !important;
+}
+
+      </style>
 </head>
 <body>
   <div id="root"></div>
