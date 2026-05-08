@@ -735,6 +735,7 @@ function FracJack() {
       color,
       imageSrc: options.imageSrc || null,
       imageAlt: options.imageAlt || "",
+      variant: options.variant || "standard",
       onContinue: onContinue || null
     });
   }
@@ -1136,7 +1137,7 @@ function FracJack() {
         });
       });
       unlockAfterInputGuard(350);
-    }, { imageSrc: IMG_TRASH, imageAlt: "Frac Trash" });
+    }, { imageSrc: IMG_TRASH, imageAlt: "Frac Trash", variant: "trashSuccess" });
   }
 
   function badTrash() {
@@ -1350,38 +1351,92 @@ function FracJack() {
 
       {/* POW Popup */}
       {pow.show && (
-        <div style={{ position:"fixed", inset:0, pointerEvents:"all", display:"flex", alignItems:"center", justifyContent:"center", zIndex:90, background:"rgba(0,0,0,.72)" }}>
+        <div style={{
+          position:"fixed", inset:0, pointerEvents:"all", display:"flex", alignItems:"center", justifyContent:"center", zIndex:90,
+          background: pow.variant === "trashSuccess"
+            ? "radial-gradient(circle at 50% 34%, rgba(255,232,72,.35), transparent 18%), radial-gradient(circle at 50% 58%, rgba(0,255,170,.18), transparent 28%), rgba(0,0,0,.78)"
+            : "rgba(0,0,0,.72)"
+        }}>
           <div style={{
-            width:"min(520px,88vw)", borderRadius:28, overflow:"hidden",
-            boxShadow:"0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12)",
-            background: pow.color === "orange" ? "linear-gradient(160deg,#ffcf60 0%,#e06800 100%)" : pow.color === "green" ? "linear-gradient(160deg,#a3f87a 0%,#2a9b14 100%)" : pow.color === "red" ? "linear-gradient(160deg,#ff9090 0%,#c01010 100%)" : "linear-gradient(160deg,#80c8ff 0%,#0f5ed4 100%)"
+            width: pow.variant === "trashSuccess" ? "min(640px,90vw)" : "min(520px,88vw)",
+            borderRadius: pow.variant === "trashSuccess" ? 34 : 28,
+            overflow:"hidden",
+            position:"relative",
+            border: pow.variant === "trashSuccess" ? "8px solid #fff" : "none",
+            outline: pow.variant === "trashSuccess" ? "5px solid #111" : "none",
+            boxShadow: pow.variant === "trashSuccess"
+              ? "0 18px 0 #111, 0 28px 0 rgba(0,0,0,.38), 0 38px 88px rgba(0,0,0,.75), inset 0 0 0 6px rgba(255,255,255,.24)"
+              : "0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12)",
+            background: pow.variant === "trashSuccess"
+              ? "linear-gradient(145deg,#37f28d 0%,#10a8ff 48%,#6a27ff 100%)"
+              : pow.color === "orange" ? "linear-gradient(160deg,#ffcf60 0%,#e06800 100%)" : pow.color === "green" ? "linear-gradient(160deg,#a3f87a 0%,#2a9b14 100%)" : pow.color === "red" ? "linear-gradient(160deg,#ff9090 0%,#c01010 100%)" : "linear-gradient(160deg,#80c8ff 0%,#0f5ed4 100%)"
           }}>
+            {pow.variant === "trashSuccess" && (
+              <>
+                <div style={{ position:"absolute", inset:0, background:"repeating-linear-gradient(-35deg, rgba(255,255,255,.16) 0 12px, transparent 12px 26px)", pointerEvents:"none" }} />
+                <div style={{ position:"absolute", left:-36, top:18, width:120, height:120, borderRadius:"50%", background:"rgba(255,232,55,.42)", filter:"blur(1px)" }} />
+                <div style={{ position:"absolute", right:-42, bottom:-34, width:170, height:170, borderRadius:"50%", background:"rgba(255,101,0,.34)", filter:"blur(1px)" }} />
+              </>
+            )}
             {/* Accent strip */}
-            <div style={{ height:6, background:"rgba(255,255,255,.35)" }} />
-            <div style={{ padding:"40px 44px 36px", textAlign:"center", color:"white", textShadow:"0 2px 8px rgba(0,0,0,.4)" }}>
-              <div style={{ fontSize:62, fontWeight:900, lineHeight:1, textTransform:"uppercase", letterSpacing:-1 }}>{pow.big}</div>
-              {pow.imageSrc && (
-                <img
-                  src={pow.imageSrc}
-                  alt={pow.imageAlt || ""}
-                  style={{
-                    width: "min(190px,48vw)",
-                    height: "min(165px,38vh)",
-                    objectFit: "contain",
-                    display: "block",
-                    margin: "18px auto 8px",
-                    filter: "drop-shadow(0 10px 12px rgba(0,0,0,.45))"
-                  }}
-                />
+            <div style={{ height: pow.variant === "trashSuccess" ? 10 : 6, background: pow.variant === "trashSuccess" ? "linear-gradient(90deg,#fff35b,#ffffff,#69ff6b,#ffffff,#fff35b)" : "rgba(255,255,255,.35)", position:"relative", zIndex:1 }} />
+            <div style={{
+              padding: pow.variant === "trashSuccess" ? "34px 42px 38px" : "40px 44px 36px",
+              textAlign:"center", color:"white", position:"relative", zIndex:1,
+              textShadow: pow.variant === "trashSuccess" ? "0 4px 0 #111, 0 8px 18px rgba(0,0,0,.45)" : "0 2px 8px rgba(0,0,0,.4)"
+            }}>
+              {pow.variant === "trashSuccess" && (
+                <div style={{ display:"inline-block", transform:"rotate(-4deg)", background:"linear-gradient(180deg,#fff45c,#ffb000)", color:"#111", border:"5px solid #111", borderRadius:999, padding:"6px 18px", fontSize:20, fontWeight:1000, boxShadow:"0 7px 0 rgba(0,0,0,.42)", textTransform:"uppercase", marginBottom:12 }}>
+                  Nice Dump!
+                </div>
               )}
-              <div style={{ fontSize:26, fontWeight:700, marginTop:10, opacity:.92, letterSpacing:.3 }}>{pow.small}</div>
+              <div style={{
+                fontSize: pow.variant === "trashSuccess" ? "clamp(44px,8vw,76px)" : 62,
+                fontWeight:1000, lineHeight:.92, textTransform:"uppercase", letterSpacing:-1
+              }}>{pow.big}</div>
+              {pow.imageSrc && (
+                <div style={{
+                  width: pow.variant === "trashSuccess" ? "min(250px,54vw)" : "min(190px,48vw)",
+                  height: pow.variant === "trashSuccess" ? "min(215px,36vh)" : "min(165px,38vh)",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  margin: pow.variant === "trashSuccess" ? "16px auto 6px" : "18px auto 8px",
+                  borderRadius: pow.variant === "trashSuccess" ? 28 : 0,
+                  background: pow.variant === "trashSuccess" ? "radial-gradient(circle,#ffffff 0%,#eaffff 58%,rgba(255,255,255,.22) 59%,rgba(255,255,255,.08) 100%)" : "transparent",
+                  border: pow.variant === "trashSuccess" ? "5px solid #111" : "none",
+                  boxShadow: pow.variant === "trashSuccess" ? "0 9px 0 rgba(0,0,0,.48), inset 0 0 0 5px rgba(255,255,255,.5)" : "none"
+                }}>
+                  <img
+                    src={pow.imageSrc}
+                    alt={pow.imageAlt || ""}
+                    style={{
+                      width: pow.variant === "trashSuccess" ? "88%" : "min(190px,48vw)",
+                      height: pow.variant === "trashSuccess" ? "88%" : "min(165px,38vh)",
+                      objectFit: "contain",
+                      display: "block",
+                      filter: pow.variant === "trashSuccess" ? "drop-shadow(0 12px 0 rgba(0,0,0,.32)) drop-shadow(0 14px 18px rgba(0,0,0,.38))" : "drop-shadow(0 10px 12px rgba(0,0,0,.45))",
+                      transform: pow.variant === "trashSuccess" ? "rotate(3deg) scale(1.05)" : "none"
+                    }}
+                  />
+                </div>
+              )}
+              <div style={{
+                display: pow.variant === "trashSuccess" ? "inline-block" : "block",
+                fontSize: pow.variant === "trashSuccess" ? 28 : 26,
+                fontWeight:1000, marginTop: pow.variant === "trashSuccess" ? 14 : 10, opacity:.96, letterSpacing:.3,
+                background: pow.variant === "trashSuccess" ? "rgba(0,0,0,.28)" : "transparent",
+                border: pow.variant === "trashSuccess" ? "3px solid rgba(255,255,255,.75)" : "none",
+                borderRadius: pow.variant === "trashSuccess" ? 18 : 0,
+                padding: pow.variant === "trashSuccess" ? "8px 16px" : 0,
+                boxShadow: pow.variant === "trashSuccess" ? "inset 0 2px 0 rgba(255,255,255,.24)" : "none"
+              }}>{pow.small}</div>
+              <br />
               <button onPointerDown={(e) => e.stopPropagation()} onClick={dismissPow} style={{
-                marginTop:32, display:"inline-block",
-                background:"rgba(0,0,0,.22)", backdropFilter:"blur(6px)",
-                border:"2px solid rgba(255,255,255,.55)", borderRadius:14,
-                padding:"12px 40px", color:"white", fontSize:16, fontWeight:800,
+                marginTop: pow.variant === "trashSuccess" ? 28 : 32, display:"inline-block",
+                background: pow.variant === "trashSuccess" ? "linear-gradient(180deg,#fff35f,#ffb000)" : "rgba(0,0,0,.22)", backdropFilter:"blur(6px)",
+                border: pow.variant === "trashSuccess" ? "5px solid #111" : "2px solid rgba(255,255,255,.55)", borderRadius: pow.variant === "trashSuccess" ? 999 : 14,
+                padding: pow.variant === "trashSuccess" ? "13px 44px" : "12px 40px", color: pow.variant === "trashSuccess" ? "#111" : "white", fontSize: pow.variant === "trashSuccess" ? 18 : 16, fontWeight:1000,
                 cursor:"pointer", letterSpacing:1, textTransform:"uppercase",
-                boxShadow:"0 4px 14px rgba(0,0,0,.25)", transition:"background .15s"
+                boxShadow: pow.variant === "trashSuccess" ? "0 7px 0 rgba(0,0,0,.55), 0 12px 22px rgba(0,0,0,.34)" : "0 4px 14px rgba(0,0,0,.25)", transition:"background .15s"
               }}>
                 Continue
               </button>
