@@ -665,11 +665,13 @@ function FracJack() {
   const viewport = useViewportSize();
   const DESIGN_WIDTH = 1120;
   const DESIGN_HEIGHT = 720;
-  const shouldScaleGame = viewport.width < DESIGN_WIDTH || viewport.height < DESIGN_HEIGHT;
-  const gameScale = shouldScaleGame ? Math.min(viewport.width / DESIGN_WIDTH, viewport.height / DESIGN_HEIGHT) : 1;
-  const gameOffsetX = Math.max(0, (viewport.width - DESIGN_WIDTH * gameScale) / 2);
-  const gameOffsetY = Math.max(0, (viewport.height - DESIGN_HEIGHT * gameScale) / 2);
   const isPhoneLike = viewport.width <= 760 || viewport.height <= 520;
+  const shouldScaleGame = isPhoneLike;
+  const gameScale = shouldScaleGame ? Math.min(viewport.width / DESIGN_WIDTH, viewport.height / DESIGN_HEIGHT) : 1;
+  const gameOffsetX = shouldScaleGame ? Math.max(0, (viewport.width - DESIGN_WIDTH * gameScale) / 2) : 0;
+  const gameOffsetY = shouldScaleGame ? Math.max(0, (viewport.height - DESIGN_HEIGHT * gameScale) / 2) : 0;
+  const gameWidth = shouldScaleGame ? DESIGN_WIDTH : "100vw";
+  const gameHeight = shouldScaleGame ? DESIGN_HEIGHT : "100vh";
 
   // Initialize game board on mount
   useEffect(() => { setupNewGame(level); }, []); // eslint-disable-line
@@ -1295,8 +1297,8 @@ function FracJack() {
       <div style={{
         position:"absolute", zIndex:1,
         left:gameOffsetX, top:gameOffsetY,
-        width:DESIGN_WIDTH, height:DESIGN_HEIGHT, padding:10,
-        transform:`scale(${gameScale})`,
+        width:gameWidth, height:gameHeight, padding:10,
+        transform: shouldScaleGame ? `scale(${gameScale})` : "none",
         transformOrigin:"top left",
         display:"grid", gridTemplateRows:"122px 1fr", gap:8, overflow:"hidden",
         fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none",
