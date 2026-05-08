@@ -611,7 +611,7 @@ function FracJack() {
   const [trashBurp, setTrashBurp] = useState(false);
   const [trashTripsThisTurn, setTrashTripsThisTurn] = useState(0);
   // Overlays
-  const [pow, setPow] = useState({ show:false, big:"", small:"", color:"orange", onContinue:null });
+  const [pow, setPow] = useState({ show:false, big:"", small:"", color:"orange", imageSrc:null, imageAlt:"", onContinue:null });
   const [lessonOverlay, setLessonOverlay] = useState(null); // { t, remaining, callback }
   const [trashPenaltyOverlay, setTrashPenaltyOverlay] = useState(false);
   const [trashPenaltyMsg, setTrashPenaltyMsg] = useState("");
@@ -726,9 +726,17 @@ function FracJack() {
     return c;
   }
 
-  function showPow(big, small, color, onContinue) {
+  function showPow(big, small, color, onContinue, options = {}) {
     stopTimer();
-    setPow({ show:true, big, small, color, onContinue: onContinue || null });
+    setPow({
+      show:true,
+      big,
+      small,
+      color,
+      imageSrc: options.imageSrc || null,
+      imageAlt: options.imageAlt || "",
+      onContinue: onContinue || null
+    });
   }
 
   function dismissPow(e) {
@@ -742,7 +750,7 @@ function FracJack() {
     setPow(p => {
       const cb = p.onContinue;
       setTimeout(() => { if (cb) cb(); }, 0);
-      return { ...p, show:false, onContinue:null };
+      return { ...p, show:false, imageSrc:null, imageAlt:"", onContinue:null };
     });
   }
 
@@ -798,7 +806,7 @@ function FracJack() {
     setGameStarted(false);
     setGameLocked(true);
     setVictoryReached(false);
-    setPow({ show:false, big:"", small:"", color:"orange", onContinue:null });
+    setPow({ show:false, big:"", small:"", color:"orange", imageSrc:null, imageAlt:"", onContinue:null });
     setLessonOverlay(null);
     setTrashPenaltyOverlay(false);
     setTrashPenaltyMsg("");
@@ -1128,7 +1136,7 @@ function FracJack() {
         });
       });
       unlockAfterInputGuard(350);
-    });
+    }, { imageSrc: IMG_TRASH, imageAlt: "Frac Trash" });
   }
 
   function badTrash() {
@@ -1352,6 +1360,20 @@ function FracJack() {
             <div style={{ height:6, background:"rgba(255,255,255,.35)" }} />
             <div style={{ padding:"40px 44px 36px", textAlign:"center", color:"white", textShadow:"0 2px 8px rgba(0,0,0,.4)" }}>
               <div style={{ fontSize:62, fontWeight:900, lineHeight:1, textTransform:"uppercase", letterSpacing:-1 }}>{pow.big}</div>
+              {pow.imageSrc && (
+                <img
+                  src={pow.imageSrc}
+                  alt={pow.imageAlt || ""}
+                  style={{
+                    width: "min(190px,48vw)",
+                    height: "min(165px,38vh)",
+                    objectFit: "contain",
+                    display: "block",
+                    margin: "18px auto 8px",
+                    filter: "drop-shadow(0 10px 12px rgba(0,0,0,.45))"
+                  }}
+                />
+              )}
               <div style={{ fontSize:26, fontWeight:700, marginTop:10, opacity:.92, letterSpacing:.3 }}>{pow.small}</div>
               <button onPointerDown={(e) => e.stopPropagation()} onClick={dismissPow} style={{
                 marginTop:32, display:"inline-block",
