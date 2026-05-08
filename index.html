@@ -997,9 +997,9 @@ function FracJack() {
     lockedRef.current = true;
     setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
-    let bonus = 300;
-    if (activeLevel() === 1) bonus = 100;
-    if (activeLevel() === 2) bonus = 200;
+    let bonus = t.wholes * 100;
+    if (activeLevel() === 1) bonus = t.wholes * 50;
+    if (activeLevel() === 2) bonus = t.wholes * 75;
 
     const newFracs = (() => {
       const usedKeys = {};
