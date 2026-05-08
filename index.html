@@ -997,9 +997,9 @@ function FracJack() {
     lockedRef.current = true;
     setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
-    let bonus = t.wholes * 300;
-    if (activeLevel() === 1) bonus = t.wholes * 100;
-    if (activeLevel() === 2) bonus = t.wholes * 200;
+    let bonus = 300;
+    if (activeLevel() === 1) bonus = 100;
+    if (activeLevel() === 2) bonus = 200;
 
     const newFracs = (() => {
       const usedKeys = {};
@@ -1497,7 +1497,7 @@ function FracJack() {
             <div style={{ fontSize:46, fontWeight:1000, color:"#df2525", lineHeight:1 }}>How to Play</div>
             <div style={{ fontSize:18, fontWeight:900, lineHeight:1.35, textAlign:"left", maxWidth:620, margin:"18px auto" }}>
               Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by the speed bonus — up to <strong>3×</strong> if you move in the first 3 seconds of the turn, then gradually dropping to 1×. ⚡ Speed pays!<br /><br />
-              Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory for a big bonus: Level 1 = 100 per whole, Level 2 = 200 per whole, Level 3 = 300 per whole.<br /><br />
+              Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br /><br />
               Some fractions do not fit some models. If it does not fit, your turn ends.<br /><br />
               Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
               <strong>Jack Tricks:</strong> Hint reveals a legal move • Re-Frac deals new fractions • Jackback clears one whole from a territory.<br /><br />
