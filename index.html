@@ -26,20 +26,7 @@
     }
     * { box-sizing: border-box; }
     button { font-family: Arial, Helvetica, sans-serif; }
-  
-/* Intro screen safety restore: keep start screen full-width and superimposed over game */
-.fracjack-intro-overlay,
-.intro-screen,
-.start-screen {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  z-index: 80 !important;
-}
-
-      </style>
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -115,12 +102,12 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart 
       background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"
     }}>
       <div style={{
-        width:"min(380px,88vw)", border:"7px solid white", borderRadius:22,
+        width:"min(720px,94vw)", border:"7px solid white", borderRadius:34,
         padding:"26px 30px 30px", textAlign:"center",
         background:"rgba(0,0,0,.48)", boxShadow:"0 24px 70px rgba(0,0,0,.65)"
       }}>
         <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"min(520px,90%)", maxHeight:210, objectFit:"contain", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))" }} />
-        <div style={{ fontSize:15, fontWeight:900, margin:"8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
+        <div style={{ fontSize:22, fontWeight:900, margin:"8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
           Pick fractions. Claim territories. Jack the board.
         </div>
 
@@ -935,7 +922,7 @@ function FracJack() {
       lockedRef.current = true;
       setGameLocked(true);
       playBuzz();
-      showPow("NO FIT!", denomWord(frac.d) + " can't fit " + denomWord(t.denominator) + ".\nLose Your Turn", "red", () => {
+      showPow("NO FIT!", denomWord(frac.d) + " can't fit " + denomWord(t.denominator) + ".", "red", () => {
         doSwitchTurn(currentPlayer === "orange" ? "green" : "orange");
       });
       return;
@@ -1010,9 +997,9 @@ function FracJack() {
     lockedRef.current = true;
     setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
-    let bonus = t.wholes * 250;
-    if (activeLevel() === 1) bonus = t.wholes * 150;
-    if (activeLevel() === 2) bonus = t.wholes * 200;
+    let bonus = t.wholes * 100;
+    if (activeLevel() === 1) bonus = t.wholes * 50;
+    if (activeLevel() === 2) bonus = t.wholes * 75;
 
     const newFracs = (() => {
       const usedKeys = {};
@@ -1022,10 +1009,6 @@ function FracJack() {
       arr[selectedFracIdx] = newF;
       return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
-
-    playBadTrash();
-
-    setTimeout(() => playBuzz(), 180); // extra/fallback sting if WAV audio is blocked
 
     showPow("HIJACKED!", players[opp].name + " +" + bonus, "red", () => {
        setLessonOverlay({ t, remaining, callback: () => {
@@ -1228,8 +1211,8 @@ function FracJack() {
     return (
       <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.58)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
         <div style={{ width:"min(760px,94vw)", background:"white", color:"#111", border:"7px solid #111", borderRadius:30, padding:24, boxShadow:"0 18px 42px rgba(0,0,0,.48)", textAlign:"center" }}>
-          <div style={{ fontSize:27, fontWeight:1000, color:"#df2525", lineHeight:1 }}>HIJACKED!</div>
-          <div style={{ fontSize:15, fontWeight:1000, margin:"12px 0 18px" }}>This amount would have filled it.</div>
+          <div style={{ fontSize:46, fontWeight:1000, color:"#df2525", lineHeight:1 }}>HIJACKED!</div>
+          <div style={{ fontSize:22, fontWeight:1000, margin:"12px 0 18px" }}>This amount would have filled it.</div>
           <div style={{ width:"min(520px,88%)", height:72, margin:"0 auto 16px", border:"4px solid #111", display:"grid", gridTemplateColumns:`repeat(${t.denominator},1fr)`, background:"#fff7df" }}>
             {Array.from({ length: t.denominator }).map((_, i) => (
               <div key={i} style={{ borderRight: i < t.denominator - 1 ? "1px solid rgba(0,0,0,.38)" : "none", background: i < (remaining % t.denominator || t.denominator) ? "linear-gradient(180deg,#fff17a,#ffcc25)" : "transparent" }} />
@@ -1289,7 +1272,7 @@ function FracJack() {
             </div>
             <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"} style={{
               position:"absolute", right:0,
-              background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px", lineHeight:1
+              background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:22, cursor:"pointer", padding:"4px 6px", lineHeight:1
             }}>{muted ? "🔇" : "🔊"}</button>
           </div>
 
@@ -1395,7 +1378,7 @@ function FracJack() {
               <>
                 <div style={{ position:"absolute", inset:0, background:"repeating-linear-gradient(-35deg, rgba(255,255,255,.16) 0 12px, transparent 12px 26px)", pointerEvents:"none" }} />
                 <div style={{ position:"absolute", left:-36, top:18, width:120, height:120, borderRadius:"50%", background:"rgba(255,232,55,.42)", filter:"blur(1px)" }} />
-                <div style={{ position:"absolute", right:-42, bottom:-34, width:88, height:88, borderRadius:"50%", background:"rgba(255,101,0,.34)", filter:"blur(1px)" }} />
+                <div style={{ position:"absolute", right:-42, bottom:-34, width:170, height:170, borderRadius:"50%", background:"rgba(255,101,0,.34)", filter:"blur(1px)" }} />
               </>
             )}
             {/* Accent strip */}
@@ -1406,16 +1389,9 @@ function FracJack() {
               textShadow: pow.variant === "trashSuccess" ? "0 4px 0 #111, 0 8px 18px rgba(0,0,0,.45)" : "0 2px 8px rgba(0,0,0,.4)"
             }}>
               {pow.variant === "trashSuccess" && (
-                <div style={{
-              fontSize:25,
-              fontWeight:1000,
-              color:"#ffdf4c",
-              lineHeight:1,
-              textTransform:"uppercase",
-              letterSpacing:1,
-              marginTop:6,
-              textShadow:"0 3px 0 rgba(0,0,0,.55)"
-            }}>NICE DUMP!</div>
+                <div style={{ display:"inline-block", transform:"rotate(-4deg)", background:"linear-gradient(180deg,#fff45c,#ffb000)", color:"#111", border:"5px solid #111", borderRadius:999, padding:"6px 18px", fontSize:20, fontWeight:1000, boxShadow:"0 7px 0 rgba(0,0,0,.42)", textTransform:"uppercase", marginBottom:12 }}>
+                  Nice Dump!
+                </div>
               )}
               <div style={{
                 fontSize: pow.variant === "trashSuccess" ? "clamp(44px,8vw,76px)" : 62,
@@ -1510,7 +1486,7 @@ function FracJack() {
             <div style={{ fontSize:46, fontWeight:1000, color:"#df2525", lineHeight:1 }}>How to Play</div>
             <div style={{ fontSize:18, fontWeight:900, lineHeight:1.35, textAlign:"left", maxWidth:620, margin:"18px auto" }}>
               Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by the speed bonus — up to <strong>3×</strong> if you move in the first 3 seconds of the turn, then gradually dropping to 1×. ⚡ Speed pays!<br /><br />
-              Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory for a big bonus: Level 1 = 150 per whole, Level 2 = 200 per whole, Level 3 = 250 per whole.<br /><br />
+              Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br /><br />
               Some fractions do not fit some models. If it does not fit, your turn ends.<br /><br />
               Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
               <strong>Jack Tricks:</strong> Hint reveals a legal move • Re-Frac deals new fractions • Jackback clears one whole from a territory.<br /><br />
