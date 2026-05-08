@@ -922,7 +922,7 @@ function FracJack() {
       lockedRef.current = true;
       setGameLocked(true);
       playBuzz();
-      showPow("NO FIT!", denomWord(frac.d) + " can't fit " + denomWord(t.denominator) + ".", "red", () => {
+      showPow("NO FIT!", denomWord(frac.d) + " can't fit " + denomWord(t.denominator) + ".\nLose Your Turn", "red", () => {
         doSwitchTurn(currentPlayer === "orange" ? "green" : "orange");
       });
       return;
@@ -1009,6 +1009,10 @@ function FracJack() {
       arr[selectedFracIdx] = newF;
       return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
+
+    playBadTrash();
+
+    setTimeout(() => playBuzz(), 180); // extra/fallback sting if WAV audio is blocked
 
     showPow("HIJACKED!", players[opp].name + " +" + bonus, "red", () => {
        setLessonOverlay({ t, remaining, callback: () => {
