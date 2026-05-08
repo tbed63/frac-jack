@@ -21,8 +21,10 @@
       margin: 0;
       width: 100%;
       height: 100%;
+      min-height: 100%;
       overflow: hidden;
       background: #020916;
+      touch-action: manipulation;
     }
     * { box-sizing: border-box; }
     button { font-family: Arial, Helvetica, sans-serif; }
@@ -91,8 +93,35 @@ function useGameSounds() {
   };
 }
 
+
+// Responsive viewport hook for scaling the full game board on smaller screens.
+function useViewportSize() {
+  const [size, setSize] = useState({
+    width: window.innerWidth || 1200,
+    height: window.innerHeight || 800
+  });
+
+  useEffect(() => {
+    function updateSize() {
+      setSize({
+        width: window.innerWidth || 1200,
+        height: window.innerHeight || 800
+      });
+    }
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    window.addEventListener("orientationchange", updateSize);
+    return () => {
+      window.removeEventListener("resize", updateSize);
+      window.removeEventListener("orientationchange", updateSize);
+    };
+  }, []);
+
+  return size;
+}
+
 // Intro screen replacing the Base44 component import.
-function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart }) {
+function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart, compact = false }) {
   return (
     <div style={{
       position:"fixed", inset:0, zIndex:200,
@@ -103,21 +132,21 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart 
     }}>
       <div style={{
         width:"min(760px,94vw)", border:"7px solid white", borderRadius:22,
-        padding:"26px 30px 30px", textAlign:"center",
+        padding: compact ? "16px 18px 18px" : "26px 30px 30px", textAlign:"center",
         background:"rgba(0,0,0,.48)", boxShadow:"0 24px 70px rgba(0,0,0,.65)"
       }}>
-        <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"min(520px,90%)", maxHeight:210, objectFit:"contain", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))" }} />
-        <div style={{ fontSize:15, fontWeight:900, margin:"8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
+        <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"min(520px,90%)", maxHeight: compact ? 130 : 210, objectFit:"contain", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))" }} />
+        <div style={{ fontSize: compact ? 12 : 15, fontWeight:900, margin: compact ? "4px 0 12px" : "8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
           Pick fractions. Claim territories. Jack the board.
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, margin:"0 auto 24px", maxWidth:560 }}>
-          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding:16, background:"rgba(255,255,255,.10)" }}>
+        <div style={{ display:"grid", gridTemplateColumns: compact ? "1fr 1fr" : "1fr 1fr", gap: compact ? 10 : 16, margin: compact ? "0 auto 14px" : "0 auto 24px", maxWidth:560 }}>
+          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding: compact ? 10 : 16, background:"rgba(255,255,255,.10)" }}>
             <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Level</div>
             <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
               {[1,2,3].map(lv => (
                 <button key={lv} onClick={() => onLevelChange(lv)} style={{
-                  width:54, height:42, borderRadius:14, border:"3px solid white",
+                  width: compact ? 44 : 54, height: compact ? 34 : 42, borderRadius:14, border:"3px solid white",
                   fontSize:18, fontWeight:1000, cursor:"pointer",
                   color: level === lv ? "#111" : "white",
                   background: level === lv ? "linear-gradient(180deg,#ffe76a,#ffb21b)" : "rgba(0,0,0,.28)"
@@ -129,8 +158,8 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart 
           <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding:16, background:"rgba(255,255,255,.10)" }}>
             <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Turn Timer</div>
             <select value={timerLimit} onChange={e => onTimerChange(Number(e.target.value))} style={{
-              width:"100%", height:42, borderRadius:12, border:"3px solid white",
-              fontSize:17, fontWeight:900, textAlign:"center", color:"#111", background:"white"
+              width:"100%", height: compact ? 34 : 42, borderRadius:12, border:"3px solid white",
+              fontSize: compact ? 14 : 17, fontWeight:900, textAlign:"center", color:"#111", background:"white"
             }}>
               <option value={10}>10 seconds</option>
               <option value={20}>20 seconds</option>
@@ -144,8 +173,8 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart 
         </div>
 
         <button onClick={onStart} style={{
-          border:"5px solid white", borderRadius:999, padding:"14px 46px",
-          fontSize:26, fontWeight:1000, color:"#111", cursor:"pointer",
+          border:"5px solid white", borderRadius:999, padding: compact ? "10px 30px" : "14px 46px",
+          fontSize: compact ? 20 : 26, fontWeight:1000, color:"#111", cursor:"pointer",
           background:"linear-gradient(180deg,#fff36c,#ff9d18)",
           boxShadow:"0 8px 0 rgba(0,0,0,.45)", textTransform:"uppercase"
         }}>Start Game</button>
@@ -632,6 +661,15 @@ function FracJack() {
   const moveChunkRef = useRef(0);
   const currentLevelRef = useRef(normalizeLevel(level));
   const inputGuardUntilRef = useRef(0);
+
+  const viewport = useViewportSize();
+  const DESIGN_WIDTH = 1120;
+  const DESIGN_HEIGHT = 720;
+  const shouldScaleGame = viewport.width < DESIGN_WIDTH || viewport.height < DESIGN_HEIGHT;
+  const gameScale = shouldScaleGame ? Math.min(viewport.width / DESIGN_WIDTH, viewport.height / DESIGN_HEIGHT) : 1;
+  const gameOffsetX = Math.max(0, (viewport.width - DESIGN_WIDTH * gameScale) / 2);
+  const gameOffsetY = Math.max(0, (viewport.height - DESIGN_HEIGHT * gameScale) / 2);
+  const isPhoneLike = viewport.width <= 760 || viewport.height <= 520;
 
   // Initialize game board on mount
   useEffect(() => { setupNewGame(level); }, []); // eslint-disable-line
@@ -1241,9 +1279,25 @@ function FracJack() {
 
   return (
     <>
-      {!gameStarted && <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} />}
+      {!gameStarted && <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} compact={isPhoneLike} />}
+      {gameStarted && isPhoneLike && viewport.height > viewport.width && (
+        <div style={{
+          position:"fixed", left:8, right:8, top:8, zIndex:250,
+          padding:"8px 10px", border:"2px solid rgba(255,255,255,.75)", borderRadius:12,
+          background:"rgba(0,0,0,.72)", color:"white", textAlign:"center",
+          fontFamily:"Arial, Helvetica, sans-serif", fontSize:13, fontWeight:900,
+          pointerEvents:"none"
+        }}>
+          Tip: rotate your phone sideways for the best Frac Jack view.
+        </div>
+      )}
+
       <div style={{
-        position:"relative", zIndex:1, width:"100vw", height:"100vh", padding:10,
+        position:"absolute", zIndex:1,
+        left:gameOffsetX, top:gameOffsetY,
+        width:DESIGN_WIDTH, height:DESIGN_HEIGHT, padding:10,
+        transform:`scale(${gameScale})`,
+        transformOrigin:"top left",
         display:"grid", gridTemplateRows:"122px 1fr", gap:8, overflow:"hidden",
         fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none",
         background:"radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%), radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%), radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%), radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%), linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%)"
