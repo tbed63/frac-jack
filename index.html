@@ -102,7 +102,7 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart 
       background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"
     }}>
       <div style={{
-        width:"min(380px,88vw)", border:"7px solid white", borderRadius:22,
+        width:"min(760px,94vw)", border:"7px solid white", borderRadius:22,
         padding:"26px 30px 30px", textAlign:"center",
         background:"rgba(0,0,0,.48)", boxShadow:"0 24px 70px rgba(0,0,0,.65)"
       }}>
@@ -997,9 +997,9 @@ function FracJack() {
     lockedRef.current = true;
     setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
-    let bonus = t.wholes * 100;
-    if (activeLevel() === 1) bonus = t.wholes * 50;
-    if (activeLevel() === 2) bonus = t.wholes * 75;
+    let bonus = 300;
+    if (activeLevel() === 1) bonus = 100;
+    if (activeLevel() === 2) bonus = 200;
 
     const newFracs = (() => {
       const usedKeys = {};
