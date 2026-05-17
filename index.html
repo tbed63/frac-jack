@@ -416,14 +416,18 @@ function cellsFromChunks(t) {
 }
 
 /* ─── Model renderers ───────────────────────────────────────────────────── */
+// ROW_H: fixed height per bar/area row so models render visibly on mobile
+// (height:"100%" fails when the parent is a flex column with no fixed height)
+const ROW_H = 26;
+
 function BarModel({ t }) {
   const cells = cellsFromChunks(t);
   return (
-    <div style={{ width:"100%", height:"100%", minHeight:0, display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden", padding:"2px 0" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
-        <div key={w} style={{ display:"flex", alignItems:"center", gap:3, minHeight:0, flex:"1 1 0" }}>
+        <div key={w} style={{ display:"flex", alignItems:"center", gap:3 }}>
           <div style={{ width:12, flex:"0 0 12px", fontSize:10, fontWeight:1000, textAlign:"center", color:"#333" }}>{w + 1}</div>
-          <div style={{ flex:1, height:"100%", minHeight:10, maxHeight:30, border:"2px solid #555", display:"grid", gridTemplateColumns:`repeat(${t.denominator},1fr)`, background:"white" }}>
+          <div style={{ flex:1, height:ROW_H, border:"2px solid #555", display:"grid", gridTemplateColumns:`repeat(${t.denominator},1fr)`, background:"white" }}>
             {Array.from({ length: t.denominator }).map((_, i) => {
               const color = cells[w * t.denominator + i];
               return <div key={i} style={{ borderRight: i < t.denominator - 1 ? "1px solid #888" : "none", background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white" }} />;
@@ -439,10 +443,11 @@ function AreaModel({ t }) {
   const cells = cellsFromChunks(t);
   const cols = bestCols(t.denominator);
   const rows = Math.ceil(t.denominator / cols);
+  const gridH = ROW_H * rows;
   return (
-    <div style={{ width:"100%", height:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden", padding:"2px 0" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
-        <div key={w} style={{ flex:"1 1 0", display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, border:"2px solid #555", background:"white" }}>
+        <div key={w} style={{ width:"100%", height:gridH, display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, border:"2px solid #555", background:"white" }}>
           {Array.from({ length: t.denominator }).map((_, i) => {
             const color = cells[w * t.denominator + i];
             return <div key={i} style={{ borderRight:"1px solid #888", borderBottom:"1px solid #888", background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white" }} />;
@@ -691,18 +696,17 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
         background:"#f8fafc", color:"#111",
         border:`4px solid ${borderColor}`,
         borderRadius:18, overflow:"hidden",
-        display:"grid", gridTemplateRows:"24px minmax(0,1fr) 22px",
+        display:"grid", gridTemplateRows:"24px auto 22px",
         cursor:"pointer",
         boxShadow: isHinted ? "0 0 0 5px rgba(255,242,76,.8),0 0 20px rgba(255,242,76,.8)" : t.owner === "orange" ? "0 0 0 4px rgba(255,135,0,.32),0 6px 14px rgba(0,0,0,.32)" : t.owner === "green" ? "0 0 0 4px rgba(64,201,31,.32),0 6px 14px rgba(0,0,0,.32)" : "0 6px 14px rgba(0,0,0,.32)",
         animation: isHinted ? "territoryHint 1s infinite alternate" : "none",
-        transition:"transform .15s",
-        minHeight:0
+        transition:"transform .15s"
       }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6, padding:"0 7px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase" }}>
         <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
         <span style={{ whiteSpace:"nowrap" }}>{t.wholes}W</span>
       </div>
-      <div style={{ minHeight:0, padding:4, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
+      <div style={{ padding:"5px 6px", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
         <TerritoryModel t={t} />
         {t.owner && (
           <div style={{ position:"absolute", right:5, top:4, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:12, padding:"3px 6px", fontSize:10, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
@@ -1180,9 +1184,9 @@ function FracJack() {
     }
     /* Phone: single column — 5 territories stacked vertically */
     return (
-      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
         {territories.map(t => (
-          <div key={t.id} style={{ minHeight:110 }}>
+          <div key={t.id}>
             <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} />
           </div>
         ))}
@@ -1193,7 +1197,7 @@ function FracJack() {
   /* ─── Fraction + trash row ─────────────────────────────────────────── */
   function renderFractionRow() {
     return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap: isMobile ? 8 : 14, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap: isMobile ? 7 : 14, flexWrap:"wrap" }}>
         {fractions.map((f, i) => {
           const txt = f.display || (f.n + "/" + f.d);
           const isSelected = i === selectedFracIdx;
@@ -1202,33 +1206,33 @@ function FracJack() {
             <div key={i}
               onClick={() => { if (gameLocked || pendingTrick || boardInputBlocked()) return; setHints({ fractionIdx:null, territoryId:null }); setSelectedFracIdx(i); }}
               style={{
-                width: isMobile ? 64 : 70, height: isMobile ? 42 : 38,
+                width: isMobile ? 58 : 70, height: isMobile ? 36 : 38,
                 background:"white", color:"#111", border:"3px solid white", borderRadius:13,
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize: isMobile ? 20 : 18, fontWeight:1000, lineHeight:.95,
+                fontSize: isMobile ? 18 : 18, fontWeight:1000, lineHeight:.95,
                 cursor:"pointer",
                 boxShadow: isHinted ? "0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)" : isSelected ? "0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)" : i===0 ? "0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35)" : i===1 ? "0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35)" : "0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35)",
                 transform: isSelected ? "translateY(-3px) scale(1.04)" : "none",
                 animation: isHinted ? "hintPulse 1s infinite alternate" : "none",
                 transition:".15s"
               }}>
-              {txt.includes(" ") ? <span style={{ fontSize: isMobile ? 16 : 15 }}>{txt}</span> : txt}
+              {txt.includes(" ") ? <span style={{ fontSize: isMobile ? 14 : 15 }}>{txt}</span> : txt}
             </div>
           );
         })}
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
           <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
-            width: isMobile ? 58 : 62, height: isMobile ? 48 : 50,
-            border:"3px solid rgba(255,255,255,.98)", borderRadius:16,
+            width: isMobile ? 50 : 62, height: isMobile ? 42 : 50,
+            border:"3px solid rgba(255,255,255,.98)", borderRadius:14,
             background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
             display:"flex", alignItems:"center", justifyContent:"center",
             cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
-            boxShadow:"0 5px 10px rgba(0,0,0,.45)", padding:4, overflow:"hidden",
+            boxShadow:"0 5px 10px rgba(0,0,0,.45)", padding:3, overflow:"hidden",
             transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
           }}>
-            <img src={IMG_TRASH} alt="Trash" style={{ width:50, height:42, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
+            <img src={IMG_TRASH} alt="Trash" style={{ width:42, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
           </button>
-          <div style={{ fontSize:10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+          <div style={{ fontSize:9, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>{trashTripsThisTurn}/3</div>
         </div>
       </div>
     );
@@ -1280,26 +1284,26 @@ function FracJack() {
       {/* ── TABLET / PHONE LAYOUT ─────────────────────────────────────── */}
       {!isDesktop && (
         <div style={{
-          minHeight:"100vh", padding:"8px 8px 14px",
-          display:"flex", flexDirection:"column", gap:7,
+          minHeight:"100vh", padding:"6px 8px 12px",
+          display:"flex", flexDirection:"column", gap:5,
           fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
 
-          {/* 1. Logo — somewhat large */}
-          <div style={{ display:"flex", justifyContent:"center", paddingTop:4 }}>
+          {/* 1. Logo — doubled in size */}
+          <div style={{ display:"flex", justifyContent:"center", paddingTop:2 }}>
             <img src={IMG_LOGO} alt="Frac Jack" style={{
-              maxHeight: isMobile ? 70 : 90, maxWidth:"88%",
+              maxHeight:140, maxWidth:"92%",
               objectFit:"contain",
               filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"
             }} />
           </div>
 
-          {/* 2. Timer · Rules · New — small, in one row */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-            <div style={{ border:"2px solid white", borderRadius:10, background:"rgba(0,0,0,.5)", padding:"3px 10px", fontWeight:1000, fontSize:16, letterSpacing:1 }}>{timerDisplay}</div>
-            <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:15, cursor:"pointer", padding:"2px 4px" }}>{muted ? "🔇" : "🔊"}</button>
-            <button onClick={() => setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.45)", borderRadius:8, color:"rgba(255,255,255,.85)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"4px 10px" }}>Rules</button>
-            <button onClick={() => setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.45)", borderRadius:8, color:"rgba(255,255,255,.85)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"4px 10px" }}>New</button>
+          {/* 2. Timer · mute · Rules · New — compact single row */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+            <div style={{ border:"2px solid white", borderRadius:8, background:"rgba(0,0,0,.5)", padding:"2px 8px", fontWeight:1000, fontSize:13, letterSpacing:1 }}>{timerDisplay}</div>
+            <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:13, cursor:"pointer", padding:"1px 3px" }}>{muted ? "🔇" : "🔊"}</button>
+            <button onClick={() => setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>Rules</button>
+            <button onClick={() => setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>New</button>
           </div>
 
           {/* 3. Fraction choices + trash */}
@@ -1308,10 +1312,8 @@ function FracJack() {
           {/* 4. Five territories, single column stacked */}
           {renderTerritories()}
 
-          {/* 5. Bottom player panels:
-               [Jackal img][score/Hint/Re-Frac/Jackback] [score/Hint/Re-Frac/Jackback][Jackrabbit img]
-               Each half fills 50% width. */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 }}>
+          {/* 5. Bottom player panels */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
             <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} compact points={players.orange.points} />
             <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} compact points={players.green.points} />
           </div>
