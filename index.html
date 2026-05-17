@@ -416,21 +416,20 @@ function cellsFromChunks(t) {
 }
 
 /* ─── Model renderers ───────────────────────────────────────────────────── */
-// ROW_H: fixed height per bar/area row so models render visibly on mobile
-// (height:"100%" fails when the parent is a flex column with no fixed height)
-const ROW_H = 26;
+// CELL_H: height of a single bar/area row cell — enough to see clearly
+const CELL_H = 28;
 
 function BarModel({ t }) {
   const cells = cellsFromChunks(t);
   return (
-    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden", padding:"2px 0" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:4, padding:"3px 2px" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
         <div key={w} style={{ display:"flex", alignItems:"center", gap:3 }}>
-          <div style={{ width:12, flex:"0 0 12px", fontSize:10, fontWeight:1000, textAlign:"center", color:"#333" }}>{w + 1}</div>
-          <div style={{ flex:1, height:ROW_H, border:"2px solid #555", display:"grid", gridTemplateColumns:`repeat(${t.denominator},1fr)`, background:"white" }}>
+          <div style={{ width:14, flex:"0 0 14px", fontSize:10, fontWeight:1000, textAlign:"center", color:"#444" }}>{w + 1}</div>
+          <div style={{ flex:1, height:CELL_H, border:"2.5px solid #555", borderRadius:3, display:"grid", gridTemplateColumns:`repeat(${t.denominator},1fr)`, background:"white", overflow:"hidden" }}>
             {Array.from({ length: t.denominator }).map((_, i) => {
               const color = cells[w * t.denominator + i];
-              return <div key={i} style={{ borderRight: i < t.denominator - 1 ? "1px solid #888" : "none", background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white" }} />;
+              return <div key={i} style={{ borderRight: i < t.denominator - 1 ? "1px solid #aaa" : "none", background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white" }} />;
             })}
           </div>
         </div>
@@ -440,17 +439,58 @@ function BarModel({ t }) {
 }
 
 function AreaModel({ t }) {
+  // Area model = rectangular grid (Hershey bar / pan pizza).
+  // RULE: always at least 2 rows so it can never look like a single bar row.
   const cells = cellsFromChunks(t);
-  const cols = bestCols(t.denominator);
-  const rows = Math.ceil(t.denominator / cols);
-  const gridH = ROW_H * rows;
+  const d = t.denominator;
+
+  // Pick cols so that rows = ceil(d/cols) >= 2.
+  // Strategy: start from sqrt(d) and nudge until rows >= 2.
+  let cols, rows;
+  // Hard-coded sensible grid shapes for common denominators:
+  const gridMap = {
+    2: [2,1],  // exception: 2 has no choice, still show 2×1 (1 row) — accept gracefully
+    3: [3,1],  // 3 is also awkward; show as 3×1
+    4: [2,2],
+    5: [5,1],  // 5 is prime; unavoidable 1 row but show wider
+    6: [3,2],
+    8: [4,2],
+    9: [3,3],
+    10: [5,2],
+    12: [4,3],
+    15: [5,3],
+    20: [5,4],
+  };
+  if (gridMap[d]) {
+    [cols, rows] = gridMap[d];
+  } else {
+    cols = Math.ceil(Math.sqrt(d));
+    rows = Math.ceil(d / cols);
+    // Force at least 2 rows if d allows it
+    if (rows < 2 && d >= 4) {
+      cols = Math.ceil(cols / 2);
+      rows = Math.ceil(d / cols);
+    }
+  }
+
   return (
-    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:3, overflow:"hidden", padding:"2px 0" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:4, padding:"3px 2px" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
-        <div key={w} style={{ width:"100%", height:gridH, display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, border:"2px solid #555", background:"white" }}>
-          {Array.from({ length: t.denominator }).map((_, i) => {
-            const color = cells[w * t.denominator + i];
-            return <div key={i} style={{ borderRight:"1px solid #888", borderBottom:"1px solid #888", background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white" }} />;
+        <div key={w} style={{
+          width:"100%",
+          display:"grid",
+          gridTemplateColumns:`repeat(${cols},1fr)`,
+          gridTemplateRows:`repeat(${rows},${CELL_H}px)`,
+          border:"2.5px solid #555", borderRadius:3,
+          background:"white", overflow:"hidden"
+        }}>
+          {Array.from({ length: d }).map((_, i) => {
+            const color = cells[w * d + i];
+            return <div key={i} style={{
+              borderRight: (i % cols) < cols - 1 ? "1px solid #aaa" : "none",
+              borderBottom: Math.floor(i / cols) < rows - 1 ? "1px solid #aaa" : "none",
+              background: color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white"
+            }} />;
           })}
         </div>
       ))}
@@ -483,16 +523,17 @@ function NumberLine({ t }) {
 function SetModel({ t }) {
   const cells = cellsFromChunks(t);
   const cols = Math.ceil(Math.sqrt(t.denominator));
+  const rows = Math.ceil(t.denominator / cols);
   return (
-    <div style={{ width:"100%", height:"100%", display:"flex", flexWrap:"wrap", alignItems:"stretch", justifyContent:"center", gap:4, overflow:"hidden", padding:2 }}>
+    <div style={{ width:"100%", height:"100%", display:"flex", flexWrap:"wrap", alignItems:"stretch", justifyContent:"center", gap:4, overflow:"hidden", padding:3 }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
-        <div key={w} style={{ flex:`1 1 ${t.wholes === 1 ? "100%" : "45%"}`, minWidth:0, maxWidth: t.wholes === 1 ? "100%" : "50%", overflow:"hidden", display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gap:3, padding:4, border:"2px solid #aaa", borderRadius:10, background:"#fff8ef", boxSizing:"border-box" }}>
+        <div key={w} style={{ flex:`1 1 ${t.wholes === 1 ? "100%" : "45%"}`, minWidth:0, maxWidth: t.wholes === 1 ? "100%" : "50%", overflow:"hidden", display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, gap:2, padding:4, border:"2px solid #aaa", borderRadius:8, background:"#fff8ef", boxSizing:"border-box" }}>
           {Array.from({ length: t.denominator }).map((_, i) => {
             const color = cells[w * t.denominator + i];
             const textColor = color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "white";
             return (
-              <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
-                <span style={{ fontSize:"clamp(10px,1.4vw,22px)", lineHeight:1, color: textColor, WebkitTextStroke:"1.5px #111", textShadow:"0 2px 0 rgba(0,0,0,.35)" }}>{SHAPES[i % SHAPES.length]}</span>
+              <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <span style={{ fontSize:"clamp(14px,3vw,28px)", lineHeight:1, color: textColor, WebkitTextStroke:"1.5px #111", textShadow:"0 2px 0 rgba(0,0,0,.35)" }}>{SHAPES[i % SHAPES.length]}</span>
               </div>
             );
           })}
@@ -536,16 +577,67 @@ function CircleModel({ t }) {
   );
 }
 
-function TerritoryModel({ t }) {
+function TerritoryModel({ t, mobileAreaCircle }) {
   if (t.model === "Bar Model") return <BarModel t={t} />;
   if (t.model === "Set Model") return <SetModel t={t} />;
   if (t.model === "Number Line") return <NumberLine t={t} />;
-  if (t.model === "Area Model") return <AreaModel t={t} />;
+  if (t.model === "Area Model") {
+    if (mobileAreaCircle) {
+      // Side-by-side: Area on left, Circle on right — same territory data, different views
+      return (
+        <div style={{ width:"100%", display:"flex", gap:6, alignItems:"center" }}>
+          <div style={{ flex:"0 0 55%" }}><AreaModel t={t} /></div>
+          <div style={{ flex:"0 0 40%", display:"flex", alignItems:"center", justifyContent:"center" }}><CircleModel t={t} /></div>
+        </div>
+      );
+    }
+    return <AreaModel t={t} />;
+  }
   return <CircleModel t={t} />;
 }
 function shortModelName(m) {
   if (m === "Bar Model") return "Bar"; if (m === "Set Model") return "Set";
   if (m === "Number Line") return "Line"; if (m === "Area Model") return "Area"; return "Circle";
+}
+
+/* ─── Landscape Player Panel ─────────────────────────────────────────────── */
+// Ultra-compact: mascot image on top, score, then 3 trick buttons stacked.
+// Fits in ~90px column at landscape mobile heights (~160px tall each).
+function LandscapePlayerPanel({ color, active, mascotSrc, trickUsed, onTrick, level, points }) {
+  const bg = color === "orange"
+    ? "linear-gradient(180deg,#ff9b19 0%,#d56500 55%,#743000 100%)"
+    : "linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#124b07 100%)";
+  const trickBg = color === "orange" ? "linear-gradient(180deg,#ffaf38,#e66a00)" : "linear-gradient(180deg,#70ed4b,#2fa114)";
+  const tricks = [{ id:"hint", label:"Hint", disabled: level===3 }, { id:"refrac", label:"Re-Frac" }, { id:"jackback", label:"Jackback" }];
+  return (
+    <div style={{
+      height:"100%", background:bg,
+      border:`2px solid ${active?"#ffe600":"rgba(255,255,255,.7)"}`,
+      borderRadius:10,
+      boxShadow: active?"0 0 10px 2px rgba(255,230,0,.5)":"0 2px 8px rgba(0,0,0,.4)",
+      filter: active?"none":"grayscale(1) opacity(0.55)",
+      display:"flex", flexDirection:"column", alignItems:"center",
+      padding:"3px 3px 4px", gap:2, overflow:"hidden"
+    }}>
+      {/* Mascot */}
+      <img src={mascotSrc} alt="" style={{ height:38, objectFit:"contain", filter:"drop-shadow(0 2px 4px rgba(0,0,0,.5))", flexShrink:0 }} />
+      {/* Score */}
+      <div style={{ background:"rgba(0,0,0,.35)", border:"1.5px solid rgba(255,255,255,.6)", borderRadius:6, textAlign:"center", padding:"1px 4px", width:"100%", lineHeight:1 }}>
+        <div style={{ fontSize:14, fontWeight:1000, color:"white" }}>{points}</div>
+      </div>
+      {/* Trick buttons */}
+      {tricks.map(tr => (
+        <button key={tr.id} onClick={()=>onTrick(tr.id)} style={{
+          width:"100%", flex:1, borderRadius:5, border:"1.5px solid rgba(255,255,255,.7)",
+          color: trickUsed[tr.id]||tr.disabled?"#ccc":"white",
+          fontSize:9, fontWeight:1000, cursor: trickUsed[tr.id]||tr.disabled?"default":"pointer",
+          textTransform:"uppercase", letterSpacing:.2,
+          background: trickUsed[tr.id]||tr.disabled?"linear-gradient(180deg,#666,#3a3a3a)":trickBg,
+          padding:0, lineHeight:1, minHeight:20
+        }}>{tr.label}</button>
+      ))}
+    </div>
+  );
 }
 
 /* ─── Score Card ────────────────────────────────────────────────────────── */
@@ -616,16 +708,31 @@ function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick
         display:"flex",
         flexDirection: imgOnLeft ? "row" : "row-reverse",
         alignItems:"stretch",
-        overflow:"hidden",
+        overflow:"visible",
+        position:"relative",
         minHeight:0
       }}>
-        {/* Mascot */}
-        <div style={{ width:56, flexShrink:0, display:"flex", alignItems:"flex-end", justifyContent:"center", overflow:"hidden", padding:"0 2px 2px" }}>
-          <img src={mascotSrc} alt="" style={{ width:52, objectFit:"contain", filter:"drop-shadow(0 4px 6px rgba(0,0,0,.5))" }} />
+        {/* Mascot — larger, overflows upward, lightly overlaps buttons */}
+        <div style={{
+          width:68, flexShrink:0,
+          position:"relative",
+          display:"flex", alignItems:"flex-end", justifyContent:"center",
+          padding:"0 0 2px",
+          zIndex:10
+        }}>
+          <img src={mascotSrc} alt="" style={{
+            width:80, height:"auto",
+            objectFit:"contain",
+            position:"absolute",
+            bottom:0,
+            left: imgOnLeft ? -4 : undefined,
+            right: imgOnLeft ? undefined : -4,
+            filter:"drop-shadow(0 4px 8px rgba(0,0,0,.55))"
+          }} />
         </div>
 
         {/* Score + trick buttons stacked */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4, padding:"5px 5px 5px", minWidth:0 }}>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4, padding:"5px 6px 5px", minWidth:0, zIndex:5 }}>
           {/* Score pill */}
           <div style={{ background:"rgba(0,0,0,.35)", border:"2px solid rgba(255,255,255,.6)", borderRadius:8, textAlign:"center", padding:"2px 4px", lineHeight:1 }}>
             <div style={{ fontSize:18, fontWeight:1000, color:"white", textShadow:"0 2px 0 rgba(0,0,0,.5)" }}>{points}</div>
@@ -684,11 +791,14 @@ function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick
 }
 
 /* ─── Territory Card ────────────────────────────────────────────────────── */
-function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted, victoryReached, boardInputBlocked }) {
+function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted, victoryReached, boardInputBlocked, isDesktop, mobileAreaCircle }) {
   let borderColor = "#c8d2df";
   if (t.owner === "orange") borderColor = "#ff8700";
   else if (t.owner === "green") borderColor = "#40c91f";
   else if (isHinted) borderColor = "#fff24c";
+
+  // Desktop: middle row is flexible (minmax). Mobile: auto so it sizes to content and doesn't leave gaps.
+  const midRow = isDesktop ? "minmax(0,1fr)" : "auto";
 
   return (
     <div onClick={() => { if (gameLocked || !gameStarted || victoryReached || boardInputBlocked()) return; onClick(t.id); }}
@@ -696,7 +806,8 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
         background:"#f8fafc", color:"#111",
         border:`4px solid ${borderColor}`,
         borderRadius:18, overflow:"hidden",
-        display:"grid", gridTemplateRows:"24px auto 22px",
+        display:"grid", gridTemplateRows:`24px ${midRow} 22px`,
+        height: isDesktop ? "100%" : "auto",
         cursor:"pointer",
         boxShadow: isHinted ? "0 0 0 5px rgba(255,242,76,.8),0 0 20px rgba(255,242,76,.8)" : t.owner === "orange" ? "0 0 0 4px rgba(255,135,0,.32),0 6px 14px rgba(0,0,0,.32)" : t.owner === "green" ? "0 0 0 4px rgba(64,201,31,.32),0 6px 14px rgba(0,0,0,.32)" : "0 6px 14px rgba(0,0,0,.32)",
         animation: isHinted ? "territoryHint 1s infinite alternate" : "none",
@@ -704,10 +815,10 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
       }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6, padding:"0 7px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase" }}>
         <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
-        <span style={{ whiteSpace:"nowrap" }}>{t.wholes}W</span>
+        <span style={{ whiteSpace:"nowrap" }}>{t.wholes} {t.wholes === 1 ? "whole" : "wholes"}</span>
       </div>
       <div style={{ padding:"5px 6px", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
-        <TerritoryModel t={t} />
+        <TerritoryModel t={t} mobileAreaCircle={mobileAreaCircle} />
         {t.owner && (
           <div style={{ position:"absolute", right:5, top:4, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:12, padding:"3px 6px", fontSize:10, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
         )}
@@ -763,9 +874,12 @@ function FracJack() {
   const viewport = useViewportSize();
 
   /* ── Responsive breakpoints ── */
-  const isMobile  = viewport.width <= 600;
-  const isTablet  = viewport.width > 600 && viewport.width <= 900;
-  const isDesktop = viewport.width > 900;
+  const isDesktop  = viewport.width > 900;
+  // Mobile landscape: short screen, wider than tall, not desktop
+  const isLandscape = !isDesktop && viewport.width > viewport.height && viewport.height <= 500;
+  // Mobile portrait: narrow screen in portrait orientation
+  const isMobile   = !isDesktop && !isLandscape && viewport.width <= 600;
+  const isTablet   = !isDesktop && !isLandscape && viewport.width > 600;
   /* colMap for desktop 12-col territory grid */
   const colMap = { t1:"1/span 5", t2:"6/span 7", t3:"1/span 4", t4:"5/span 4", t5:"9/span 4" };
 
@@ -1176,20 +1290,22 @@ function FracJack() {
         <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"repeat(12,1fr)", gridTemplateRows:"repeat(2,minmax(0,1fr))", gap:10 }}>
           {territories.map(t => (
             <div key={t.id} style={{ gridColumn: colMap[t.slot], gridRow: ["t1","t2"].includes(t.slot) ? 1 : 2, minHeight:0 }}>
-              <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} />
+              <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} isDesktop={true} />
             </div>
           ))}
         </div>
       );
     }
-    /* Phone: single column — 5 territories stacked vertically */
+    /* Phone: single column — 5 territories stacked vertically.
+       T3 (index 2) and T4 (index 3) get Area+Circle side-by-side when model is Area. */
     return (
       <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-        {territories.map(t => (
-          <div key={t.id}>
-            <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} />
-          </div>
-        ))}
+        {territories.map((t, idx) => {
+          const mobileAreaCircle = (idx === 2 || idx === 3) && t.model === "Area Model";
+          return (
+            <TerritoryCard key={t.id} t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} isDesktop={false} mobileAreaCircle={mobileAreaCircle} />
+          );
+        })}
       </div>
     );
   }
@@ -1232,7 +1348,7 @@ function FracJack() {
           }}>
             <img src={IMG_TRASH} alt="Trash" style={{ width:42, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
           </button>
-          <div style={{ fontSize:9, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>{trashTripsThisTurn}/3</div>
+          <div style={{ fontSize: isMobile ? 11 : 10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
         </div>
       </div>
     );
@@ -1244,7 +1360,7 @@ function FracJack() {
   return (
     <>
       {!gameStarted && (
-        <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} isMobile={isMobile || isTablet} />
+        <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} isMobile={isMobile || isTablet || isLandscape} />
       )}
 
       {/* ── DESKTOP LAYOUT ────────────────────────────────────────────── */}
@@ -1281,29 +1397,102 @@ function FracJack() {
         </div>
       )}
 
-      {/* ── TABLET / PHONE LAYOUT ─────────────────────────────────────── */}
-      {!isDesktop && (
+      {/* ── MOBILE LANDSCAPE — fixed, no scroll, everything fits ─────── */}
+      {!isDesktop && isLandscape && (
+        <div style={{
+          position:"fixed", inset:0, overflow:"hidden",
+          display:"grid",
+          gridTemplateColumns:"90px 1fr 130px",
+          gridTemplateRows:"1fr",
+          gap:4, padding:"4px",
+          fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
+        }}>
+          {/* LEFT COLUMN: logo + orange panel + green panel stacked */}
+          <div style={{ display:"flex", flexDirection:"column", gap:4, minHeight:0, overflow:"hidden" }}>
+            {/* Mini logo */}
+            <div style={{ display:"flex", justifyContent:"center" }}>
+              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:32, maxWidth:"100%", objectFit:"contain", filter:"drop-shadow(0 3px 6px rgba(0,0,0,.7))" }} />
+            </div>
+            {/* Orange panel compact */}
+            <div style={{ flex:1, minHeight:0 }}>
+              <LandscapePlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} points={players.orange.points} />
+            </div>
+            {/* Green panel compact */}
+            <div style={{ flex:1, minHeight:0 }}>
+              <LandscapePlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} points={players.green.points} />
+            </div>
+          </div>
+
+          {/* CENTER COLUMN: territories in 2×3 grid (or 3×2) */}
+          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"1fr 1fr", gridTemplateRows:"1fr 1fr 1fr", gap:4 }}>
+            {territories.map((t, idx) => (
+              <TerritoryCard key={t.id} t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId===t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} isDesktop={true} />
+            ))}
+          </div>
+
+          {/* RIGHT COLUMN: timer + controls + fraction chips + trash */}
+          <div style={{ display:"flex", flexDirection:"column", gap:4, minHeight:0, padding:"2px 0" }}>
+            {/* Timer + utility buttons */}
+            <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap", justifyContent:"center" }}>
+              <div style={{ border:"2px solid white", borderRadius:7, background:"rgba(0,0,0,.5)", padding:"2px 6px", fontWeight:1000, fontSize:12, letterSpacing:1 }}>{timerDisplay}</div>
+              <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:12, cursor:"pointer", padding:0 }}>{muted?"🔇":"🔊"}</button>
+              <button onClick={()=>setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:5, color:"rgba(255,255,255,.85)", fontSize:9, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"2px 5px" }}>Rules</button>
+              <button onClick={()=>setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:5, color:"rgba(255,255,255,.85)", fontSize:9, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"2px 5px" }}>New</button>
+            </div>
+            {/* Fraction chips + trash stacked vertically */}
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4, justifyContent:"center" }}>
+              {fractions.map((f, i) => {
+                const txt = f.display || (f.n+"/"+f.d);
+                const isSelected = i===selectedFracIdx;
+                const isHinted = hints.fractionIdx===i;
+                return (
+                  <div key={i} onClick={()=>{ if(gameLocked||pendingTrick||boardInputBlocked()) return; setHints({fractionIdx:null,territoryId:null}); setSelectedFracIdx(i); }}
+                    style={{
+                      height:32, background:"white", color:"#111", border:"3px solid white", borderRadius:10,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:16, fontWeight:1000, lineHeight:.95, cursor:"pointer",
+                      boxShadow: isHinted?"0 0 0 5px #fff24c,0 0 16px #fff24c":isSelected?"0 0 0 4px #ffd83d":i===0?"0 0 0 2px rgba(255,135,0,.9)":i===1?"0 0 0 2px rgba(24,120,255,.9)":"0 0 0 2px rgba(163,92,255,.9)",
+                      transform: isSelected?"scale(1.05)":"none", transition:".12s"
+                    }}>
+                    {txt.includes(" ")?<span style={{fontSize:13}}>{txt}</span>:txt}
+                  </div>
+                );
+              })}
+              {/* Trash */}
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
+                <button onClick={handleTrashClick} style={{
+                  width:"100%", height:34, border:"2px solid rgba(255,255,255,.9)", borderRadius:10,
+                  background: trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",
+                  display:"flex", alignItems:"center", justifyContent:"center", cursor: trashTripsThisTurn>=3?"not-allowed":"pointer",
+                  boxShadow:"0 3px 8px rgba(0,0,0,.4)", padding:2, overflow:"hidden", opacity: trashTripsThisTurn>=3?.65:1
+                }}>
+                  <img src={IMG_TRASH} alt="Trash" style={{ height:28, objectFit:"contain", animation: trashBurp?"trashShake .22s 4":"none" }} />
+                </button>
+                <div style={{ fontSize:9, fontWeight:1000, color:"white", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE PORTRAIT — scrollable column ───────────────────────── */}
+      {!isDesktop && !isLandscape && (
         <div style={{
           minHeight:"100vh", padding:"6px 8px 12px",
           display:"flex", flexDirection:"column", gap:5,
           fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
-
-          {/* 1. Logo — doubled in size */}
+          {/* 1. Logo */}
           <div style={{ display:"flex", justifyContent:"center", paddingTop:2 }}>
-            <img src={IMG_LOGO} alt="Frac Jack" style={{
-              maxHeight:140, maxWidth:"92%",
-              objectFit:"contain",
-              filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"
-            }} />
+            <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:140, maxWidth:"92%", objectFit:"contain", filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))" }} />
           </div>
 
-          {/* 2. Timer · mute · Rules · New — compact single row */}
+          {/* 2. Timer · mute · Rules · New */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
             <div style={{ border:"2px solid white", borderRadius:8, background:"rgba(0,0,0,.5)", padding:"2px 8px", fontWeight:1000, fontSize:13, letterSpacing:1 }}>{timerDisplay}</div>
-            <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:13, cursor:"pointer", padding:"1px 3px" }}>{muted ? "🔇" : "🔊"}</button>
-            <button onClick={() => setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>Rules</button>
-            <button onClick={() => setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>New</button>
+            <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:13, cursor:"pointer", padding:"1px 3px" }}>{muted?"🔇":"🔊"}</button>
+            <button onClick={()=>setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>Rules</button>
+            <button onClick={()=>setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, color:"rgba(255,255,255,.85)", fontSize:11, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"3px 8px" }}>New</button>
           </div>
 
           {/* 3. Fraction choices + trash */}
@@ -1314,8 +1503,8 @@ function FracJack() {
 
           {/* 5. Bottom player panels */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-            <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} compact points={players.orange.points} />
-            <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} compact points={players.green.points} />
+            <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} compact points={players.orange.points} />
+            <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} compact points={players.green.points} />
           </div>
         </div>
       )}
