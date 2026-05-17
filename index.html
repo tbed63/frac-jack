@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Frac Jack</title>
-  <!-- Favicon / Mobile Home Screen Icon -->
-  <!-- Upload favicon.png to the same GitHub folder as index.html. A square 512x512 PNG works best. -->
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="shortcut icon" type="image/png" href="favicon.png" />
   <link rel="apple-touch-icon" href="favicon.png" />
@@ -30,6 +28,28 @@
     }
     * { box-sizing: border-box; }
     button { font-family: Arial, Helvetica, sans-serif; }
+
+    /* ── Responsive breakpoints ── */
+
+    /* Desktop: side panels visible, full 3-column layout */
+    /* Tablet (≤900px): side panels collapse to bottom strip */
+    /* Phone (≤600px): fully stacked, larger touch targets */
+
+    @keyframes trashShake {
+      0%{transform:rotate(0deg) translateX(0);}
+      25%{transform:rotate(-7deg) translateX(-1px);}
+      50%{transform:rotate(6deg) translateX(1px);}
+      75%{transform:rotate(-4deg) translateX(-1px);}
+      100%{transform:rotate(0deg) translateX(0);}
+    }
+    @keyframes hintPulse {
+      from{ transform:scale(1); }
+      to{ transform:scale(1.08); }
+    }
+    @keyframes territoryHint {
+      from{ transform:scale(1); }
+      to{ transform:scale(1.025); }
+    }
   </style>
 </head>
 <body>
@@ -38,7 +58,7 @@
   <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-// Simple browser-safe sound hook replacing the Base44 import.
+/* ─── Sound hook ─────────────────────────────────────────────────────────── */
 function useGameSounds() {
   const [muted, setMuted] = useState(false);
   const audioCtxRef = useRef(null);
@@ -60,9 +80,7 @@ function useGameSounds() {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + duration);
-    } catch (e) {
-      // Sound is optional. Ignore browser audio restrictions.
-    }
+    } catch (e) {}
   }
 
   function playFile(src) {
@@ -71,20 +89,13 @@ function useGameSounds() {
       const audio = new Audio(src);
       audio.volume = 0.82;
       audio.currentTime = 0;
-      const playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(() => {
-          // File audio is optional. Ignore browser restrictions or missing files.
-        });
-      }
-    } catch (e) {
-      // File audio is optional. Ignore errors.
-    }
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (e) {}
   }
 
   return {
-    muted,
-    toggleMute: () => setMuted(m => !m),
+    muted, toggleMute: () => setMuted(m => !m),
     playMove: () => beep(520, 0.08, "triangle"),
     playCapture: () => { beep(660, 0.09, "triangle"); setTimeout(() => beep(880, 0.11, "triangle"), 90); },
     playTrash: () => beep(180, 0.12, "sawtooth"),
@@ -95,61 +106,55 @@ function useGameSounds() {
   };
 }
 
-
-// Responsive viewport hook for scaling the full game board on smaller screens.
+/* ─── Viewport hook ─────────────────────────────────────────────────────── */
 function useViewportSize() {
-  const [size, setSize] = useState({
-    width: window.innerWidth || 1200,
-    height: window.innerHeight || 800
-  });
-
+  const [size, setSize] = useState({ width: window.innerWidth || 1200, height: window.innerHeight || 800 });
   useEffect(() => {
-    function updateSize() {
-      setSize({
-        width: window.innerWidth || 1200,
-        height: window.innerHeight || 800
-      });
-    }
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    window.addEventListener("orientationchange", updateSize);
-    return () => {
-      window.removeEventListener("resize", updateSize);
-      window.removeEventListener("orientationchange", updateSize);
-    };
+    function update() { setSize({ width: window.innerWidth || 1200, height: window.innerHeight || 800 }); }
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("orientationchange", update); };
   }, []);
-
   return size;
 }
 
-// Intro screen replacing the Base44 component import.
-function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart, compact = false }) {
+/* ─── Intro Screen ──────────────────────────────────────────────────────── */
+function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart, isMobile }) {
   return (
     <div style={{
       position:"fixed", inset:0, zIndex:200,
-      display:"flex", alignItems:"center", justifyContent:"center", padding:24,
-      fontFamily:"Arial, Helvetica, sans-serif",
-      color:"white",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      padding: isMobile ? 12 : 24,
+      fontFamily:"Arial, Helvetica, sans-serif", color:"white",
       background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"
     }}>
       <div style={{
-        width:"min(760px,94vw)", border:"7px solid white", borderRadius:22,
-        padding: compact ? "16px 18px 18px" : "26px 30px 30px", textAlign:"center",
-        background:"rgba(0,0,0,.48)", boxShadow:"0 24px 70px rgba(0,0,0,.65)"
+        width:"min(700px,96vw)",
+        border:"7px solid white", borderRadius:22,
+        padding: isMobile ? "14px 14px 18px" : "26px 30px 30px",
+        textAlign:"center", background:"rgba(0,0,0,.48)",
+        boxShadow:"0 24px 70px rgba(0,0,0,.65)"
       }}>
-        <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"min(520px,90%)", maxHeight: compact ? 130 : 210, objectFit:"contain", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))" }} />
-        <div style={{ fontSize: compact ? 12 : 15, fontWeight:900, margin: compact ? "4px 0 12px" : "8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
+        <img src={IMG_LOGO} alt="Frac Jack" style={{
+          maxWidth:"min(460px,88%)",
+          maxHeight: isMobile ? 110 : 210,
+          objectFit:"contain",
+          filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"
+        }} />
+        <div style={{ fontSize: isMobile ? 11 : 15, fontWeight:900, margin: isMobile ? "4px 0 10px" : "8px 0 22px", textShadow:"0 3px 0 rgba(0,0,0,.5)" }}>
           Pick fractions. Claim territories. Jack the board.
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns: compact ? "1fr 1fr" : "1fr 1fr", gap: compact ? 10 : 16, margin: compact ? "0 auto 14px" : "0 auto 24px", maxWidth:560 }}>
-          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding: compact ? 10 : 16, background:"rgba(255,255,255,.10)" }}>
-            <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Level</div>
-            <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: isMobile ? 8 : 16, margin: isMobile ? "0 auto 12px" : "0 auto 24px", maxWidth:520 }}>
+          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:18, padding: isMobile ? "8px 10px" : 16, background:"rgba(255,255,255,.10)" }}>
+            <div style={{ fontSize: isMobile ? 12 : 14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom: isMobile ? 8 : 10 }}>Level</div>
+            <div style={{ display:"flex", gap:6, justifyContent:"center" }}>
               {[1,2,3].map(lv => (
                 <button key={lv} onClick={() => onLevelChange(lv)} style={{
-                  width: compact ? 44 : 54, height: compact ? 34 : 42, borderRadius:14, border:"3px solid white",
-                  fontSize:18, fontWeight:1000, cursor:"pointer",
+                  width: isMobile ? 48 : 54, height: isMobile ? 40 : 42,
+                  borderRadius:14, border:"3px solid white",
+                  fontSize: isMobile ? 20 : 18, fontWeight:1000, cursor:"pointer",
                   color: level === lv ? "#111" : "white",
                   background: level === lv ? "linear-gradient(180deg,#ffe76a,#ffb21b)" : "rgba(0,0,0,.28)"
                 }}>{lv}</button>
@@ -157,26 +162,27 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart,
             </div>
           </div>
 
-          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:20, padding:16, background:"rgba(255,255,255,.10)" }}>
-            <div style={{ fontSize:14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Turn Timer</div>
+          <div style={{ border:"3px solid rgba(255,255,255,.75)", borderRadius:18, padding: isMobile ? "8px 10px" : 16, background:"rgba(255,255,255,.10)" }}>
+            <div style={{ fontSize: isMobile ? 12 : 14, fontWeight:1000, textTransform:"uppercase", letterSpacing:1, marginBottom: isMobile ? 8 : 10 }}>Turn Timer</div>
             <select value={timerLimit} onChange={e => onTimerChange(Number(e.target.value))} style={{
-              width:"100%", height: compact ? 34 : 42, borderRadius:12, border:"3px solid white",
-              fontSize: compact ? 14 : 17, fontWeight:900, textAlign:"center", color:"#111", background:"white"
+              width:"100%", height: isMobile ? 40 : 42, borderRadius:12, border:"3px solid white",
+              fontSize: isMobile ? 13 : 17, fontWeight:900, textAlign:"center", color:"#111", background:"white"
             }}>
-              <option value={10}>10 seconds</option>
-              <option value={20}>20 seconds</option>
-              <option value={30}>30 seconds</option>
-              <option value={45}>45 seconds</option>
-              <option value={60}>1 minute</option>
-              <option value={90}>1 minute 30 seconds</option>
-              <option value={120}>2 minutes</option>
+              <option value={10}>10 sec</option>
+              <option value={20}>20 sec</option>
+              <option value={30}>30 sec</option>
+              <option value={45}>45 sec</option>
+              <option value={60}>1 min</option>
+              <option value={90}>1 min 30 sec</option>
+              <option value={120}>2 min</option>
             </select>
           </div>
         </div>
 
         <button onClick={onStart} style={{
-          border:"5px solid white", borderRadius:999, padding: compact ? "10px 30px" : "14px 46px",
-          fontSize: compact ? 20 : 26, fontWeight:1000, color:"#111", cursor:"pointer",
+          border:"5px solid white", borderRadius:999,
+          padding: isMobile ? "12px 32px" : "14px 46px",
+          fontSize: isMobile ? 22 : 26, fontWeight:1000, color:"#111", cursor:"pointer",
           background:"linear-gradient(180deg,#fff36c,#ff9d18)",
           boxShadow:"0 8px 0 rgba(0,0,0,.45)", textTransform:"uppercase"
         }}>Start Game</button>
@@ -185,16 +191,16 @@ function IntroScreen({ timerLimit, onTimerChange, level, onLevelChange, onStart,
   );
 }
 
-// ─── Image URLs (uploaded assets) ───────────────────────────────────────────
+/* ─── Assets ────────────────────────────────────────────────────────────── */
 const IMG_LOGO       = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/fb1a14b1b_frac-jack-logo.png";
 const IMG_JACKAL     = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/b4c6884ac_jackal-orange.png";
 const IMG_JACKRABBIT = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/52f7ec8e4_jackrabbit-green.png";
 const IMG_TRASH      = "https://media.base44.com/images/public/69fa82e0877a38539df3196d/ca01e9af6_frac-trash.png";
-const SOUND_BRAND    = "ZoodleBugBrandSound.wav"; // Put this WAV file in the same GitHub folder as index.html.
-const SOUND_TERRITORY_VICTORY = "FracJackTerritoryVictory.wav"; // Put this WAV file in the same GitHub folder as index.html.
-const SOUND_BAD_TRASH = "FracJackBadTrash.wav"; // Put this WAV file in the same GitHub folder as index.html.
+const SOUND_BRAND             = "ZoodleBugBrandSound.wav";
+const SOUND_TERRITORY_VICTORY = "FracJackTerritoryVictory.wav";
+const SOUND_BAD_TRASH         = "FracJackBadTrash.wav";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+/* ─── Math helpers ──────────────────────────────────────────────────────── */
 function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { let t = b; b = a % b; a = t; } return a || 1; }
 function simplify(n, d) { const g = gcd(n, d); return { n: n / g, d: d / g }; }
 function fractionKey(f) { return f.n + "/" + f.d; }
@@ -209,21 +215,9 @@ const SLOTS  = ["t1","t2","t3","t4","t5"];
 const MODELS = ["Bar Model","Set Model","Number Line","Area Model","Circle Model"];
 const SHAPES = ["●","★","▲","■","◆","♥","⬟","⬢","⬤","◆","▲","★","●","■","♥","⬟","⬢","◆","★","●"];
 
-function normalizeLevel(level) {
-  const lv = Number(level);
-  return lv === 1 || lv === 2 || lv === 3 ? lv : 1;
-}
-
-function maxDenominatorForLevel(level) {
-  const lv = normalizeLevel(level);
-  if (lv === 1) return 6;
-  if (lv === 2) return 12;
-  return 12;
-}
-
+function normalizeLevel(level) { const lv = Number(level); return lv === 1 || lv === 2 || lv === 3 ? lv : 1; }
 function levelDenominators(level) {
   const lv = normalizeLevel(level);
-  // Level 1 is HARD-LOCKED to halves, thirds, fourths, fifths, and sixths only.
   if (lv === 1) return [2, 3, 4, 5, 6];
   if (lv === 2) return [3, 4, 5, 6, 8, 10, 12];
   return [4, 5, 6, 8, 10, 12];
@@ -235,18 +229,15 @@ function buildFractionPool(level) {
   const pool = []; const seen = {};
   dens.forEach(d => {
     let maxN = d - 1;
-    if (lv === 2) maxN = d - 1;
     if (lv === 3) maxN = Math.floor(d * 1.5);
     for (let n = 1; n <= maxN; n++) {
       const s = simplify(n, d);
-      // Absolute guardrail: Level 1 fractions may never display or behave as anything beyond sixths.
       if (lv === 1 && s.d > 6) continue;
       const key = s.n + "/" + s.d;
-      if (!seen[key]) { 
-        // At level 3, exclude whole numbers (d === 1)
+      if (!seen[key]) {
         if (lv === 3 && s.d === 1) continue;
-        seen[key] = true; 
-        pool.push({ n: s.n, d: s.d }); 
+        seen[key] = true;
+        pool.push({ n: s.n, d: s.d });
       }
     }
   });
@@ -273,18 +264,11 @@ function isLegalMove(frac, t) {
   return units <= remaining;
 }
 
-function randWholes() { return 2 + Math.floor(Math.random() * 3); } // 2, 3, or 4
-
 function createTerritories(level) {
   const lv = normalizeLevel(level);
   const dens = levelDenominators(lv);
-
-  // Model variety: every board always has all 5 visual models.
-  // Denominator variety: Level 1 always uses halves, thirds, fourths, fifths, and sixths exactly once.
-  // Higher levels still allow repetition, but avoid accidental all-same boards.
   const variedModels = shuffle(["Circle Model", "Bar Model", "Area Model"]);
   const models = ["Set Model", "Number Line", ...variedModels];
-
   let territoryDenominators;
   if (lv === 1) {
     territoryDenominators = shuffle([2, 3, 4, 5, 6]);
@@ -294,21 +278,13 @@ function createTerritories(level) {
     for (let i = 0; i < 5; i++) territoryDenominators.push(shuffled[i % shuffled.length]);
     territoryDenominators = shuffle(territoryDenominators);
   }
-
   const list = [];
   for (let i = 0; i < 5; i++) {
     let den = territoryDenominators[i];
     let wholes;
-
-    if (lv === 1) {
-      // Level 1 stays concrete: one whole per territory, no improper territory spaces.
-      // Because territoryDenominators is exactly [2,3,4,5,6] shuffled, Level 1 can never create 8ths, 10ths, or 12ths.
-      wholes = 1;
-    } else if (i === 0) {
-      // Set Model can get visually crowded, so keep it smaller.
-      wholes = 1 + Math.floor(Math.random() * 2);
-    } else if (i === 1) {
-      // Number Line gets harder by showing more than one whole at higher levels.
+    if (lv === 1) { wholes = 1; }
+    else if (i === 0) { wholes = 1 + Math.floor(Math.random() * 2); }
+    else if (i === 1) {
       wholes = lv === 2 ? 1 + Math.floor(Math.random() * 2) : 1 + Math.floor(Math.random() * 3);
       const maxNLDen = wholes === 1 ? 8 : wholes === 2 ? 6 : 4;
       const nlDens = dens.filter(d => d <= maxNLDen);
@@ -316,7 +292,6 @@ function createTerritories(level) {
     } else {
       wholes = lv === 2 ? 1 + Math.floor(Math.random() * 2) : 2 + Math.floor(Math.random() * 3);
     }
-
     list.push({ id: i, slot: SLOTS[i], name: "T" + (i + 1), model: models[i], denominator: den, wholes, filledUnits: 0, owner: null, chunks: [], hijacked: false });
   }
   return list;
@@ -326,10 +301,6 @@ function makeChoice(f) {
   const chosen = { n: f.n, d: f.d };
   chosen.display = displayFraction(chosen);
   return chosen;
-}
-
-function hasFractionKey(map, f) {
-  return !!(map && map[fractionKey(f)]);
 }
 
 function handHasLegalMove(hand, territories) {
@@ -356,26 +327,20 @@ function pickFromPool({ level, usedKeys = {}, discardedKeys = {}, territories = 
 }
 
 function createFractionFromPool(level, usedKeys = {}, discardedKeys = {}) {
-  // Never return a duplicate of something already visible in the hand.
   return pickFromPool({ level, usedKeys, discardedKeys, respectDiscarded:true })
       || pickFromPool({ level, usedKeys, discardedKeys, respectDiscarded:false })
       || null;
 }
 
 function createSmartLegalFraction(level, usedKeys = {}, discardedKeys = {}, territories = []) {
-  // Best choice: legal, not a duplicate, and not already trashed.
   return pickFromPool({ level, usedKeys, discardedKeys, territories, mustBeLegal:true, respectDiscarded:true })
-      // Endgame choice: ignore the discard pile if that is necessary to keep a legal move alive.
       || pickFromPool({ level, usedKeys, discardedKeys, territories, mustBeLegal:true, respectDiscarded:false })
-      // Last resort: any unique fraction. This keeps the visible hand duplicate-free.
       || createFractionFromPool(level, usedKeys, discardedKeys);
 }
 
 function cleanFractionHand(level, hand, discardedKeys = {}, territories = []) {
   const usedKeys = {};
   const cleaned = [];
-
-  // Keep existing choices only once. This removes any duplicate already on screen.
   for (const f of hand || []) {
     if (!f) continue;
     const key = fractionKey(f);
@@ -384,26 +349,18 @@ function cleanFractionHand(level, hand, discardedKeys = {}, territories = []) {
     cleaned.push({ ...f, display: f.display || displayFraction(f) });
     if (cleaned.length >= 3) break;
   }
-
-  // If the current hand has no playable fraction, replace one choice with a playable one when possible.
   if (boardHasAnyLegalMove(level, territories) && !handHasLegalMove(cleaned, territories)) {
     const replaceIndex = cleaned.length >= 3 ? 2 : cleaned.length;
     const usedExceptReplace = {};
     cleaned.forEach((f, i) => { if (i !== replaceIndex) usedExceptReplace[fractionKey(f)] = true; });
     const legalChoice = createSmartLegalFraction(level, usedExceptReplace, discardedKeys, territories);
-    if (legalChoice) {
-      cleaned[replaceIndex] = legalChoice;
-    }
+    if (legalChoice) cleaned[replaceIndex] = legalChoice;
   }
-
-  // Fill back to 3 choices. First respect the trash pile, then ignore it if the endgame is running low.
   while (cleaned.length < 3) {
     const next = createFractionFromPool(level, usedKeys, discardedKeys);
     if (!next) break;
     cleaned.push(next);
   }
-
-  // Final duplicate sweep. This is the hard guarantee: no visible duplicate fractions.
   const finalUsed = {};
   const finalHand = [];
   for (const f of cleaned) {
@@ -413,33 +370,26 @@ function cleanFractionHand(level, hand, discardedKeys = {}, territories = []) {
     finalUsed[key] = true;
     finalHand.push({ ...f, display: f.display || displayFraction(f) });
   }
-
   while (finalHand.length < 3) {
     const next = pickFromPool({ level, usedKeys: finalUsed, discardedKeys, respectDiscarded:false });
     if (!next) break;
     finalHand.push(next);
   }
-
   return finalHand.slice(0, 3);
 }
 
 function rollFractions(level, discardedKeys, territories) {
   const usedKeys = {};
   const result = [];
-
-  // Guarantee one playable fraction if the board has any legal move available.
   if (boardHasAnyLegalMove(level, territories)) {
     const legal = createSmartLegalFraction(level, usedKeys, discardedKeys, territories);
     if (legal) result.push(legal);
   }
-
-  // Fill remaining slots up to 3 total with unique fractions.
   while (result.length < 3) {
     const next = createFractionFromPool(level, usedKeys, discardedKeys);
     if (!next) break;
     result.push(next);
   }
-
   return shuffle(cleanFractionHand(level, result, discardedKeys, territories));
 }
 
@@ -453,23 +403,19 @@ function cellsFromChunks(t) {
   const total = t.denominator * t.wholes;
   const cells = new Array(total).fill("");
   let filledAmount = 0;
-  
   t.chunks.forEach(c => {
     let unitsToFill = c.units;
     while (unitsToFill > 0 && filledAmount < total) {
       const cellIndex = Math.floor(filledAmount);
-      if (cellIndex < total) {
-        cells[cellIndex] = c.color;
-      }
+      if (cellIndex < total) cells[cellIndex] = c.color;
       filledAmount += 1;
       unitsToFill -= 1;
     }
   });
-  
   return cells;
 }
 
-// ─── Model renderers (React) ─────────────────────────────────────────────────
+/* ─── Model renderers ───────────────────────────────────────────────────── */
 function BarModel({ t }) {
   const cells = cellsFromChunks(t);
   return (
@@ -553,58 +499,35 @@ function SetModel({ t }) {
 
 function polarToCartesian(cx, cy, r, angleInDegrees) {
   const angleInRadians = (angleInDegrees - 90) * Math.PI / 180;
-  return {
-    x: cx + (r * Math.cos(angleInRadians)),
-    y: cy + (r * Math.sin(angleInRadians))
-  };
+  return { x: cx + (r * Math.cos(angleInRadians)), y: cy + (r * Math.sin(angleInRadians)) };
 }
-
 function describePieSlice(cx, cy, r, startAngle, endAngle) {
-  // Draws one exact partition slice from the center to the arc.
-  // This prevents the colored fill from bleeding across the black partition lines.
   const start = polarToCartesian(cx, cy, r, endAngle);
   const end = polarToCartesian(cx, cy, r, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return [
-    "M", cx, cy,
-    "L", start.x, start.y,
-    "A", r, r, 0, largeArcFlag, 0, end.x, end.y,
-    "Z"
-  ].join(" ");
+  return ["M", cx, cy, "L", start.x, start.y, "A", r, r, 0, largeArcFlag, 0, end.x, end.y, "Z"].join(" ");
 }
 
 function CircleModel({ t }) {
-   const cells = cellsFromChunks(t);
-   const size = 62;
-   const cx = size / 2;
-   const cy = size / 2;
-   const radius = 28;
-   return (
-     <div style={{ width:"100%", height:"100%", display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"center", gap:6, overflow:"hidden" }}>
-       {Array.from({ length: t.wholes }).map((_, w) => (
-         <svg key={w} width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flex:"0 0 auto", maxWidth:"48%", maxHeight:"100%", filter:"drop-shadow(0 2px 2px rgba(0,0,0,.18))" }}>
-           <circle cx={cx} cy={cy} r={radius} fill="#fff" stroke="#555" strokeWidth="3" />
-           {Array.from({ length: t.denominator }).map((_, i) => {
-             const color = cells[w * t.denominator + i];
-             const fill = color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "#fff";
-             const startAngle = i * 360 / t.denominator;
-             const endAngle = (i + 1) * 360 / t.denominator;
-             return (
-               <path
-                 key={`slice-${i}`}
-                 d={describePieSlice(cx, cy, radius, startAngle, endAngle)}
-                 fill={fill}
-                 stroke="#111"
-                 strokeWidth="1.4"
-                 strokeLinejoin="round"
-               />
-             );
-           })}
-           <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#555" strokeWidth="3" />
-           <circle cx={cx} cy={cy} r="3.8" fill="#111" />
-         </svg>
-       ))}
-     </div>
+  const cells = cellsFromChunks(t);
+  const size = 62; const cx = size / 2; const cy = size / 2; const radius = 28;
+  return (
+    <div style={{ width:"100%", height:"100%", display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"center", gap:6, overflow:"hidden" }}>
+      {Array.from({ length: t.wholes }).map((_, w) => (
+        <svg key={w} width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flex:"0 0 auto", maxWidth:"48%", maxHeight:"100%", filter:"drop-shadow(0 2px 2px rgba(0,0,0,.18))" }}>
+          <circle cx={cx} cy={cy} r={radius} fill="#fff" stroke="#555" strokeWidth="3" />
+          {Array.from({ length: t.denominator }).map((_, i) => {
+            const color = cells[w * t.denominator + i];
+            const fill = color === "red" ? "#e83434" : color === "blue" ? "#1878ff" : "#fff";
+            const startAngle = i * 360 / t.denominator;
+            const endAngle = (i + 1) * 360 / t.denominator;
+            return <path key={`slice-${i}`} d={describePieSlice(cx, cy, radius, startAngle, endAngle)} fill={fill} stroke="#111" strokeWidth="1.4" strokeLinejoin="round" />;
+          })}
+          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#555" strokeWidth="3" />
+          <circle cx={cx} cy={cy} r="3.8" fill="#111" />
+        </svg>
+      ))}
+    </div>
   );
 }
 
@@ -615,16 +538,186 @@ function TerritoryModel({ t }) {
   if (t.model === "Area Model") return <AreaModel t={t} />;
   return <CircleModel t={t} />;
 }
-
 function shortModelName(m) {
   if (m === "Bar Model") return "Bar"; if (m === "Set Model") return "Set";
   if (m === "Number Line") return "Line"; if (m === "Area Model") return "Area"; return "Circle";
 }
 
-// ─── Main Game Component ──────────────────────────────────────────────────────
+/* ─── Score Card ────────────────────────────────────────────────────────── */
+function ScoreCard({ color, name, points, compact }) {
+  const bg = color === "orange"
+    ? "radial-gradient(circle at 20% 20%, rgba(255,255,255,.22), transparent 25%), linear-gradient(180deg,#ffae35,#e06d00)"
+    : "radial-gradient(circle at 80% 20%, rgba(255,255,255,.22), transparent 25%), linear-gradient(180deg,#6bed46,#2e9c17)";
+
+  if (compact) {
+    /* Mobile: just name stacked over points, no "Jack Points" label */
+    return (
+      <div style={{
+        border:"3px solid white", borderRadius:12,
+        boxShadow:"0 4px 10px rgba(0,0,0,.45)",
+        display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        padding:"5px 8px", textShadow:"0 2px 0 rgba(0,0,0,.45)", background:bg,
+        minWidth:0
+      }}>
+        <div style={{ fontSize:11, fontWeight:1000, lineHeight:1, textTransform:"uppercase", letterSpacing:.5 }}>{name}</div>
+        <div style={{ fontSize:24, fontWeight:1000, lineHeight:1, marginTop:2 }}>{points}</div>
+      </div>
+    );
+  }
+
+  /* Desktop full card */
+  return (
+    <div style={{
+      border:"4px solid white", borderRadius:24,
+      boxShadow:"0 8px 18px rgba(0,0,0,.45)",
+      display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center",
+      padding:"8px 12px",
+      textShadow:"0 3px 0 rgba(0,0,0,.45)", background:bg,
+      height:104
+    }}>
+      <div style={{ fontSize:24, fontWeight:1000, lineHeight:1 }}>{name}</div>
+      <div style={{ fontSize:12, fontWeight:1000, marginTop:4, opacity:.95 }}>JACK POINTS</div>
+      <div style={{ fontSize:32, fontWeight:1000, lineHeight:1, marginTop:3 }}>{points}</div>
+    </div>
+  );
+}
+
+/* ─── Player Panel (desktop sidebar) ───────────────────────────────────── */
+function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick, level, compact, points }) {
+  const bg = color === "orange"
+    ? "radial-gradient(circle at 30% 14%, rgba(255,255,255,.22), transparent 24%), repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px), radial-gradient(circle at 70% 40%, rgba(255,195,60,.16), transparent 36%), linear-gradient(180deg,#ff9b19 0%,#d56500 55%,#743000 100%)"
+    : "radial-gradient(circle at 70% 14%, rgba(255,255,255,.22), transparent 24%), repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px), radial-gradient(circle at 30% 40%, rgba(130,255,90,.16), transparent 36%), linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#124b07 100%)";
+  const trickBg = color === "orange" ? "linear-gradient(180deg,#ffaf38,#e66a00)" : "linear-gradient(180deg,#70ed4b,#2fa114)";
+  const tricks = [{ id:"hint", label:"Hint", disabled: level === 3 }, { id:"refrac", label:"Re-Frac" }, { id:"jackback", label:"Jackback" }];
+
+  if (compact) {
+    /*
+      Mobile layout per spec:
+      Orange side: [Jackal img] | [score / Hint / Re-Frac / Jackback stacked]
+      Green side:  [score / Hint / Re-Frac / Jackback stacked] | [Jackrabbit img]
+      No "Jack Points" or "Jack Tricks" text labels.
+    */
+    const imgOnLeft  = color === "orange";
+
+    return (
+      <div style={{
+        border:`3px solid ${active ? "#ffe600" : "white"}`,
+        borderRadius:14,
+        boxShadow: active ? "0 0 14px 3px rgba(255,230,0,.5)" : "0 3px 10px rgba(0,0,0,.45)",
+        background:bg,
+        filter: active ? "none" : "grayscale(1) opacity(0.55)",
+        display:"flex",
+        flexDirection: imgOnLeft ? "row" : "row-reverse",
+        alignItems:"stretch",
+        overflow:"hidden",
+        minHeight:0
+      }}>
+        {/* Mascot */}
+        <div style={{ width:56, flexShrink:0, display:"flex", alignItems:"flex-end", justifyContent:"center", overflow:"hidden", padding:"0 2px 2px" }}>
+          <img src={mascotSrc} alt="" style={{ width:52, objectFit:"contain", filter:"drop-shadow(0 4px 6px rgba(0,0,0,.5))" }} />
+        </div>
+
+        {/* Score + trick buttons stacked */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4, padding:"5px 5px 5px", minWidth:0 }}>
+          {/* Score pill */}
+          <div style={{ background:"rgba(0,0,0,.35)", border:"2px solid rgba(255,255,255,.6)", borderRadius:8, textAlign:"center", padding:"2px 4px", lineHeight:1 }}>
+            <div style={{ fontSize:18, fontWeight:1000, color:"white", textShadow:"0 2px 0 rgba(0,0,0,.5)" }}>{points}</div>
+          </div>
+          {/* 3 trick buttons */}
+          {tricks.map(tr => (
+            <button key={tr.id} onClick={() => onTrick(tr.id)} style={{
+              flex:1, borderRadius:7, border:"2px solid rgba(255,255,255,.75)",
+              color: trickUsed[tr.id] || tr.disabled ? "#ccc" : "white",
+              fontSize:11, fontWeight:1000,
+              cursor: trickUsed[tr.id] || tr.disabled ? "default" : "pointer",
+              textTransform:"uppercase", letterSpacing:.3,
+              boxShadow:"0 2px 0 rgba(0,0,0,.3)",
+              background: trickUsed[tr.id] || tr.disabled ? "linear-gradient(180deg,#666,#3a3a3a)" : trickBg,
+              padding:"0 2px", lineHeight:1.1,
+              minHeight:28
+            }}>{tr.label}</button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* Full desktop sidebar */
+  return (
+    <aside style={{
+      position:"relative", minHeight:0, border:"5px solid white",
+      outline: active ? "7px solid #ffe600" : "none", outlineOffset: active ? -10 : 0,
+      boxShadow: active ? "0 0 28px 6px rgba(255,230,0,.55), 0 10px 24px rgba(0,0,0,.55)" : "0 10px 24px rgba(0,0,0,.55)",
+      borderRadius:30, overflow:"visible",
+      display:"grid", gridTemplateRows:"minmax(0,1fr) 34px 164px", zIndex:10, background:bg,
+      filter: active ? "none" : "grayscale(1) opacity(0.6)"
+    }}>
+      <img src={mascotSrc} alt="" style={{
+        position:"absolute", bottom:184, width:"92%", height:"auto", objectFit:"contain",
+        filter:"drop-shadow(0 14px 14px rgba(0,0,0,.62))", zIndex:35, pointerEvents:"none",
+        left: mascotClass === "orange" ? "58%" : undefined, right: mascotClass === "green" ? "58%" : undefined,
+        transform: mascotClass === "orange" ? "translateX(-50%) rotate(-2deg)" : "translateX(50%) rotate(2deg)"
+      }} />
+      <div />
+      <div style={{ position:"relative", zIndex:50, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:1000, letterSpacing:1, textShadow:"0 3px 0 rgba(0,0,0,.45)", background:"rgba(0,0,0,.18)", borderTop:"3px solid rgba(255,255,255,.18)", borderBottom:"3px solid rgba(255,255,255,.22)" }}>
+        JACK TRICKS
+      </div>
+      <div style={{ position:"relative", zIndex:50, padding:"10px 12px 12px", display:"flex", flexDirection:"column", gap:8, background:"linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.28))", borderRadius:"0 0 24px 24px" }}>
+        {tricks.map(tr => (
+          <button key={tr.id} onClick={() => onTrick(tr.id)} style={{
+            height:44, borderRadius:15, border:"3px solid rgba(255,255,255,.78)", color: trickUsed[tr.id] || tr.disabled ? "#ddd" : "white",
+            fontSize:15, fontWeight:1000, cursor: trickUsed[tr.id] || tr.disabled ? "default" : "pointer", textTransform:"uppercase",
+            boxShadow:"0 4px 0 rgba(0,0,0,.35)",
+            background: trickUsed[tr.id] || tr.disabled ? "linear-gradient(180deg,#777,#444)" : trickBg,
+          }}>{tr.label}</button>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/* ─── Territory Card ────────────────────────────────────────────────────── */
+function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted, victoryReached, boardInputBlocked }) {
+  let borderColor = "#c8d2df";
+  if (t.owner === "orange") borderColor = "#ff8700";
+  else if (t.owner === "green") borderColor = "#40c91f";
+  else if (isHinted) borderColor = "#fff24c";
+
+  return (
+    <div onClick={() => { if (gameLocked || !gameStarted || victoryReached || boardInputBlocked()) return; onClick(t.id); }}
+      style={{
+        background:"#f8fafc", color:"#111",
+        border:`4px solid ${borderColor}`,
+        borderRadius:18, overflow:"hidden",
+        display:"grid", gridTemplateRows:"24px minmax(0,1fr) 22px",
+        cursor:"pointer",
+        boxShadow: isHinted ? "0 0 0 5px rgba(255,242,76,.8),0 0 20px rgba(255,242,76,.8)" : t.owner === "orange" ? "0 0 0 4px rgba(255,135,0,.32),0 6px 14px rgba(0,0,0,.32)" : t.owner === "green" ? "0 0 0 4px rgba(64,201,31,.32),0 6px 14px rgba(0,0,0,.32)" : "0 6px 14px rgba(0,0,0,.32)",
+        animation: isHinted ? "territoryHint 1s infinite alternate" : "none",
+        transition:"transform .15s",
+        minHeight:0
+      }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6, padding:"0 7px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase" }}>
+        <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
+        <span style={{ whiteSpace:"nowrap" }}>{t.wholes}W</span>
+      </div>
+      <div style={{ minHeight:0, padding:4, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
+        <TerritoryModel t={t} />
+        {t.owner && (
+          <div style={{ position:"absolute", right:5, top:4, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:12, padding:"3px 6px", fontSize:10, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
+        )}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", background: t.owner === "orange" ? "linear-gradient(180deg,#ff9e28,#b94e00)" : t.owner === "green" ? "linear-gradient(180deg,#62e842,#247c10)" : "linear-gradient(180deg,#303a48,#171d28)", color:"white", fontSize:10, fontWeight:1000, textTransform:"uppercase" }}>
+        {t.owner ? players[t.owner].name : "Open"}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Game Component ───────────────────────────────────────────────── */
 function FracJack() {
   const [level, setLevel] = useState(1);
-  // level select removed
   const [gameStarted, setGameStarted] = useState(false);
   const [gameLocked, setGameLocked] = useState(true);
   const [victoryReached, setVictoryReached] = useState(false);
@@ -643,9 +736,8 @@ function FracJack() {
   const [hints, setHints] = useState({ fractionIdx: null, territoryId: null });
   const [trashBurp, setTrashBurp] = useState(false);
   const [trashTripsThisTurn, setTrashTripsThisTurn] = useState(0);
-  // Overlays
   const [pow, setPow] = useState({ show:false, big:"", small:"", color:"orange", imageSrc:null, imageAlt:"", onContinue:null });
-  const [lessonOverlay, setLessonOverlay] = useState(null); // { t, remaining, callback }
+  const [lessonOverlay, setLessonOverlay] = useState(null);
   const [trashPenaltyOverlay, setTrashPenaltyOverlay] = useState(false);
   const [trashPenaltyMsg, setTrashPenaltyMsg] = useState("");
   const [penaltyAmount, setPenaltyAmount] = useState(0);
@@ -665,37 +757,22 @@ function FracJack() {
   const inputGuardUntilRef = useRef(0);
 
   const viewport = useViewportSize();
-  const DESIGN_WIDTH = 1120;
-  const DESIGN_HEIGHT = 720;
-  const isPhoneLike = viewport.width <= 760 || viewport.height <= 520;
-  const shouldScaleGame = isPhoneLike;
 
-  // Mobile safety margins:
-  // Phones often lose usable height after rotating because of browser address bars.
-  // These margins keep the scaled board from touching/cutting off at the bottom.
-  const mobileOuterPad = shouldScaleGame ? 10 : 0;
-  const mobileBottomPad = shouldScaleGame ? 46 : 0;
-  const availableMobileWidth = Math.max(320, viewport.width - mobileOuterPad * 2);
-  const availableMobileHeight = Math.max(260, viewport.height - mobileOuterPad * 2 - mobileBottomPad);
-  const gameScale = shouldScaleGame ? Math.min(availableMobileWidth / DESIGN_WIDTH, availableMobileHeight / DESIGN_HEIGHT) : 1;
-  const gameOffsetX = shouldScaleGame ? Math.max(mobileOuterPad, (viewport.width - DESIGN_WIDTH * gameScale) / 2) : 0;
-  const gameOffsetY = shouldScaleGame ? mobileOuterPad : 0;
-  const gameWidth = shouldScaleGame ? DESIGN_WIDTH : "100vw";
-  const gameHeight = shouldScaleGame ? DESIGN_HEIGHT : "100vh";
+  /* ── Responsive breakpoints ── */
+  const isMobile  = viewport.width <= 600;
+  const isTablet  = viewport.width > 600 && viewport.width <= 900;
+  const isDesktop = viewport.width > 900;
+  /* colMap for desktop 12-col territory grid */
+  const colMap = { t1:"1/span 5", t2:"6/span 7", t3:"1/span 4", t4:"5/span 4", t5:"9/span 4" };
 
-  // Initialize game board on mount
   useEffect(() => { setupNewGame(level); }, []); // eslint-disable-line
-
-  // Sync timer display with timerLimit before game starts
   useEffect(() => {
     if (!gameStarted) {
-      const m = Math.floor(timerLimit / 60);
-      const s = timerLimit % 60;
+      const m = Math.floor(timerLimit / 60); const s = timerLimit % 60;
       setTimerDisplay(String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0"));
     }
   }, [timerLimit, gameStarted]);
 
-  // Keep refs in sync
   useEffect(() => { lockedRef.current = gameLocked; }, [gameLocked]);
   useEffect(() => { victoryRef.current = victoryReached; }, [victoryReached]);
   useEffect(() => { startedRef.current = gameStarted; }, [gameStarted]);
@@ -703,15 +780,8 @@ function FracJack() {
   useEffect(() => { currentLevelRef.current = normalizeLevel(level); }, [level]);
 
   function activeLevel() { return currentLevelRef.current; }
-
-  function blockBoardInput(ms = 500) {
-    inputGuardUntilRef.current = Date.now() + ms;
-  }
-
-  function boardInputBlocked() {
-    return Date.now() < inputGuardUntilRef.current;
-  }
-
+  function blockBoardInput(ms = 500) { inputGuardUntilRef.current = Date.now() + ms; }
+  function boardInputBlocked() { return Date.now() < inputGuardUntilRef.current; }
   function unlockAfterInputGuard(ms = 300) {
     blockBoardInput(ms + 150);
     setTimeout(() => {
@@ -722,83 +792,56 @@ function FracJack() {
   }
 
   function stopTimer() { clearInterval(timerRef.current); }
-
   function armTimer(onZero) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       if (lockedRef.current || victoryRef.current || !startedRef.current) return;
       timerVal.current = Math.max(0, timerVal.current - 1);
-      const _m = Math.floor(timerVal.current / 60);
-      const _s = timerVal.current % 60;
+      const _m = Math.floor(timerVal.current / 60); const _s = timerVal.current % 60;
       setTimerDisplay(String(_m).padStart(2,"0") + ":" + String(_s).padStart(2,"0"));
       setTimer(timerVal.current);
       if (timerVal.current <= 0) { clearInterval(timerRef.current); playBuzz(); onZero(); }
     }, 1000);
   }
-
   function startTimer(onZero) {
     timerVal.current = timerLimit;
-    const m = Math.floor(timerLimit / 60);
-    const s = timerLimit % 60;
+    const m = Math.floor(timerLimit / 60); const s = timerLimit % 60;
     setTimerDisplay(String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0"));
     setTimer(timerLimit);
     armTimer(onZero);
   }
-
   function resetTimerToThirty(onZero) {
     clearInterval(timerRef.current);
     timerVal.current = timerLimit;
-    const m = Math.floor(timerLimit / 60);
-    const s = timerLimit % 60;
+    const m = Math.floor(timerLimit / 60); const s = timerLimit % 60;
     setTimerDisplay(String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0"));
     setTimer(timerLimit);
     armTimer(onZero);
   }
-
   function resumeTimer(onZero) {
-    const m = Math.floor(timerVal.current / 60);
-    const s = timerVal.current % 60;
+    const m = Math.floor(timerVal.current / 60); const s = timerVal.current % 60;
     setTimerDisplay(String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0"));
     armTimer(onZero);
   }
-
-  // Speed multiplier: 3x if placed in first 3s, then linearly decays to 1x over the remaining time
   function speedMultiplier() {
-    const elapsed = timerLimit - timerVal.current; // seconds elapsed since turn started
+    const elapsed = timerLimit - timerVal.current;
     if (elapsed <= 3) return 3;
-    const decay = timerLimit - 3; // seconds over which decay happens
+    const decay = timerLimit - 3;
     if (decay <= 0) return 1;
     return Math.max(1, 3 - (2 * (elapsed - 3) / decay));
   }
-
   function nextColor() {
     const c = moveChunkRef.current % 2 === 0 ? "red" : "blue";
     moveChunkRef.current++;
     setMoveChunkIndex(prev => prev + 1);
     return c;
   }
-
   function showPow(big, small, color, onContinue, options = {}) {
     stopTimer();
-    setPow({
-      show:true,
-      big,
-      small,
-      color,
-      imageSrc: options.imageSrc || null,
-      imageAlt: options.imageAlt || "",
-      variant: options.variant || "standard",
-      onContinue: onContinue || null
-    });
+    setPow({ show:true, big, small, color, imageSrc: options.imageSrc || null, imageAlt: options.imageAlt || "", variant: options.variant || "standard", onContinue: onContinue || null });
   }
-
   function dismissPow(e) {
-    // Prevent the Continue click/tap from also hitting a territory underneath the popup.
-    // This was causing rare accidental "NO FIT" turn losses right after successful trash.
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     blockBoardInput(650);
     setPow(p => {
       const cb = p.onContinue;
@@ -806,64 +849,25 @@ function FracJack() {
       return { ...p, show:false, imageSrc:null, imageAlt:"", onContinue:null };
     });
   }
+  function burpTrash() { setTrashBurp(true); setTimeout(() => setTrashBurp(false), 900); }
 
-  function burpTrash() {
-    setTrashBurp(true);
-    setTimeout(() => setTrashBurp(false), 900);
-  }
-
-  const makeTimerZeroHandler = useCallback((currentPlayerArg, territoriesArg, fractionsArg, discardedArg, moveChunkArg) => {
-    return function onZero() {
-      lockedRef.current = true;
-      setGameLocked(true);
-      setHints({ fractionIdx:null, territoryId:null });
-      showPow("TIME'S UP!", "Turn lost!", "red", () => {
-        const nextP = currentPlayerArg === "orange" ? "green" : "orange";
-        lockedRef.current = false;
-        setGameLocked(false);
-        setCurrentPlayer(nextP);
-        const newFracs = rollFractions(activeLevel(), discardedArg, territoriesArg);
-        setFractions(newFracs);
-        setSelectedFracIdx(0);
-        startTimer(makeTimerZeroHandler(nextP, territoriesArg, newFracs, discardedArg, moveChunkArg));
-      });
-    };
-    // eslint-disable-next-line
-  }, [level]);
-
-  // ── New Game ─────────────────────────────────────────────────────────────
   function setupNewGame(newLevel) {
     const lv = normalizeLevel(newLevel ?? activeLevel());
     currentLevelRef.current = lv;
     setLevel(lv);
     clearInterval(timerRef.current);
     timerVal.current = timerLimit;
-    lockedRef.current = true;
-    victoryRef.current = false;
-    startedRef.current = false;
-    moveChunkRef.current = 0;
+    lockedRef.current = true; victoryRef.current = false; startedRef.current = false; moveChunkRef.current = 0;
     const terr = createTerritories(lv);
     const disc = {};
     const fracs = rollFractions(lv, disc, terr);
     setPlayers({ orange:{ name:"Jackal", points:0 }, green:{ name:"Jackrabbit", points:0 } });
-    setCurrentPlayer("orange");
-    setTerritories(terr);
-    setFractions(fracs);
-    setSelectedFracIdx(0);
-    setDiscardedKeys(disc);
-    setTrickUsed({ orange:{hint:false,refrac:false,jackback:false}, green:{hint:false,refrac:false,jackback:false} });
-    setPendingTrick(null);
-    setMoveChunkIndex(0);
-    setVictoryData(null);
-    setHints({ fractionIdx:null, territoryId:null });
-    setGameStarted(false);
-    setGameLocked(true);
-    setVictoryReached(false);
+    setCurrentPlayer("orange"); setTerritories(terr); setFractions(fracs); setSelectedFracIdx(0);
+    setDiscardedKeys(disc); setTrickUsed({ orange:{hint:false,refrac:false,jackback:false}, green:{hint:false,refrac:false,jackback:false} });
+    setPendingTrick(null); setMoveChunkIndex(0); setVictoryData(null); setHints({ fractionIdx:null, territoryId:null });
+    setGameStarted(false); setGameLocked(true); setVictoryReached(false);
     setPow({ show:false, big:"", small:"", color:"orange", imageSrc:null, imageAlt:"", onContinue:null });
-    setLessonOverlay(null);
-    setTrashPenaltyOverlay(false);
-    setTrashPenaltyMsg("");
-    setTrashTripsThisTurn(0);
+    setLessonOverlay(null); setTrashPenaltyOverlay(false); setTrashPenaltyMsg(""); setTrashTripsThisTurn(0);
     inputGuardUntilRef.current = 0;
   }
 
@@ -871,30 +875,22 @@ function FracJack() {
     const numericLevel = normalizeLevel(newLevel);
     currentLevelRef.current = numericLevel;
     setLevel(numericLevel);
-    // Important: rebuild the board immediately when the player changes level on the intro screen.
-    // The previous version changed the level button but kept the old pre-generated Level 2 board.
     if (!gameStarted) setupNewGame(numericLevel);
   }
 
   function handleStart() {
     if (gameStarted || victoryReached) return;
     playBrand();
-    startedRef.current = true;
-    lockedRef.current = false;
-    setGameStarted(true);
-    setGameLocked(false);
-    setTrashTripsThisTurn(0);
+    startedRef.current = true; lockedRef.current = false;
+    setGameStarted(true); setGameLocked(false); setTrashTripsThisTurn(0);
     startTimer(() => {
-      lockedRef.current = true;
-      setGameLocked(true);
+      lockedRef.current = true; setGameLocked(true);
       showPow("TIME'S UP!", "Turn lost!", "red", () => {
         setCurrentPlayer(prev => {
           const next = prev === "orange" ? "green" : "orange";
           const newFracs = rollFractions(activeLevel(), discardedKeys, territories);
-          setFractions(newFracs);
-          setSelectedFracIdx(0);
-          lockedRef.current = false;
-          setGameLocked(false);
+          setFractions(newFracs); setSelectedFracIdx(0);
+          lockedRef.current = false; setGameLocked(false);
           return next;
         });
       });
@@ -904,12 +900,8 @@ function FracJack() {
   function checkGameOver(terrs, playersState) {
     const claimed = terrs.filter(t => t.owner).length;
     if (claimed >= 5) {
-      victoryRef.current = true;
-      clearInterval(timerRef.current);
-      lockedRef.current = true;
-      setVictoryReached(true);
-      setGameLocked(true);
-      playBrand();
+      victoryRef.current = true; clearInterval(timerRef.current); lockedRef.current = true;
+      setVictoryReached(true); setGameLocked(true); playBrand();
       const tie = playersState.orange.points === playersState.green.points;
       const winner = playersState.green.points > playersState.orange.points ? "green" : "orange";
       setVictoryData({ winner: tie ? "tie" : winner, tie, points: playersState });
@@ -922,95 +914,60 @@ function FracJack() {
   function doSwitchTurn(nextPlayer, newFracs, newDisc, territoriesOverride) {
     const nextTerritories = territoriesOverride || territories;
     const nextDiscarded = newDisc ?? discardedKeys;
-    setHints({ fractionIdx:null, territoryId:null });
-    setCurrentPlayer(nextPlayer);
-    setPendingTrick(null);
-    setTrashTripsThisTurn(0);
-
-    // Always clean the next hand against the board that will actually be used next turn.
-    // This prevents endgame duplicate fractions and helps keep at least one playable choice visible.
+    setHints({ fractionIdx:null, territoryId:null }); setCurrentPlayer(nextPlayer); setPendingTrick(null); setTrashTripsThisTurn(0);
     const baseHand = newFracs ?? rollFractions(activeLevel(), nextDiscarded, nextTerritories);
     const fracsToUse = cleanFractionHand(activeLevel(), baseHand, nextDiscarded, nextTerritories);
-    setFractions(fracsToUse);
-    setSelectedFracIdx(0);
-    lockedRef.current = false;
-    setGameLocked(false);
+    setFractions(fracsToUse); setSelectedFracIdx(0); lockedRef.current = false; setGameLocked(false);
     startTimer(() => {
-      lockedRef.current = true;
-      setGameLocked(true);
+      lockedRef.current = true; setGameLocked(true);
       showPow("TIME'S UP!", "Turn lost!", "red", () => {
         const nxt = nextPlayer === "orange" ? "green" : "orange";
         const nf = rollFractions(activeLevel(), nextDiscarded, nextTerritories);
-        setFractions(nf);
-        setSelectedFracIdx(0);
-        lockedRef.current = false;
-        setGameLocked(false);
-        setCurrentPlayer(nxt);
+        setFractions(nf); setSelectedFracIdx(0); lockedRef.current = false; setGameLocked(false); setCurrentPlayer(nxt);
         startTimer(() => {});
       });
     });
   }
 
-  // ── Territory click ───────────────────────────────────────────────────────
   function handleTerritoryClick(id) {
     if (gameLocked || !gameStarted || victoryReached || boardInputBlocked()) return;
     setHints({ fractionIdx:null, territoryId:null });
-
     const t = territories[id];
     if (!t || t.owner) return;
-
-    if (pendingTrick === "jackback") {
-      doJackback(t);
-      return;
-    }
-
+    if (pendingTrick === "jackback") { doJackback(t); return; }
     const frac = fractions[selectedFracIdx];
     if (!frac) return;
-
     if (!fractionFits(frac, t)) {
-      // invalid fit
-      lockedRef.current = true;
-      setGameLocked(true);
-      playBuzz();
+      lockedRef.current = true; setGameLocked(true); playBuzz();
       showPow("NO FIT!", denomWord(frac.d) + " can't fit " + denomWord(t.denominator) + ".\nLose Your Turn", "red", () => {
         doSwitchTurn(currentPlayer === "orange" ? "green" : "orange");
       });
       return;
     }
-
     const units = fractionUnits(frac, t);
     const max = t.denominator * t.wholes;
     const remaining = max - t.filledUnits;
-
-    if (units > remaining) {
-      doHijack(t, frac, remaining);
-      return;
-    }
-
+    if (units > remaining) { doHijack(t, frac, remaining); return; }
     doPlace(t, frac, units);
   }
 
   function doPlace(t, frac, units) {
-    lockedRef.current = true;
-    setGameLocked(true);
+    lockedRef.current = true; setGameLocked(true);
     const mult = speedMultiplier();
     const placePts = Math.round(50 * mult);
     const color = t.chunks.length % 2 === 0 ? "red" : "blue";
     const max = t.denominator * t.wholes;
     const clampedUnits = Math.min(units, max - t.filledUnits);
-    const roundedUnits = Math.round(clampedUnits * 1000) / 1000; // Keep precision but avoid floating point errors
+    const roundedUnits = Math.round(clampedUnits * 1000) / 1000;
     const updatedT = { ...t, chunks: [...t.chunks, { units: roundedUnits, color }], filledUnits: t.filledUnits + clampedUnits };
     const newFracs = (() => {
       const usedKeys = {};
       fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
       const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
-      const arr = fractions.slice();
-      arr[selectedFracIdx] = newF;
+      const arr = fractions.slice(); arr[selectedFracIdx] = newF;
       return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
-
     const newTerrs = territories.map(tt => tt.id === t.id ? updatedT : tt);
-
     if (updatedT.filledUnits >= max) {
       let bonus = updatedT.wholes * 100;
       if (activeLevel() === 1) bonus = updatedT.wholes * 50;
@@ -1020,9 +977,7 @@ function FracJack() {
       showPow("+" + (placePts + bonus), currentPlayer === "orange" ? "Jackal JACKED IT!" + speedLabel : "Jackrabbit JACKED IT!" + speedLabel, currentPlayer, () => {
         const ownedT = { ...updatedT, owner: currentPlayer };
         const finalTerrs = newTerrs.map(tt => tt.id === t.id ? ownedT : tt);
-        setTerritories(finalTerrs);
-        setFractions(newFracs);
-        setSelectedFracIdx(0);
+        setTerritories(finalTerrs); setFractions(newFracs); setSelectedFracIdx(0);
         setPlayers(prev => {
           const np = { ...prev, [currentPlayer]: { ...prev[currentPlayer], points: prev[currentPlayer].points + placePts + bonus } };
           if (checkGameOver(finalTerrs, np)) return np;
@@ -1034,9 +989,7 @@ function FracJack() {
       playMove();
       const speedLabelMove = mult >= 2.5 ? " ⚡FAST!" : mult >= 1.5 ? " ⚡" : "";
       setPlayers(prev => ({ ...prev, [currentPlayer]: { ...prev[currentPlayer], points: prev[currentPlayer].points + placePts } }));
-      setTerritories(newTerrs);
-      setFractions(newFracs);
-      setSelectedFracIdx(0);
+      setTerritories(newTerrs); setFractions(newFracs); setSelectedFracIdx(0);
       showPow("+" + placePts + speedLabelMove, currentPlayer === "orange" ? "Jackal" : "Jackrabbit", currentPlayer, () => {
         doSwitchTurn(currentPlayer === "orange" ? "green" : "orange", newFracs, undefined, newTerrs);
       });
@@ -1044,33 +997,24 @@ function FracJack() {
   }
 
   function doHijack(t, frac, remaining) {
-    lockedRef.current = true;
-    setGameLocked(true);
+    lockedRef.current = true; setGameLocked(true);
     const opp = currentPlayer === "orange" ? "green" : "orange";
     let bonus = 300;
     if (activeLevel() === 1) bonus = 100;
     if (activeLevel() === 2) bonus = 200;
-
     const newFracs = (() => {
       const usedKeys = {};
       fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
       const newF = createFractionFromPool(activeLevel(), usedKeys, discardedKeys);
-      const arr = fractions.slice();
-      arr[selectedFracIdx] = newF;
+      const arr = fractions.slice(); arr[selectedFracIdx] = newF;
       return cleanFractionHand(activeLevel(), arr, discardedKeys, territories);
     })();
-
-    playBadTrash();
-
-    setTimeout(() => playBuzz(), 180); // extra/fallback sting if WAV audio is blocked
-
+    playBadTrash(); setTimeout(() => playBuzz(), 180);
     showPow("HIJACKED!", players[opp].name + " +" + bonus, "red", () => {
-       setLessonOverlay({ t, remaining, callback: () => {
-         const ownedT = { ...t, owner: opp, hijacked: true };
-         const finalTerrs = territories.map(tt => tt.id === t.id ? ownedT : tt);
-        setTerritories(finalTerrs);
-        setFractions(newFracs);
-        setSelectedFracIdx(0);
+      setLessonOverlay({ t, remaining, callback: () => {
+        const ownedT = { ...t, owner: opp, hijacked: true };
+        const finalTerrs = territories.map(tt => tt.id === t.id ? ownedT : tt);
+        setTerritories(finalTerrs); setFractions(newFracs); setSelectedFracIdx(0);
         setPlayers(prev => {
           const np = { ...prev, [opp]: { ...prev[opp], points: prev[opp].points + bonus } };
           if (checkGameOver(finalTerrs, np)) return np;
@@ -1085,9 +1029,7 @@ function FracJack() {
 
   function doJackback(t) {
     if (t.owner) return;
-    setPendingTrick(null);
-    lockedRef.current = true;
-    setGameLocked(true);
+    setPendingTrick(null); lockedRef.current = true; setGameLocked(true);
     showPow("JACKBACK", "One whole cleared", currentPlayer, () => {
       const amount = t.denominator;
       let left = Math.min(amount, t.filledUnits);
@@ -1105,18 +1047,12 @@ function FracJack() {
     });
   }
 
-  // ── Trash ────────────────────────────────────────────────────────────────
   function handleTrashLimitReached() {
-    lockedRef.current = true;
-    setGameLocked(true);
-    stopTimer();
-    playBuzz();
+    lockedRef.current = true; setGameLocked(true); stopTimer(); playBuzz();
     showPow("TRASH LIMIT!", "Max 3 trash trips per turn. Play a fraction now.", "red", () => {
-      lockedRef.current = false;
-      setGameLocked(false);
+      lockedRef.current = false; setGameLocked(false);
       resumeTimer(() => {
-        lockedRef.current = true;
-        setGameLocked(true);
+        lockedRef.current = true; setGameLocked(true);
         showPow("TIME'S UP!", "Turn lost!", "red", () => doSwitchTurn(currentPlayer === "orange" ? "green" : "orange"));
       });
     });
@@ -1127,106 +1063,54 @@ function FracJack() {
     setHints({ fractionIdx:null, territoryId:null });
     const frac = fractions[selectedFracIdx];
     if (!frac) return;
-    if (trashTripsThisTurn >= 3) {
-      handleTrashLimitReached();
-      return;
-    }
+    if (trashTripsThisTurn >= 3) { handleTrashLimitReached(); return; }
     setTrashTripsThisTurn(prev => prev + 1);
     const hasMove = territories.some(t => isLegalMove(frac, t));
-    if (hasMove) {
-      badTrash();
-    } else {
-      goodTrash();
-    }
+    if (hasMove) badTrash(); else goodTrash();
   }
 
   function goodTrash() {
     const trashed = fractions[selectedFracIdx];
     if (!trashed) return;
-    lockedRef.current = true;
-    setGameLocked(true);
-    stopTimer();
-
+    lockedRef.current = true; setGameLocked(true); stopTimer();
     const scoringPlayer = currentPlayer;
     const newDisc = { ...discardedKeys, [fractionKey(trashed)]: true };
     setDiscardedKeys(newDisc);
-
-    playTrash();
-    burpTrash();
-
-    // Replace with smart legal fraction
+    playTrash(); burpTrash();
     const usedKeys = {};
     fractions.forEach((f, i) => { if (i !== selectedFracIdx) usedKeys[fractionKey(f)] = true; });
     const newFrac = createSmartLegalFraction(activeLevel(), usedKeys, newDisc, territories);
-    const newFracs = cleanFractionHand(activeLevel(), (() => {
-      const arr = fractions.slice();
-      arr[selectedFracIdx] = newFrac;
-      return arr;
-    })(), newDisc, territories);
-    setFractions(newFracs);
-    setSelectedFracIdx(0);
-
-    // Award points based on level
+    const newFracs = cleanFractionHand(activeLevel(), (() => { const arr = fractions.slice(); arr[selectedFracIdx] = newFrac; return arr; })(), newDisc, territories);
+    setFractions(newFracs); setSelectedFracIdx(0);
     const trashPts = 50;
     setPlayers(prev => ({ ...prev, [scoringPlayer]: { ...prev[scoringPlayer], points: prev[scoringPlayer].points + trashPts } }));
-
-    const trashLines = [
-      "That fraction was GARBAGE anyway!",
-      "Bye bye, bad fraction! 👋",
-      "Into the void it goes!",
-      "The trash can is DELIGHTED.",
-      "That fraction had no friends here.",
-      "Disposed of with extreme prejudice!",
-      "Even the trash can rolled its eyes.",
-      "One fraction's trash is no one's treasure.",
-    ];
+    const trashLines = ["That fraction was GARBAGE anyway!","Bye bye, bad fraction! 👋","Into the void it goes!","The trash can is DELIGHTED.","That fraction had no friends here.","Disposed of with extreme prejudice!","Even the trash can rolled its eyes.","One fraction's trash is no one's treasure."];
     const trashMsg = trashLines[Math.floor(Math.random() * trashLines.length)];
-
-    // Show POW, then reset the timer and unlock the same turn after a short input guard.
-    // The guard prevents the Continue click/tap from accidentally selecting a model behind the popup.
     showPow("FRAC TRASH! +" + trashPts, trashMsg, scoringPlayer, () => {
       resetTimerToThirty(() => {
-        lockedRef.current = true;
-        setGameLocked(true);
-        showPow("TIME'S UP!", "Turn lost!", "red", () => {
-          doSwitchTurn(scoringPlayer === "orange" ? "green" : "orange");
-        });
+        lockedRef.current = true; setGameLocked(true);
+        showPow("TIME'S UP!", "Turn lost!", "red", () => { doSwitchTurn(scoringPlayer === "orange" ? "green" : "orange"); });
       });
       unlockAfterInputGuard(350);
     }, { imageSrc: IMG_TRASH, imageAlt: "Frac Trash", variant: "trashSuccess" });
   }
 
   function badTrash() {
-    lockedRef.current = true;
-    setGameLocked(true);
-    stopTimer();
-    playBadTrash();
-    setTimeout(() => playBuzz(), 180); // fallback/extra sting if file audio is blocked
+    lockedRef.current = true; setGameLocked(true); stopTimer();
+    playBadTrash(); setTimeout(() => playBuzz(), 180);
     burpTrash();
     const penalty = activeLevel() === 1 ? 50 : activeLevel() === 2 ? 50 : 100;
     setPlayers(prev => ({ ...prev, [currentPlayer]: { ...prev[currentPlayer], points: prev[currentPlayer].points - penalty } }));
-    const badLines = [
-      "That fraction was perfectly good! The trash can is FURIOUS.",
-      "You just tried to trash a totally legal fraction. Shameful.",
-      "The trash can spit it right back out.",
-      "Nice try. That fraction had moves and you knew it.",
-      "The trash can called your bluff.",
-      "That fraction files a formal complaint.",
-      "Even the trash can has standards. That fraction stays.",
-      "The trash can has seen things, but THIS? Bad trash move.",
-    ];
+    const badLines = ["That fraction was perfectly good! The trash can is FURIOUS.","You just tried to trash a totally legal fraction. Shameful.","The trash can spit it right back out.","Nice try. That fraction had moves and you knew it.","The trash can called your bluff.","That fraction files a formal complaint.","Even the trash can has standards. That fraction stays.","The trash can has seen things, but THIS? Bad trash move."];
     setTrashPenaltyMsg(badLines[Math.floor(Math.random() * badLines.length)]);
-    setTrashPenaltyOverlay(true);
-    setPenaltyAmount(penalty);
+    setTrashPenaltyOverlay(true); setPenaltyAmount(penalty);
   }
 
-  // ── Tricks ───────────────────────────────────────────────────────────────
   function applyTrick(player, trick) {
     if (gameLocked || victoryReached || !gameStarted) return;
     if (player !== currentPlayer) return;
     if (trickUsed[player][trick]) return;
     setTrickUsed(prev => ({ ...prev, [player]: { ...prev[player], [trick]: true } }));
-
     if (trick === "hint") {
       setHints({ fractionIdx:null, territoryId:null });
       let found = null;
@@ -1236,20 +1120,16 @@ function FracJack() {
         }
       }
       if (!found) { showPow("NO LEGAL MOVES", "Try a Jack Trick or wait.", "red", null); return; }
-      setSelectedFracIdx(found.fractionIdx);
-      setHints(found);
+      setSelectedFracIdx(found.fractionIdx); setHints(found);
       showPow("HINT!", "Try this move.", currentPlayer, null);
       return;
     }
-
     if (trick === "refrac") {
       setHints({ fractionIdx:null, territoryId:null });
       setFractions(rollFractions(activeLevel(), discardedKeys, territories));
-      setSelectedFracIdx(0);
-      showPow("RE-FRAC!", "New choices", currentPlayer, null);
+      setSelectedFracIdx(0); showPow("RE-FRAC!", "New choices", currentPlayer, null);
       return;
     }
-
     if (trick === "jackback") {
       setHints({ fractionIdx:null, territoryId:null });
       setPendingTrick("jackback");
@@ -1257,7 +1137,6 @@ function FracJack() {
     }
   }
 
-  // ─── Lesson overlay ───────────────────────────────────────────────────────
   function renderLesson() {
     if (!lessonOverlay) return null;
     const { t, remaining, callback } = lessonOverlay;
@@ -1286,163 +1165,170 @@ function FracJack() {
     );
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-  const colMap = { t1:"1/span 5", t2:"6/span 7", t3:"1/span 4", t4:"5/span 4", t5:"9/span 4" };
+  /* ─── Territory grid layout ─────────────────────────────────────────── */
+  function renderTerritories() {
+    if (isDesktop) {
+      return (
+        <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"repeat(12,1fr)", gridTemplateRows:"repeat(2,minmax(0,1fr))", gap:10 }}>
+          {territories.map(t => (
+            <div key={t.id} style={{ gridColumn: colMap[t.slot], gridRow: ["t1","t2"].includes(t.slot) ? 1 : 2, minHeight:0 }}>
+              <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    /* Phone: single column — 5 territories stacked vertically */
+    return (
+      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        {territories.map(t => (
+          <div key={t.id} style={{ minHeight:110 }}>
+            <TerritoryCard t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  /* ─── Fraction + trash row ─────────────────────────────────────────── */
+  function renderFractionRow() {
+    return (
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap: isMobile ? 8 : 14, flexWrap:"wrap" }}>
+        {fractions.map((f, i) => {
+          const txt = f.display || (f.n + "/" + f.d);
+          const isSelected = i === selectedFracIdx;
+          const isHinted = hints.fractionIdx === i;
+          return (
+            <div key={i}
+              onClick={() => { if (gameLocked || pendingTrick || boardInputBlocked()) return; setHints({ fractionIdx:null, territoryId:null }); setSelectedFracIdx(i); }}
+              style={{
+                width: isMobile ? 64 : 70, height: isMobile ? 42 : 38,
+                background:"white", color:"#111", border:"3px solid white", borderRadius:13,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize: isMobile ? 20 : 18, fontWeight:1000, lineHeight:.95,
+                cursor:"pointer",
+                boxShadow: isHinted ? "0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)" : isSelected ? "0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)" : i===0 ? "0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35)" : i===1 ? "0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35)" : "0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35)",
+                transform: isSelected ? "translateY(-3px) scale(1.04)" : "none",
+                animation: isHinted ? "hintPulse 1s infinite alternate" : "none",
+                transition:".15s"
+              }}>
+              {txt.includes(" ") ? <span style={{ fontSize: isMobile ? 16 : 15 }}>{txt}</span> : txt}
+            </div>
+          );
+        })}
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+          <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
+            width: isMobile ? 58 : 62, height: isMobile ? 48 : 50,
+            border:"3px solid rgba(255,255,255,.98)", borderRadius:16,
+            background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
+            boxShadow:"0 5px 10px rgba(0,0,0,.45)", padding:4, overflow:"hidden",
+            transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
+          }}>
+            <img src={IMG_TRASH} alt="Trash" style={{ width:50, height:42, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
+          </button>
+          <div style={{ fontSize:10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Main render ────────────────────────────────────────────────────── */
+  const BG = "radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%), radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%), radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%), radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%), linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%)";
 
   return (
     <>
-      {!gameStarted && <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} compact={isPhoneLike} />}
-      {gameStarted && isPhoneLike && viewport.height > viewport.width && (
+      {!gameStarted && (
+        <IntroScreen timerLimit={timerLimit} onTimerChange={setTimerLimit} level={level} onLevelChange={changeLevel} onStart={handleStart} isMobile={isMobile || isTablet} />
+      )}
+
+      {/* ── DESKTOP LAYOUT ────────────────────────────────────────────── */}
+      {isDesktop && (
         <div style={{
-          position:"fixed", left:8, right:8, top:8, zIndex:250,
-          padding:"8px 10px", border:"2px solid rgba(255,255,255,.75)", borderRadius:12,
-          background:"rgba(0,0,0,.72)", color:"white", textAlign:"center",
-          fontFamily:"Arial, Helvetica, sans-serif", fontSize:13, fontWeight:900,
-          pointerEvents:"none"
+          position:"fixed", inset:0, overflow:"hidden",
+          display:"grid", gridTemplateRows:"110px 1fr", gap:8, padding:10,
+          fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
-          Tip: rotate your phone sideways for the best Frac Jack view.
+          {/* Top bar */}
+          <div style={{ display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, alignItems:"center" }}>
+            <ScoreCard color="orange" name="JACKAL" points={players.orange.points} />
+            <div style={{ height:110, display:"flex", alignItems:"center", justifyContent:"center", overflow:"visible", position:"relative" }}>
+              <button onClick={() => setRulesOverlay(true)} style={{ position:"absolute", left:0, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>Rules</button>
+              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:160, maxWidth:"130%", objectFit:"contain", transform:"translateY(22px) scale(1.10)", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.72)) drop-shadow(0 5px 7px rgba(0,0,0,.50))", zIndex:20, position:"relative" }} />
+              <button onClick={() => setupNewGame()} style={{ position:"absolute", right:0, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>New</button>
+            </div>
+            <ScoreCard color="green" name="JACKRABBIT" points={players.green.points} />
+          </div>
+
+          {/* Main */}
+          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, overflow:"visible" }}>
+            <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
+            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"50px 52px minmax(0,1fr)", gap:8, position:"relative", zIndex:4 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
+                <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:140, height:48 }}>{timerDisplay}</div>
+                <button onClick={toggleMute} style={{ position:"absolute", right:0, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>{muted ? "🔇" : "🔊"}</button>
+              </div>
+              {renderFractionRow()}
+              {renderTerritories()}
+            </main>
+            <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} />
+          </div>
         </div>
       )}
 
-      <div style={{
-        position:"absolute", zIndex:1,
-        left:gameOffsetX, top:gameOffsetY,
-        width:gameWidth, height:gameHeight, padding:10,
-        transform: shouldScaleGame ? `scale(${gameScale})` : "none",
-        transformOrigin:"top left",
-        display:"grid", gridTemplateRows:"122px 1fr", gap:8, overflow:"hidden",
-        fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none",
-        background:"radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%), radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%), radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%), radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%), linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%)"
-      }}>
-
-      {/* Top Bar */}
-      <div style={{ display:"grid", gridTemplateColumns:"250px 1fr 250px", gap:12, alignItems:"center" }}>
-        <ScoreCard color="orange" name="JACKAL" points={players.orange.points} />
-        <div style={{ height:122, display:"flex", alignItems:"center", justifyContent:"center", overflow:"visible", position:"relative" }}>
-          <button onClick={() => setRulesOverlay(true)} style={{ position:"absolute", left:0, bottom:8, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px", textShadow:"0 1px 3px rgba(0,0,0,.6)" }}>Rules</button>
-          <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:172, maxWidth:"130%", objectFit:"contain", transform:"translateY(26px) scale(1.10)", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.72)) drop-shadow(0 5px 7px rgba(0,0,0,.50))", zIndex:20, position:"relative" }} />
-          <button onClick={() => setupNewGame()} style={{ position:"absolute", right:0, bottom:8, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px", textShadow:"0 1px 3px rgba(0,0,0,.6)" }}>New</button>
-        </div>
-        <ScoreCard color="green" name="JACKRABBIT" points={players.green.points} />
-      </div>
-
-      {/* Main */}
-      <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"250px 1fr 250px", gap:12, overflow:"visible" }}>
-
-        {/* Orange Player Panel */}
-        <PlayerPanel color="orange" active={currentPlayer === "orange" && gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={trick => applyTrick("orange", trick)} level={level} />
-
-        {/* Center */}
-        <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"58px 52px minmax(0,1fr)", gap:8, position:"relative", zIndex:4 }}>
-
-          {/* Status row */}
-          <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
-            <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:145, height:50 }}>
-              {timerDisplay}
-            </div>
-            <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"} style={{
-              position:"absolute", right:0,
-              background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px", lineHeight:1
-            }}>{muted ? "🔇" : "🔊"}</button>
-          </div>
-
-          {/* Fraction row */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, minHeight:0 }}>
-              {fractions.map((f, i) => {
-                const txt = f.display || (f.n + "/" + f.d);
-                const isSelected = i === selectedFracIdx;
-                const isHinted = hints.fractionIdx === i;
-                return (
-                  <div key={i} onClick={() => { if (gameLocked || pendingTrick || boardInputBlocked()) return; setHints({ fractionIdx:null, territoryId:null }); setSelectedFracIdx(i); }}
-                    style={{
-                      width:70, height:38, background:"white", color:"#111", border:"3px solid white", borderRadius:13,
-                      display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:1000, lineHeight:.95,
-                      cursor:"pointer",
-                      boxShadow: isHinted ? "0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)" : isSelected ? "0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)" : i===0 ? "0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35)" : i===1 ? "0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35)" : "0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35)",
-                      transform: isSelected ? "translateY(-3px) scale(1.04)" : "none",
-                      animation: isHinted ? "hintPulse 1s infinite alternate" : "none",
-                      transition:".15s"
-                    }}>
-                    {txt.includes(" ") ? <span style={{ fontSize:15 }}>{txt}</span> : txt}
-                  </div>
-                );
-              })}
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
-                  width:62, height:50, border:"3px solid rgba(255,255,255,.98)", borderRadius:16,
-                  background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
-                  display:"flex", alignItems:"center", justifyContent:"center", cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
-                  boxShadow:"0 5px 10px rgba(0,0,0,.45)",
-                  padding:4, overflow:"hidden", transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
-                }}>
-                  <img src={IMG_TRASH} alt="Trash" style={{ width:50, height:42, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
-                </button>
-                <div style={{ fontSize:10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
-              </div>
-            </div>
-
-          {/* Territories */}
-          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"repeat(12,1fr)", gridTemplateRows:"repeat(2,minmax(0,1fr))", gap:12 }}>
-            {territories.map(t => {
-              const isHinted = hints.territoryId === t.id;
-              let borderColor = "#c8d2df";
-              if (t.owner === "orange") borderColor = "#ff8700";
-              else if (t.owner === "green") borderColor = "#40c91f";
-              else if (isHinted) borderColor = "#fff24c";
-              return (
-                <div key={t.id} onClick={() => { if (gameLocked || !gameStarted || victoryReached || boardInputBlocked()) return; setHints({ fractionIdx:null, territoryId:null }); handleTerritoryClick(t.id); }}
-                  style={{
-                    minHeight:0, background:"#f8fafc", color:"#111", border:`5px solid ${borderColor}`,
-                    borderRadius:22, overflow:"hidden", display:"grid", gridTemplateRows:"25px minmax(0,1fr) 23px",
-                    cursor:"pointer", boxShadow: isHinted ? "0 0 0 6px rgba(255,242,76,.8),0 0 24px rgba(255,242,76,.8)" : t.owner === "orange" ? "0 0 0 5px rgba(255,135,0,.32),0 8px 18px rgba(0,0,0,.32)" : t.owner === "green" ? "0 0 0 5px rgba(64,201,31,.32),0 8px 18px rgba(0,0,0,.32)" : "0 8px 18px rgba(0,0,0,.32)",
-                    gridColumn: colMap[t.slot], gridRow: ["t1","t2"].includes(t.slot) ? 1 : 2,
-                    animation: isHinted ? "territoryHint 1s infinite alternate" : "none",
-                    transition:"transform .15s"
-                  }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, padding:"0 8px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase" }}>
-                    <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
-                    <span>{t.wholes} {t.wholes === 1 ? "whole" : "wholes"}</span>
-                  </div>
-                  <div style={{ minHeight:0, padding:4, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
-                    <TerritoryModel t={t} />
-                    {t.owner && (
-                       <div style={{ position:"absolute", right:7, top:6, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:14, padding:"4px 8px", fontSize:12, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
-                     )}
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", background: t.owner === "orange" ? "linear-gradient(180deg,#ff9e28,#b94e00)" : t.owner === "green" ? "linear-gradient(180deg,#62e842,#247c10)" : "linear-gradient(180deg,#303a48,#171d28)", color:"white", fontSize:10, fontWeight:1000, textTransform:"uppercase" }}>
-                    {t.owner ? players[t.owner].name : "Open"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </main>
-
-        {/* Green Player Panel */}
-        <PlayerPanel color="green" active={currentPlayer === "green" && gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={trick => applyTrick("green", trick)} level={level} />
-      </div>
-
-      {/* POW Popup */}
-      {pow.show && (
+      {/* ── TABLET / PHONE LAYOUT ─────────────────────────────────────── */}
+      {!isDesktop && (
         <div style={{
-          position:"fixed", inset:0, pointerEvents:"all", display:"flex", alignItems:"center", justifyContent:"center", zIndex:90,
-          background: pow.variant === "trashSuccess"
-            ? "radial-gradient(circle at 50% 34%, rgba(255,232,72,.35), transparent 18%), radial-gradient(circle at 50% 58%, rgba(0,255,170,.18), transparent 28%), rgba(0,0,0,.78)"
-            : "rgba(0,0,0,.72)"
+          minHeight:"100vh", padding:"8px 8px 14px",
+          display:"flex", flexDirection:"column", gap:7,
+          fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
+
+          {/* 1. Logo — somewhat large */}
+          <div style={{ display:"flex", justifyContent:"center", paddingTop:4 }}>
+            <img src={IMG_LOGO} alt="Frac Jack" style={{
+              maxHeight: isMobile ? 70 : 90, maxWidth:"88%",
+              objectFit:"contain",
+              filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"
+            }} />
+          </div>
+
+          {/* 2. Timer · Rules · New — small, in one row */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            <div style={{ border:"2px solid white", borderRadius:10, background:"rgba(0,0,0,.5)", padding:"3px 10px", fontWeight:1000, fontSize:16, letterSpacing:1 }}>{timerDisplay}</div>
+            <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.75)", fontSize:15, cursor:"pointer", padding:"2px 4px" }}>{muted ? "🔇" : "🔊"}</button>
+            <button onClick={() => setRulesOverlay(true)} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.45)", borderRadius:8, color:"rgba(255,255,255,.85)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"4px 10px" }}>Rules</button>
+            <button onClick={() => setupNewGame()} style={{ background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.45)", borderRadius:8, color:"rgba(255,255,255,.85)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", padding:"4px 10px" }}>New</button>
+          </div>
+
+          {/* 3. Fraction choices + trash */}
+          {renderFractionRow()}
+
+          {/* 4. Five territories, single column stacked */}
+          {renderTerritories()}
+
+          {/* 5. Bottom player panels:
+               [Jackal img][score/Hint/Re-Frac/Jackback] [score/Hint/Re-Frac/Jackback][Jackrabbit img]
+               Each half fills 50% width. */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 }}>
+            <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} compact points={players.orange.points} />
+            <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} compact points={players.green.points} />
+          </div>
+        </div>
+      )}
+
+      {/* ── POW POPUP (shared) ─────────────────────────────────────────── */}
+      {pow.show && (
+        <div style={{ position:"fixed", inset:0, pointerEvents:"all", display:"flex", alignItems:"center", justifyContent:"center", zIndex:90, background: pow.variant === "trashSuccess" ? "radial-gradient(circle at 50% 34%, rgba(255,232,72,.35), transparent 18%), radial-gradient(circle at 50% 58%, rgba(0,255,170,.18), transparent 28%), rgba(0,0,0,.78)" : "rgba(0,0,0,.72)" }}>
           <div style={{
-            width: pow.variant === "trashSuccess" ? "min(640px,90vw)" : "min(520px,88vw)",
+            width: pow.variant === "trashSuccess" ? "min(600px,90vw)" : "min(480px,88vw)",
             borderRadius: pow.variant === "trashSuccess" ? 34 : 28,
-            overflow:"hidden",
-            position:"relative",
+            overflow:"hidden", position:"relative",
             border: pow.variant === "trashSuccess" ? "8px solid #fff" : "none",
             outline: pow.variant === "trashSuccess" ? "5px solid #111" : "none",
-            boxShadow: pow.variant === "trashSuccess"
-              ? "0 18px 0 #111, 0 28px 0 rgba(0,0,0,.38), 0 38px 88px rgba(0,0,0,.75), inset 0 0 0 6px rgba(255,255,255,.24)"
-              : "0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12)",
-            background: pow.variant === "trashSuccess"
-              ? "linear-gradient(145deg,#37f28d 0%,#10a8ff 48%,#6a27ff 100%)"
-              : pow.color === "orange" ? "linear-gradient(160deg,#ffcf60 0%,#e06800 100%)" : pow.color === "green" ? "linear-gradient(160deg,#a3f87a 0%,#2a9b14 100%)" : pow.color === "red" ? "linear-gradient(160deg,#ff9090 0%,#c01010 100%)" : "linear-gradient(160deg,#80c8ff 0%,#0f5ed4 100%)"
+            boxShadow: pow.variant === "trashSuccess" ? "0 18px 0 #111, 0 28px 0 rgba(0,0,0,.38), 0 38px 88px rgba(0,0,0,.75), inset 0 0 0 6px rgba(255,255,255,.24)" : "0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12)",
+            background: pow.variant === "trashSuccess" ? "linear-gradient(145deg,#37f28d 0%,#10a8ff 48%,#6a27ff 100%)" : pow.color === "orange" ? "linear-gradient(160deg,#ffcf60 0%,#e06800 100%)" : pow.color === "green" ? "linear-gradient(160deg,#a3f87a 0%,#2a9b14 100%)" : pow.color === "red" ? "linear-gradient(160deg,#ff9090 0%,#c01010 100%)" : "linear-gradient(160deg,#80c8ff 0%,#0f5ed4 100%)"
           }}>
             {pow.variant === "trashSuccess" && (
               <>
@@ -1451,123 +1337,60 @@ function FracJack() {
                 <div style={{ position:"absolute", right:-42, bottom:-34, width:88, height:88, borderRadius:"50%", background:"rgba(255,101,0,.34)", filter:"blur(1px)" }} />
               </>
             )}
-            {/* Accent strip */}
             <div style={{ height: pow.variant === "trashSuccess" ? 10 : 6, background: pow.variant === "trashSuccess" ? "linear-gradient(90deg,#fff35b,#ffffff,#69ff6b,#ffffff,#fff35b)" : "rgba(255,255,255,.35)", position:"relative", zIndex:1 }} />
-            <div style={{
-              padding: pow.variant === "trashSuccess" ? "34px 42px 38px" : "40px 44px 36px",
-              textAlign:"center", color:"white", position:"relative", zIndex:1,
-              textShadow: pow.variant === "trashSuccess" ? "0 4px 0 #111, 0 8px 18px rgba(0,0,0,.45)" : "0 2px 8px rgba(0,0,0,.4)"
-            }}>
-              {pow.variant === "trashSuccess" && (
-                <div style={{
-              fontSize:25,
-              fontWeight:1000,
-              color:"#ffdf4c",
-              lineHeight:1,
-              textTransform:"uppercase",
-              letterSpacing:1,
-              marginTop:6,
-              textShadow:"0 3px 0 rgba(0,0,0,.55)"
-            }}>NICE DUMP!</div>
-              )}
-              <div style={{
-                fontSize: pow.variant === "trashSuccess" ? "clamp(44px,8vw,76px)" : 62,
-                fontWeight:1000, lineHeight:.92, textTransform:"uppercase", letterSpacing:-1
-              }}>{pow.big}</div>
+            <div style={{ padding: pow.variant === "trashSuccess" ? "28px 36px 32px" : "36px 40px 32px", textAlign:"center", color:"white", position:"relative", zIndex:1, textShadow: pow.variant === "trashSuccess" ? "0 4px 0 #111, 0 8px 18px rgba(0,0,0,.45)" : "0 2px 8px rgba(0,0,0,.4)" }}>
+              {pow.variant === "trashSuccess" && <div style={{ fontSize:22, fontWeight:1000, color:"#ffdf4c", lineHeight:1, textTransform:"uppercase", letterSpacing:1, marginTop:4, textShadow:"0 3px 0 rgba(0,0,0,.55)" }}>NICE DUMP!</div>}
+              <div style={{ fontSize: pow.variant === "trashSuccess" ? "clamp(38px,7vw,68px)" : "clamp(44px,8vw,62px)", fontWeight:1000, lineHeight:.92, textTransform:"uppercase", letterSpacing:-1 }}>{pow.big}</div>
               {pow.imageSrc && (
-                <div style={{
-                  width: pow.variant === "trashSuccess" ? "min(250px,54vw)" : "min(190px,48vw)",
-                  height: pow.variant === "trashSuccess" ? "min(215px,36vh)" : "min(165px,38vh)",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  margin: pow.variant === "trashSuccess" ? "16px auto 6px" : "18px auto 8px",
-                  borderRadius: pow.variant === "trashSuccess" ? 28 : 0,
-                  background: pow.variant === "trashSuccess" ? "radial-gradient(circle,#ffffff 0%,#eaffff 58%,rgba(255,255,255,.22) 59%,rgba(255,255,255,.08) 100%)" : "transparent",
-                  border: pow.variant === "trashSuccess" ? "5px solid #111" : "none",
-                  boxShadow: pow.variant === "trashSuccess" ? "0 9px 0 rgba(0,0,0,.48), inset 0 0 0 5px rgba(255,255,255,.5)" : "none"
-                }}>
-                  <img
-                    src={pow.imageSrc}
-                    alt={pow.imageAlt || ""}
-                    style={{
-                      width: pow.variant === "trashSuccess" ? "88%" : "min(190px,48vw)",
-                      height: pow.variant === "trashSuccess" ? "88%" : "min(165px,38vh)",
-                      objectFit: "contain",
-                      display: "block",
-                      filter: pow.variant === "trashSuccess" ? "drop-shadow(0 12px 0 rgba(0,0,0,.32)) drop-shadow(0 14px 18px rgba(0,0,0,.38))" : "drop-shadow(0 10px 12px rgba(0,0,0,.45))",
-                      transform: pow.variant === "trashSuccess" ? "rotate(3deg) scale(1.05)" : "none"
-                    }}
-                  />
+                <div style={{ width:"min(220px,50vw)", height:"min(190px,34vh)", display:"flex", alignItems:"center", justifyContent:"center", margin:"14px auto 6px", borderRadius: pow.variant === "trashSuccess" ? 24 : 0, background: pow.variant === "trashSuccess" ? "radial-gradient(circle,#ffffff 0%,#eaffff 58%,rgba(255,255,255,.22) 59%,rgba(255,255,255,.08) 100%)" : "transparent", border: pow.variant === "trashSuccess" ? "5px solid #111" : "none", boxShadow: pow.variant === "trashSuccess" ? "0 9px 0 rgba(0,0,0,.48), inset 0 0 0 5px rgba(255,255,255,.5)" : "none" }}>
+                  <img src={pow.imageSrc} alt={pow.imageAlt || ""} style={{ width:"88%", height:"88%", objectFit:"contain", display:"block", filter: pow.variant === "trashSuccess" ? "drop-shadow(0 12px 0 rgba(0,0,0,.32)) drop-shadow(0 14px 18px rgba(0,0,0,.38))" : "drop-shadow(0 10px 12px rgba(0,0,0,.45))", transform: pow.variant === "trashSuccess" ? "rotate(3deg) scale(1.05)" : "none" }} />
                 </div>
               )}
-              <div style={{
-                display: pow.variant === "trashSuccess" ? "inline-block" : "block",
-                fontSize: pow.variant === "trashSuccess" ? 28 : 26,
-                fontWeight:1000, marginTop: pow.variant === "trashSuccess" ? 14 : 10, opacity:.96, letterSpacing:.3,
-                background: pow.variant === "trashSuccess" ? "rgba(0,0,0,.28)" : "transparent",
-                border: pow.variant === "trashSuccess" ? "3px solid rgba(255,255,255,.75)" : "none",
-                borderRadius: pow.variant === "trashSuccess" ? 18 : 0,
-                padding: pow.variant === "trashSuccess" ? "8px 16px" : 0,
-                boxShadow: pow.variant === "trashSuccess" ? "inset 0 2px 0 rgba(255,255,255,.24)" : "none"
-              }}>{pow.small}</div>
+              <div style={{ display: pow.variant === "trashSuccess" ? "inline-block" : "block", fontSize: pow.variant === "trashSuccess" ? 24 : 22, fontWeight:1000, marginTop: pow.variant === "trashSuccess" ? 12 : 8, opacity:.96, letterSpacing:.3, background: pow.variant === "trashSuccess" ? "rgba(0,0,0,.28)" : "transparent", border: pow.variant === "trashSuccess" ? "3px solid rgba(255,255,255,.75)" : "none", borderRadius: pow.variant === "trashSuccess" ? 18 : 0, padding: pow.variant === "trashSuccess" ? "7px 14px" : 0, boxShadow: pow.variant === "trashSuccess" ? "inset 0 2px 0 rgba(255,255,255,.24)" : "none" }}>{pow.small}</div>
               <br />
-              <button onPointerDown={(e) => e.stopPropagation()} onClick={dismissPow} style={{
-                marginTop: pow.variant === "trashSuccess" ? 28 : 32, display:"inline-block",
-                background: pow.variant === "trashSuccess" ? "linear-gradient(180deg,#fff35f,#ffb000)" : "rgba(0,0,0,.22)", backdropFilter:"blur(6px)",
-                border: pow.variant === "trashSuccess" ? "5px solid #111" : "2px solid rgba(255,255,255,.55)", borderRadius: pow.variant === "trashSuccess" ? 999 : 14,
-                padding: pow.variant === "trashSuccess" ? "13px 44px" : "12px 40px", color: pow.variant === "trashSuccess" ? "#111" : "white", fontSize: pow.variant === "trashSuccess" ? 18 : 16, fontWeight:1000,
-                cursor:"pointer", letterSpacing:1, textTransform:"uppercase",
-                boxShadow: pow.variant === "trashSuccess" ? "0 7px 0 rgba(0,0,0,.55), 0 12px 22px rgba(0,0,0,.34)" : "0 4px 14px rgba(0,0,0,.25)", transition:"background .15s"
-              }}>
-                Continue
-              </button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={dismissPow} style={{ marginTop: pow.variant === "trashSuccess" ? 24 : 28, display:"inline-block", background: pow.variant === "trashSuccess" ? "linear-gradient(180deg,#fff35f,#ffb000)" : "rgba(0,0,0,.22)", backdropFilter:"blur(6px)", border: pow.variant === "trashSuccess" ? "5px solid #111" : "2px solid rgba(255,255,255,.55)", borderRadius: pow.variant === "trashSuccess" ? 999 : 14, padding: pow.variant === "trashSuccess" ? "12px 40px" : "11px 36px", color: pow.variant === "trashSuccess" ? "#111" : "white", fontSize: pow.variant === "trashSuccess" ? 17 : 15, fontWeight:1000, cursor:"pointer", letterSpacing:1, textTransform:"uppercase", boxShadow: pow.variant === "trashSuccess" ? "0 7px 0 rgba(0,0,0,.55), 0 12px 22px rgba(0,0,0,.34)" : "0 4px 14px rgba(0,0,0,.25)", transition:"background .15s" }}>Continue</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Lesson Overlay */}
+      {/* ── Lesson overlay ─────────────────────────────────────────────── */}
       {renderLesson()}
 
-      {/* Trash Penalty Overlay */}
+      {/* ── Trash penalty overlay ──────────────────────────────────────── */}
       {trashPenaltyOverlay && (
-        <div style={{ position:"fixed", inset:0, zIndex:120, display:"flex", alignItems:"center", justifyContent:"center", padding:24, background:"rgba(0,0,0,.78)" }}>
-          <div style={{ position:"relative", width:"min(620px,92vw)", border:"7px solid white", borderRadius:34, padding:"24px 28px 26px", textAlign:"center", color:"white", background:"linear-gradient(180deg,#2b1111,#07090f 62%,#101824)", boxShadow:"0 24px 60px rgba(0,0,0,.68)", textShadow:"0 4px 0 rgba(0,0,0,.55)" }}>
-            <img src={IMG_TRASH} alt="" style={{ width:118, height:118, objectFit:"contain" }} />
-            <div style={{ fontSize:46, fontWeight:1000, color:"#ffdf4c", lineHeight:.95, textTransform:"uppercase", marginTop:4 }}>Not Frac Trash!</div>
-            <div style={{ fontSize:23, fontWeight:1000, lineHeight:1.25, margin:"12px auto 18px", maxWidth:480 }}>{trashPenaltyMsg}</div>
-            <div style={{ display:"inline-block", fontSize:34, fontWeight:1000, color:"white", background:"linear-gradient(180deg,#ff6a6a,#d41414)", border:"4px solid white", borderRadius:20, padding:"8px 18px", transform:"rotate(-3deg)", boxShadow:"0 7px 0 rgba(0,0,0,.42)" }}>-{penaltyAmount} JACK POINTS</div>
+        <div style={{ position:"fixed", inset:0, zIndex:120, display:"flex", alignItems:"center", justifyContent:"center", padding:20, background:"rgba(0,0,0,.78)" }}>
+          <div style={{ position:"relative", width:"min(580px,92vw)", border:"7px solid white", borderRadius:34, padding:"20px 22px 22px", textAlign:"center", color:"white", background:"linear-gradient(180deg,#2b1111,#07090f 62%,#101824)", boxShadow:"0 24px 60px rgba(0,0,0,.68)", textShadow:"0 4px 0 rgba(0,0,0,.55)" }}>
+            <img src={IMG_TRASH} alt="" style={{ width:100, height:100, objectFit:"contain" }} />
+            <div style={{ fontSize: isMobile ? 36 : 46, fontWeight:1000, color:"#ffdf4c", lineHeight:.95, textTransform:"uppercase", marginTop:4 }}>Not Frac Trash!</div>
+            <div style={{ fontSize: isMobile ? 16 : 22, fontWeight:1000, lineHeight:1.25, margin:"10px auto 16px", maxWidth:440 }}>{trashPenaltyMsg}</div>
+            <div style={{ display:"inline-block", fontSize: isMobile ? 26 : 34, fontWeight:1000, color:"white", background:"linear-gradient(180deg,#ff6a6a,#d41414)", border:"4px solid white", borderRadius:20, padding:"8px 16px", transform:"rotate(-3deg)", boxShadow:"0 7px 0 rgba(0,0,0,.42)" }}>-{penaltyAmount} JACK POINTS</div>
             <br />
-            <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              blockBoardInput(650);
-              setTrashPenaltyOverlay(false);
+            <button onPointerDown={e => e.stopPropagation()} onClick={e => {
+              e.preventDefault(); e.stopPropagation();
+              blockBoardInput(650); setTrashPenaltyOverlay(false);
               if (victoryReached) return;
               resumeTimer(() => {
-                lockedRef.current = true;
-                setGameLocked(true);
+                lockedRef.current = true; setGameLocked(true);
                 showPow("TIME'S UP!", "Turn lost!", "red", () => doSwitchTurn(currentPlayer === "orange" ? "green" : "orange"));
               });
               unlockAfterInputGuard(350);
-            }} style={{ marginTop:22, border:"4px solid white", borderRadius:999, padding:"12px 32px", fontSize:21, fontWeight:1000, color:"#111", background:"linear-gradient(180deg,#ffe76a,#ff9d18)", cursor:"pointer", boxShadow:"0 6px 0 rgba(0,0,0,.45)", textTransform:"uppercase" }}>
-              Continue
-            </button>
+            }} style={{ marginTop:18, border:"4px solid white", borderRadius:999, padding: isMobile ? "10px 28px" : "12px 32px", fontSize: isMobile ? 18 : 21, fontWeight:1000, color:"#111", background:"linear-gradient(180deg,#ffe76a,#ff9d18)", cursor:"pointer", boxShadow:"0 6px 0 rgba(0,0,0,.45)", textTransform:"uppercase" }}>Continue</button>
           </div>
         </div>
       )}
 
-      {/* Rules Overlay */}
+      {/* ── Rules overlay ─────────────────────────────────────────────── */}
       {rulesOverlay && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.58)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-          <div style={{ width:"min(760px,94vw)", background:"white", color:"#111", border:"7px solid #111", borderRadius:30, padding:24, boxShadow:"0 18px 42px rgba(0,0,0,.48)", textAlign:"center" }}>
-            <div style={{ fontSize:46, fontWeight:1000, color:"#df2525", lineHeight:1 }}>How to Play</div>
-            <div style={{ fontSize:18, fontWeight:900, lineHeight:1.35, textAlign:"left", maxWidth:620, margin:"18px auto" }}>
-              Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by the speed bonus — up to <strong>3×</strong> if you move in the first 3 seconds of the turn, then gradually dropping to 1×. ⚡ Speed pays!<br /><br />
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.58)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? 12 : 24, overflowY:"auto" }}>
+          <div style={{ width:"min(700px,96vw)", background:"white", color:"#111", border:"7px solid #111", borderRadius:30, padding: isMobile ? "16px 14px" : 24, boxShadow:"0 18px 42px rgba(0,0,0,.48)", textAlign:"center" }}>
+            <div style={{ fontSize: isMobile ? 34 : 46, fontWeight:1000, color:"#df2525", lineHeight:1 }}>How to Play</div>
+            <div style={{ fontSize: isMobile ? 14 : 18, fontWeight:900, lineHeight:1.35, textAlign:"left", maxWidth:580, margin:"14px auto" }}>
+              Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by a speed bonus — up to <strong>3×</strong> in the first 3 seconds. ⚡ Speed pays!<br /><br />
               Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br /><br />
               Some fractions do not fit some models. If it does not fit, your turn ends.<br /><br />
-              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets to full! You get a maximum of <strong>3 trash trips per turn</strong>. If the fraction could have been played, you lose Jack Points.<br /><br />
-              <strong>Jack Tricks:</strong> Hint reveals a legal move • Re-Frac deals new fractions • Jackback clears one whole from a territory.<br /><br />
-              <strong>Turn Timer:</strong> Before the game starts, click the clock to set each player's turn time — anywhere from 10 seconds up to 2 minutes. Once you press <em>Start</em>, the timer is locked in for the whole game. Press <em>New</em> to reset the game and adjust the clock again.<br /><br />
+              Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets! Max <strong>3 trash trips per turn</strong>. Trashing a playable fraction costs points.<br /><br />
+              <strong>Jack Tricks:</strong> Hint reveals a legal move · Re-Frac deals new fractions · Jackback clears one whole from a territory.<br /><br />
               Highest Jack Points wins when all 5 territories are Jacked!
             </div>
             <button onClick={() => setRulesOverlay(false)} style={{ border:0, borderRadius:999, padding:"12px 28px", fontSize:19, fontWeight:1000, background:"#111", color:"white", cursor:"pointer" }}>Close</button>
@@ -1575,93 +1398,19 @@ function FracJack() {
         </div>
       )}
 
-      {/* Victory Banner */}
+      {/* ── Victory banner ─────────────────────────────────────────────── */}
       {victoryData && (
-        <div style={{ position:"fixed", top:116, left:"50%", transform:"translateX(-50%)", zIndex:95, width:"min(720px,70vw)", display:"grid", gridTemplateColumns:"1fr 160px", gap:14, alignItems:"center", padding:"18px 22px 18px 22px", border:"7px solid #ffd83d", borderRadius:30, background:"linear-gradient(135deg,#111,#372100)", boxShadow:"0 18px 44px rgba(0,0,0,.55)" }}>
+        <div style={{ position:"fixed", top: isMobile ? 70 : 100, left:"50%", transform:"translateX(-50%)", zIndex:95, width:"min(680px,90vw)", display:"grid", gridTemplateColumns:"1fr 120px", gap:12, alignItems:"center", padding: isMobile ? "14px 16px" : "18px 22px", border:"6px solid #ffd83d", borderRadius:26, background:"linear-gradient(135deg,#111,#372100)", boxShadow:"0 18px 44px rgba(0,0,0,.55)" }}>
           <div>
-            <div style={{ fontSize:36, fontWeight:1000, lineHeight:1.05, marginBottom:14 }}>
+            <div style={{ fontSize: isMobile ? 24 : 34, fontWeight:1000, lineHeight:1.05, marginBottom:10 }}>
               {victoryData.tie ? "Frac Jack Tie!" : players[victoryData.winner].name + " is the Frac Jack Champ!"}
             </div>
-            <button onClick={() => setupNewGame()} style={{ border:"3px solid #ffd83d", borderRadius:12, padding:"10px 20px", fontSize:15, fontWeight:1000, background:"linear-gradient(180deg,#ffe84d,#f0b800)", color:"#111", cursor:"pointer", textTransform:"uppercase", boxShadow:"0 4px 10px rgba(0,0,0,.35)" }}>
-              New Game
-            </button>
+            <button onClick={() => setupNewGame()} style={{ border:"3px solid #ffd83d", borderRadius:12, padding:"8px 18px", fontSize:14, fontWeight:1000, background:"linear-gradient(180deg,#ffe84d,#f0b800)", color:"#111", cursor:"pointer", textTransform:"uppercase", boxShadow:"0 4px 10px rgba(0,0,0,.35)" }}>New Game</button>
           </div>
-          <img src={victoryData.tie ? IMG_LOGO : victoryData.winner === "orange" ? IMG_JACKAL : IMG_JACKRABBIT} alt="" style={{ maxWidth:150, maxHeight:150, objectFit:"contain" }} />
+          <img src={victoryData.tie ? IMG_LOGO : victoryData.winner === "orange" ? IMG_JACKAL : IMG_JACKRABBIT} alt="" style={{ maxWidth:110, maxHeight:110, objectFit:"contain" }} />
         </div>
       )}
-
-      <style>{`
-        @keyframes trashShake {
-          0%{transform:rotate(0deg) translateX(0);}
-          25%{transform:rotate(-7deg) translateX(-1px);}
-          50%{transform:rotate(6deg) translateX(1px);}
-          75%{transform:rotate(-4deg) translateX(-1px);}
-          100%{transform:rotate(0deg) translateX(0);}
-        }
-        @keyframes hintPulse {
-          from{ transform:scale(1); }
-          to{ transform:scale(1.08); }
-        }
-        @keyframes territoryHint {
-          from{ transform:scale(1); }
-          to{ transform:scale(1.025); }
-        }
-      `}</style>
-      </div>
     </>
-  );
-}
-
-function ScoreCard({ color, name, points }) {
-  const bg = color === "orange"
-    ? "radial-gradient(circle at 20% 20%, rgba(255,255,255,.22), transparent 25%), linear-gradient(180deg,#ffae35,#e06d00)"
-    : "radial-gradient(circle at 80% 20%, rgba(255,255,255,.22), transparent 25%), linear-gradient(180deg,#6bed46,#2e9c17)";
-  return (
-    <div style={{ height:104, border:"5px solid white", borderRadius:24, boxShadow:"0 8px 18px rgba(0,0,0,.45)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textShadow:"0 3px 0 rgba(0,0,0,.45)", background:bg }}>
-      <div style={{ fontSize:28, fontWeight:1000, lineHeight:1 }}>{name}</div>
-      <div style={{ fontSize:13, fontWeight:1000, marginTop:4, opacity:.95 }}>JACK POINTS</div>
-      <div style={{ fontSize:35, fontWeight:1000, lineHeight:1, marginTop:3 }}>{points}</div>
-    </div>
-  );
-}
-
-function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick, level }) {
-  const bg = color === "orange"
-    ? "radial-gradient(circle at 30% 14%, rgba(255,255,255,.22), transparent 24%), repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px), radial-gradient(circle at 70% 40%, rgba(255,195,60,.16), transparent 36%), linear-gradient(180deg,#ff9b19 0%,#d56500 55%,#743000 100%)"
-    : "radial-gradient(circle at 70% 14%, rgba(255,255,255,.22), transparent 24%), repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px), radial-gradient(circle at 30% 40%, rgba(130,255,90,.16), transparent 36%), linear-gradient(180deg,#52d82c 0%,#2a9614 55%,#124b07 100%)";
-  const trickBg = color === "orange" ? "linear-gradient(180deg,#ffaf38,#e66a00)" : "linear-gradient(180deg,#70ed4b,#2fa114)";
-  const tricks = [{ id:"hint", label:"Hint", disabled: level === 3 }, { id:"refrac", label:"Re-Frac" }, { id:"jackback", label:"Jackback" }];
-  return (
-    <aside style={{
-      position:"relative", minHeight:0, border:"5px solid white",
-      outline: active ? "7px solid #ffe600" : "none", outlineOffset: active ? -10 : 0,
-      boxShadow: active ? "0 0 28px 6px rgba(255,230,0,.55), 0 10px 24px rgba(0,0,0,.55)" : "0 10px 24px rgba(0,0,0,.55)",
-      borderRadius:30, overflow:"visible",
-      display:"grid", gridTemplateRows:"minmax(0,1fr) 34px 164px", zIndex:10, background:bg,
-      filter: active ? "none" : "grayscale(1) opacity(0.6)"
-    }}>
-      <img src={mascotSrc} alt="" style={{
-        position:"absolute", bottom:184, width:"92%", height:"auto", objectFit:"contain",
-        filter:"drop-shadow(0 14px 14px rgba(0,0,0,.62))", zIndex:35, pointerEvents:"none",
-        left: mascotClass === "orange" ? "58%" : undefined, right: mascotClass === "green" ? "58%" : undefined,
-        transform: mascotClass === "orange" ? "translateX(-50%) rotate(-2deg)" : "translateX(50%) rotate(2deg)"
-      }} />
-      <div />
-      <div style={{ position:"relative", zIndex:50, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:1000, letterSpacing:1, textShadow:"0 3px 0 rgba(0,0,0,.45)", background:"rgba(0,0,0,.18)", borderTop:"3px solid rgba(255,255,255,.18)", borderBottom:"3px solid rgba(255,255,255,.22)" }}>
-        JACK TRICKS
-      </div>
-      <div style={{ position:"relative", zIndex:50, padding:"10px 12px 12px", display:"flex", flexDirection:"column", gap:8, background:"linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.28))", borderRadius:"0 0 24px 24px" }}>
-        {tricks.map(tr => (
-          <button key={tr.id} onClick={() => onTrick(tr.id)} style={{
-            height:44, borderRadius:15, border:"3px solid rgba(255,255,255,.78)", color: trickUsed[tr.id] || tr.disabled ? "#ddd" : "white",
-            fontSize:15, fontWeight:1000, cursor: trickUsed[tr.id] || tr.disabled ? "default" : "pointer", textTransform:"uppercase",
-            boxShadow:"0 4px 0 rgba(0,0,0,.35)",
-            background: trickUsed[tr.id] || tr.disabled ? "linear-gradient(180deg,#777,#444)" : trickBg,
-            filter: trickUsed[tr.id] || tr.disabled ? "grayscale(.2)" : "none"
-          }}>{tr.label}</button>
-        ))}
-      </div>
-    </aside>
   );
 }
 
