@@ -267,8 +267,12 @@ function isLegalMove(frac, t) {
 function createTerritories(level) {
   const lv = normalizeLevel(level);
   const dens = levelDenominators(lv);
-  const variedModels = shuffle(["Circle Model", "Bar Model", "Area Model"]);
-  const models = ["Set Model", "Number Line", ...variedModels];
+
+  // Fixed model assignment:
+  // T1=Set Model, T2=Number Line, T3=Area Model, T4=Circle Model, T5=Bar Model
+  // This guarantees portrait mobile can always show T3(Area) and T4(Circle) side-by-side.
+  const models = ["Set Model", "Number Line", "Area Model", "Circle Model", "Bar Model"];
+
   let territoryDenominators;
   if (lv === 1) {
     territoryDenominators = shuffle([2, 3, 4, 5, 6]);
@@ -278,6 +282,7 @@ function createTerritories(level) {
     for (let i = 0; i < 5; i++) territoryDenominators.push(shuffled[i % shuffled.length]);
     territoryDenominators = shuffle(territoryDenominators);
   }
+
   const list = [];
   for (let i = 0; i < 5; i++) {
     let den = territoryDenominators[i];
@@ -577,22 +582,11 @@ function CircleModel({ t }) {
   );
 }
 
-function TerritoryModel({ t, mobileAreaCircle }) {
+function TerritoryModel({ t }) {
   if (t.model === "Bar Model") return <BarModel t={t} />;
   if (t.model === "Set Model") return <SetModel t={t} />;
   if (t.model === "Number Line") return <NumberLine t={t} />;
-  if (t.model === "Area Model") {
-    if (mobileAreaCircle) {
-      // Side-by-side: Area on left, Circle on right — same territory data, different views
-      return (
-        <div style={{ width:"100%", display:"flex", gap:6, alignItems:"center" }}>
-          <div style={{ flex:"0 0 55%" }}><AreaModel t={t} /></div>
-          <div style={{ flex:"0 0 40%", display:"flex", alignItems:"center", justifyContent:"center" }}><CircleModel t={t} /></div>
-        </div>
-      );
-    }
-    return <AreaModel t={t} />;
-  }
+  if (t.model === "Area Model") return <AreaModel t={t} />;
   return <CircleModel t={t} />;
 }
 function shortModelName(m) {
@@ -791,13 +785,12 @@ function PlayerPanel({ color, active, mascotSrc, mascotClass, trickUsed, onTrick
 }
 
 /* ─── Territory Card ────────────────────────────────────────────────────── */
-function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted, victoryReached, boardInputBlocked, isDesktop, mobileAreaCircle }) {
+function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted, victoryReached, boardInputBlocked, isDesktop }) {
   let borderColor = "#c8d2df";
   if (t.owner === "orange") borderColor = "#ff8700";
   else if (t.owner === "green") borderColor = "#40c91f";
   else if (isHinted) borderColor = "#fff24c";
 
-  // Desktop: middle row is flexible (minmax). Mobile: auto so it sizes to content and doesn't leave gaps.
   const midRow = isDesktop ? "minmax(0,1fr)" : "auto";
 
   return (
@@ -805,7 +798,8 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
       style={{
         background:"#f8fafc", color:"#111",
         border:`4px solid ${borderColor}`,
-        borderRadius:18, overflow:"hidden",
+        borderRadius:18,
+        overflow:"visible",
         display:"grid", gridTemplateRows:`24px ${midRow} 22px`,
         height: isDesktop ? "100%" : "auto",
         cursor:"pointer",
@@ -813,17 +807,17 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
         animation: isHinted ? "territoryHint 1s infinite alternate" : "none",
         transition:"transform .15s"
       }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6, padding:"0 7px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:6, padding:"0 7px", fontSize:10, fontWeight:1000, background:"linear-gradient(180deg,#f3f6fb,#dce4ee)", borderBottom:"2px solid #c6d0dd", textTransform:"uppercase", borderRadius:"14px 14px 0 0", overflow:"hidden" }}>
         <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
         <span style={{ whiteSpace:"nowrap" }}>{t.wholes} {t.wholes === 1 ? "whole" : "wholes"}</span>
       </div>
-      <div style={{ padding:"5px 6px", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
-        <TerritoryModel t={t} mobileAreaCircle={mobileAreaCircle} />
+      <div style={{ padding:"5px 6px", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", background:"#f8fafc" }}>
+        <TerritoryModel t={t} />
         {t.owner && (
           <div style={{ position:"absolute", right:5, top:4, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:12, padding:"3px 6px", fontSize:10, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
         )}
       </div>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", background: t.owner === "orange" ? "linear-gradient(180deg,#ff9e28,#b94e00)" : t.owner === "green" ? "linear-gradient(180deg,#62e842,#247c10)" : "linear-gradient(180deg,#303a48,#171d28)", color:"white", fontSize:10, fontWeight:1000, textTransform:"uppercase" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", background: t.owner === "orange" ? "linear-gradient(180deg,#ff9e28,#b94e00)" : t.owner === "green" ? "linear-gradient(180deg,#62e842,#247c10)" : "linear-gradient(180deg,#303a48,#171d28)", color:"white", fontSize:10, fontWeight:1000, textTransform:"uppercase", borderRadius:"0 0 14px 14px", overflow:"hidden" }}>
         {t.owner ? players[t.owner].name : "Open"}
       </div>
     </div>
@@ -1296,16 +1290,26 @@ function FracJack() {
         </div>
       );
     }
-    /* Phone: single column — 5 territories stacked vertically.
-       T3 (index 2) and T4 (index 3) get Area+Circle side-by-side when model is Area. */
+
+    /* Portrait mobile:
+       T1 (Set)    — full width
+       T2 (Number Line) — full width
+       T3 (Area) + T4 (Circle) — side by side, each 50%
+       T5 (Bar)    — full width
+    */
+    const t1 = territories[0], t2 = territories[1], t3 = territories[2], t4 = territories[3], t5 = territories[4];
+    const cardProps = { onClick: handleTerritoryClick, players, gameLocked, gameStarted, victoryReached, boardInputBlocked, isDesktop: false };
+
     return (
       <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-        {territories.map((t, idx) => {
-          const mobileAreaCircle = (idx === 2 || idx === 3) && t.model === "Area Model";
-          return (
-            <TerritoryCard key={t.id} t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId === t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} isDesktop={false} mobileAreaCircle={mobileAreaCircle} />
-          );
-        })}
+        <TerritoryCard key={t1.id} t={t1} isHinted={hints.territoryId === t1.id} {...cardProps} />
+        <TerritoryCard key={t2.id} t={t2} isHinted={hints.territoryId === t2.id} {...cardProps} />
+        {/* T3 + T4 side by side */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+          <TerritoryCard key={t3.id} t={t3} isHinted={hints.territoryId === t3.id} {...cardProps} />
+          <TerritoryCard key={t4.id} t={t4} isHinted={hints.territoryId === t4.id} {...cardProps} />
+        </div>
+        <TerritoryCard key={t5.id} t={t5} isHinted={hints.territoryId === t5.id} {...cardProps} />
       </div>
     );
   }
@@ -1336,7 +1340,7 @@ function FracJack() {
             </div>
           );
         })}
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, overflow:"visible" }}>
           <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
             width: isMobile ? 50 : 62, height: isMobile ? 42 : 50,
             border:"3px solid rgba(255,255,255,.98)", borderRadius:14,
@@ -1348,7 +1352,7 @@ function FracJack() {
           }}>
             <img src={IMG_TRASH} alt="Trash" style={{ width:42, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
           </button>
-          <div style={{ fontSize: isMobile ? 11 : 10, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+          <div style={{ fontSize: isMobile ? 13 : 14, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
         </div>
       </div>
     );
@@ -1384,7 +1388,7 @@ function FracJack() {
           {/* Main */}
           <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, overflow:"visible" }}>
             <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
-            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"50px 52px minmax(0,1fr)", gap:8, position:"relative", zIndex:4 }}>
+            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"44px 46px minmax(0,1fr)", gap:4, position:"relative", zIndex:4 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
                 <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:140, height:48 }}>{timerDisplay}</div>
                 <button onClick={toggleMute} style={{ position:"absolute", right:0, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>{muted ? "🔇" : "🔊"}</button>
@@ -1402,35 +1406,29 @@ function FracJack() {
         <div style={{
           position:"fixed", inset:0, overflow:"hidden",
           display:"grid",
-          gridTemplateColumns:"90px 1fr 130px",
+          gridTemplateColumns:"88px 1fr 126px",
           gridTemplateRows:"1fr",
           gap:4, padding:"4px",
           fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
-          {/* LEFT COLUMN: logo + orange panel + green panel stacked */}
+          {/* LEFT COLUMN: orange panel + green panel stacked */}
           <div style={{ display:"flex", flexDirection:"column", gap:4, minHeight:0, overflow:"hidden" }}>
-            {/* Mini logo */}
-            <div style={{ display:"flex", justifyContent:"center" }}>
-              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:32, maxWidth:"100%", objectFit:"contain", filter:"drop-shadow(0 3px 6px rgba(0,0,0,.7))" }} />
-            </div>
-            {/* Orange panel compact */}
             <div style={{ flex:1, minHeight:0 }}>
               <LandscapePlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} points={players.orange.points} />
             </div>
-            {/* Green panel compact */}
             <div style={{ flex:1, minHeight:0 }}>
               <LandscapePlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} points={players.green.points} />
             </div>
           </div>
 
-          {/* CENTER COLUMN: territories in 2×3 grid (or 3×2) */}
-          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"1fr 1fr", gridTemplateRows:"1fr 1fr 1fr", gap:4 }}>
-            {territories.map((t, idx) => (
+          {/* CENTER COLUMN: territories in 2×3 grid — overflow:visible so models aren't clipped */}
+          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"1fr 1fr", gridTemplateRows:"1fr 1fr 1fr", gap:4, overflow:"visible" }}>
+            {territories.map((t) => (
               <TerritoryCard key={t.id} t={t} onClick={handleTerritoryClick} isHinted={hints.territoryId===t.id} players={players} gameLocked={gameLocked} gameStarted={gameStarted} victoryReached={victoryReached} boardInputBlocked={boardInputBlocked} isDesktop={true} />
             ))}
           </div>
 
-          {/* RIGHT COLUMN: timer + controls + fraction chips + trash */}
+          {/* RIGHT COLUMN: timer + controls + fraction chips + trash (top), logo (bottom) */}
           <div style={{ display:"flex", flexDirection:"column", gap:4, minHeight:0, padding:"2px 0" }}>
             {/* Timer + utility buttons */}
             <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap", justifyContent:"center" }}>
@@ -1459,17 +1457,21 @@ function FracJack() {
                 );
               })}
               {/* Trash */}
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:1 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
                 <button onClick={handleTrashClick} style={{
                   width:"100%", height:34, border:"2px solid rgba(255,255,255,.9)", borderRadius:10,
                   background: trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",
                   display:"flex", alignItems:"center", justifyContent:"center", cursor: trashTripsThisTurn>=3?"not-allowed":"pointer",
                   boxShadow:"0 3px 8px rgba(0,0,0,.4)", padding:2, overflow:"hidden", opacity: trashTripsThisTurn>=3?.65:1
                 }}>
-                  <img src={IMG_TRASH} alt="Trash" style={{ height:28, objectFit:"contain", animation: trashBurp?"trashShake .22s 4":"none" }} />
+                  <img src={IMG_TRASH} alt="Trash" style={{ height:26, objectFit:"contain", animation: trashBurp?"trashShake .22s 4":"none" }} />
                 </button>
-                <div style={{ fontSize:9, fontWeight:1000, color:"white", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
+                <div style={{ fontSize:11, fontWeight:1000, color:"white", lineHeight:1 }}>Trash {trashTripsThisTurn}/3</div>
               </div>
+            </div>
+            {/* Logo filling the bottom-right space */}
+            <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"center", flex:"0 0 auto" }}>
+              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxWidth:"100%", maxHeight:52, objectFit:"contain", filter:"drop-shadow(0 4px 10px rgba(0,0,0,.75))", opacity:.92 }} />
             </div>
           </div>
         </div>
