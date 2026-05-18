@@ -1371,40 +1371,48 @@ function FracJack() {
           display:"grid", gridTemplateRows:"110px 1fr", gap:8, padding:10,
           fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
-          {/* Top bar */}
-          <div style={{ display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, alignItems:"center" }}>
+          {/* Top bar — 5 cols: [ScoreOrange] [TimerZone] [Logo] [TrashZone] [ScoreGreen] */}
+          <div style={{ display:"grid", gridTemplateColumns:"240px 1fr auto 1fr 240px", gap:0, alignItems:"center", height:110 }}>
             <ScoreCard color="orange" name="JACKAL" points={players.orange.points} />
-            <div style={{ height:110, display:"flex", alignItems:"center", justifyContent:"center", overflow:"visible", position:"relative" }}>
-              <button onClick={() => setRulesOverlay(true)} style={{ position:"absolute", left:0, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>Rules</button>
-              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:160, maxWidth:"130%", objectFit:"contain", transform:"translateY(22px) scale(1.10)", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.72)) drop-shadow(0 5px 7px rgba(0,0,0,.50))", zIndex:20, position:"relative" }} />
-              <button onClick={() => setupNewGame()} style={{ position:"absolute", right:52, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>New</button>
-              {/* Trash can — desktop only, lives in the top bar opposite the timer */}
-              <div style={{ position:"absolute", right:0, top:"50%", transform:"translateY(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:2, zIndex:30 }}>
-                <button onClick={handleTrashClick} title={`Trash trips: ${trashTripsThisTurn}/3`} style={{
-                  width:58, height:52,
-                  border:"3px solid rgba(255,255,255,.95)", borderRadius:14,
-                  background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
-                  boxShadow:"0 5px 12px rgba(0,0,0,.5)", padding:3, overflow:"hidden",
-                  opacity: trashTripsThisTurn >= 3 ? .65 : 1, transition:".15s"
-                }}>
-                  <img src={IMG_TRASH} alt="Trash" style={{ width:40, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
-                </button>
-                <div style={{ fontSize:13, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.8)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
+
+            {/* Timer zone — centered between orange score card and logo */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4, height:"100%" }}>
+              <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:26, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:130, height:46 }}>{timerDisplay}</div>
+              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:14, cursor:"pointer", padding:"2px 4px" }}>{muted ? "🔇" : "🔊"}</button>
+                <button onClick={() => setRulesOverlay(true)} style={{ background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"2px 6px" }}>Rules</button>
               </div>
             </div>
+
+            {/* Logo — center column */}
+            <div style={{ height:110, display:"flex", alignItems:"center", justifyContent:"center", overflow:"visible", position:"relative", padding:"0 12px" }}>
+              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:160, maxWidth:280, objectFit:"contain", transform:"translateY(22px) scale(1.10)", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.72)) drop-shadow(0 5px 7px rgba(0,0,0,.50))", zIndex:20, position:"relative" }} />
+            </div>
+
+            {/* Trash zone — centered between logo and green score card */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4, height:"100%" }}>
+              <button onClick={handleTrashClick} title={`Trash trips: ${trashTripsThisTurn}/3`} style={{
+                width:58, height:50,
+                border:"3px solid rgba(255,255,255,.95)", borderRadius:14,
+                background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
+                boxShadow:"0 5px 12px rgba(0,0,0,.5)", padding:3, overflow:"hidden",
+                opacity: trashTripsThisTurn >= 3 ? .65 : 1, transition:".15s"
+              }}>
+                <img src={IMG_TRASH} alt="Trash" style={{ width:40, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
+              </button>
+              <div style={{ fontSize:13, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.8)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
+              <button onClick={() => setupNewGame()} style={{ background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"2px 6px" }}>New</button>
+            </div>
+
             <ScoreCard color="green" name="JACKRABBIT" points={players.green.points} />
           </div>
 
-          {/* Main */}
+          {/* Main — timer row removed from here, now lives in top bar */}
           <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, overflow:"visible" }}>
             <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
-            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"42px 58px minmax(0,1fr)", gap:4, position:"relative", zIndex:4 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
-                <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:140, height:48 }}>{timerDisplay}</div>
-                <button onClick={toggleMute} style={{ position:"absolute", right:0, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>{muted ? "🔇" : "🔊"}</button>
-              </div>
+            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"52px minmax(0,1fr)", gap:6, position:"relative", zIndex:4 }}>
               {renderFractionRow()}
               {renderTerritories()}
             </main>
