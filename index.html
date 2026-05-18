@@ -427,7 +427,7 @@ const CELL_H = 28;
 function BarModel({ t }) {
   const cells = cellsFromChunks(t);
   return (
-    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:4, padding:"3px 2px" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:4, padding:"5px 6px" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
         <div key={w} style={{ display:"flex", alignItems:"center", gap:3 }}>
           <div style={{ width:14, flex:"0 0 14px", fontSize:10, fontWeight:1000, textAlign:"center", color:"#444" }}>{w + 1}</div>
@@ -479,7 +479,7 @@ function AreaModel({ t }) {
   }
 
   return (
-    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:4, padding:"3px 2px" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", justifyContent:"center", gap:5, padding:"5px 6px", overflowY:"auto" }}>
       {Array.from({ length: t.wholes }).map((_, w) => (
         <div key={w} style={{
           width:"100%",
@@ -811,7 +811,7 @@ function TerritoryCard({ t, onClick, isHinted, players, gameLocked, gameStarted,
         <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t.name} · {shortModelName(t.model)}</span>
         <span style={{ whiteSpace:"nowrap" }}>{t.wholes} {t.wholes === 1 ? "whole" : "wholes"}</span>
       </div>
-      <div style={{ padding:"5px 6px", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", background:"#f8fafc" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", background:"#f8fafc", minHeight:0 }}>
         <TerritoryModel t={t} />
         {t.owner && (
           <div style={{ position:"absolute", right:5, top:4, zIndex:5, background:"linear-gradient(180deg,#e8ff6b,#89cf00)", color:"#244600", border:"3px solid #2e5c00", borderRadius:12, padding:"3px 6px", fontSize:10, fontWeight:1000, transform:"rotate(-8deg)" }}>{t.hijacked ? "Hi-Jacked!" : "Jacked!"}</div>
@@ -1280,6 +1280,7 @@ function FracJack() {
   /* ─── Territory grid layout ─────────────────────────────────────────── */
   function renderTerritories() {
     if (isDesktop) {
+      if (!territories || territories.length === 0) return null;
       return (
         <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"repeat(12,1fr)", gridTemplateRows:"repeat(2,minmax(0,1fr))", gap:10 }}>
           {territories.map(t => (
@@ -1297,6 +1298,7 @@ function FracJack() {
        T3 (Area) + T4 (Circle) — side by side, each 50%
        T5 (Bar)    — full width
     */
+    if (!territories || territories.length < 5) return null;
     const t1 = territories[0], t2 = territories[1], t3 = territories[2], t4 = territories[3], t5 = territories[4];
     const cardProps = { onClick: handleTerritoryClick, players, gameLocked, gameStarted, victoryReached, boardInputBlocked, isDesktop: false };
 
@@ -1317,7 +1319,7 @@ function FracJack() {
   /* ─── Fraction + trash row ─────────────────────────────────────────── */
   function renderFractionRow() {
     return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap: isMobile ? 7 : 14, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap: isMobile ? 7 : 14, flexWrap:"wrap", overflow:"visible", position:"relative", zIndex:10 }}>
         {fractions.map((f, i) => {
           const txt = f.display || (f.n + "/" + f.d);
           const isSelected = i === selectedFracIdx;
@@ -1388,7 +1390,7 @@ function FracJack() {
           {/* Main */}
           <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, overflow:"visible" }}>
             <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
-            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"44px 46px minmax(0,1fr)", gap:4, position:"relative", zIndex:4 }}>
+            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"48px 58px minmax(0,1fr)", gap:6, position:"relative", zIndex:4 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
                 <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:140, height:48 }}>{timerDisplay}</div>
                 <button onClick={toggleMute} style={{ position:"absolute", right:0, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>{muted ? "🔇" : "🔊"}</button>
