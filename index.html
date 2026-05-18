@@ -1334,23 +1334,21 @@ function FracJack() {
             </div>
           );
         })}
-        {/* Trash only shown here on mobile — on desktop it lives in the top bar */}
-        {!isDesktop && (
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, overflow:"visible" }}>
-            <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
-              width:50, height:42,
-              border:"3px solid rgba(255,255,255,.98)", borderRadius:14,
-              background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
-              boxShadow:"0 5px 10px rgba(0,0,0,.45)", padding:3, overflow:"hidden",
-              transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
-            }}>
-              <img src={IMG_TRASH} alt="Trash" style={{ width:40, height:34, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
-            </button>
-            <div style={{ fontSize:13, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
-          </div>
-        )}
+        {/* Trash can */}
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, overflow:"visible" }}>
+          <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{
+            width: isMobile ? 50 : 62, height: isMobile ? 42 : 50,
+            border:"3px solid rgba(255,255,255,.98)", borderRadius:14,
+            background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
+            boxShadow:"0 5px 10px rgba(0,0,0,.45)", padding:3, overflow:"hidden",
+            transition:".15s", opacity: trashTripsThisTurn >= 3 ? .65 : 1
+          }}>
+            <img src={IMG_TRASH} alt="Trash" style={{ width:42, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
+          </button>
+          <div style={{ fontSize: isMobile ? 13 : 14, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.7)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
+        </div>
       </div>
     );
   }
@@ -1368,99 +1366,32 @@ function FracJack() {
       {isDesktop && (
         <div style={{
           position:"fixed", inset:0, overflow:"hidden",
-          display:"grid",
-          gridTemplateColumns:"240px 1fr 240px",
-          gridTemplateRows:"1fr",
-          gap:10, padding:10,
+          display:"grid", gridTemplateRows:"110px 1fr", gap:8, padding:10,
           fontFamily:"Arial, Helvetica, sans-serif", color:"white", userSelect:"none", background:BG
         }}>
-          {/* LEFT — Orange score + player panel */}
-          <div style={{ display:"flex", flexDirection:"column", gap:8, minHeight:0 }}>
+          {/* Top bar */}
+          <div style={{ display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, alignItems:"center" }}>
             <ScoreCard color="orange" name="JACKAL" points={players.orange.points} />
-            <div style={{ flex:1, minHeight:0 }}>
-              <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
+            <div style={{ height:110, display:"flex", alignItems:"center", justifyContent:"center", overflow:"visible", position:"relative" }}>
+              <button onClick={() => setRulesOverlay(true)} style={{ position:"absolute", left:0, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>Rules</button>
+              <img src={IMG_LOGO} alt="Frac Jack" style={{ maxHeight:160, maxWidth:"130%", objectFit:"contain", transform:"translateY(22px) scale(1.10)", filter:"drop-shadow(0 12px 18px rgba(0,0,0,.72)) drop-shadow(0 5px 7px rgba(0,0,0,.50))", zIndex:20, position:"relative" }} />
+              <button onClick={() => setupNewGame()} style={{ position:"absolute", right:0, bottom:6, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:12, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"4px 8px" }}>New</button>
             </div>
-          </div>
-
-          {/* CENTER — top band (logo | fractions | controls) + territories below */}
-          <div style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"150px minmax(0,1fr)", gap:8 }}>
-
-            {/* TOP BAND: 3 columns — logo | fraction chips | controls */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 120px 1fr", gap:10, alignItems:"stretch" }}>
-
-              {/* LEFT: Logo as large as possible */}
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-start", paddingLeft:8, overflow:"visible" }}>
-                <img src={IMG_LOGO} alt="Frac Jack" style={{
-                  maxHeight:190, maxWidth:"100%", objectFit:"contain",
-                  transform:"translateY(14px) scale(1.08)",
-                  filter:"drop-shadow(0 10px 16px rgba(0,0,0,.72)) drop-shadow(0 4px 6px rgba(0,0,0,.50))",
-                  position:"relative", zIndex:20
-                }} />
-              </div>
-
-              {/* MIDDLE: 3 fraction chips stacked */}
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, zIndex:10, position:"relative" }}>
-                {fractions.map((f, i) => {
-                  const txt = f.display || (f.n + "/" + f.d);
-                  const isSelected = i === selectedFracIdx;
-                  const isHinted = hints.fractionIdx === i;
-                  return (
-                    <div key={i}
-                      onClick={() => { if (gameLocked || pendingTrick || boardInputBlocked()) return; setHints({ fractionIdx:null, territoryId:null }); setSelectedFracIdx(i); }}
-                      style={{
-                        width:80, height:36,
-                        background:"white", color:"#111", border:"3px solid white", borderRadius:13,
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:18, fontWeight:1000, lineHeight:.95, cursor:"pointer",
-                        boxShadow: isHinted ? "0 0 0 7px #fff24c,0 0 22px #fff24c,0 6px 12px rgba(0,0,0,.38)" : isSelected ? "0 0 0 5px #ffd83d,0 6px 12px rgba(0,0,0,.38)" : i===0 ? "0 0 0 3px rgba(255,135,0,.75),0 4px 10px rgba(0,0,0,.35)" : i===1 ? "0 0 0 3px rgba(24,120,255,.75),0 4px 10px rgba(0,0,0,.35)" : "0 0 0 3px rgba(163,92,255,.75),0 4px 10px rgba(0,0,0,.35)",
-                        transform: isSelected ? "translateX(4px) scale(1.06)" : "none",
-                        animation: isHinted ? "hintPulse 1s infinite alternate" : "none",
-                        transition:".15s", flexShrink:0
-                      }}>
-                      {txt.includes(" ") ? <span style={{ fontSize:15 }}>{txt}</span> : txt}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* RIGHT: Rules+Mute+New row → Timer → Trash */}
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"space-between", paddingRight:8, paddingTop:6, paddingBottom:6 }}>
-                {/* Row 1: Rules · Mute · New */}
-                <div style={{ display:"flex", gap:14, alignItems:"center" }}>
-                  <button onClick={() => setRulesOverlay(true)} style={{ background:"none", border:"none", color:"rgba(255,255,255,.85)", fontSize:15, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"2px 0" }}>Rules</button>
-                  <button onClick={toggleMute} style={{ background:"none", border:"none", color:"rgba(255,255,255,.85)", fontSize:17, cursor:"pointer", padding:"2px 0", lineHeight:1 }}>{muted ? "🔇" : "🔊"}</button>
-                  <button onClick={() => setupNewGame()} style={{ background:"none", border:"none", color:"rgba(255,255,255,.85)", fontSize:15, fontWeight:700, cursor:"pointer", textTransform:"uppercase", letterSpacing:.5, padding:"2px 0" }}>New</button>
-                </div>
-                {/* Row 2: Timer */}
-                <div style={{ border:"4px solid white", borderRadius:18, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:26, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:130, height:46 }}>{timerDisplay}</div>
-                {/* Row 3: Trash + counter */}
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                  <button onClick={handleTrashClick} title={`Trash trips: ${trashTripsThisTurn}/3`} style={{
-                    width:58, height:50,
-                    border:"3px solid rgba(255,255,255,.95)", borderRadius:14,
-                    background: trashTripsThisTurn >= 3 ? "#8a8f98" : "#d0d4da",
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    cursor: trashTripsThisTurn >= 3 ? "not-allowed" : "pointer",
-                    boxShadow:"0 5px 12px rgba(0,0,0,.5)", padding:3, overflow:"hidden",
-                    opacity: trashTripsThisTurn >= 3 ? .65 : 1, transition:".15s"
-                  }}>
-                    <img src={IMG_TRASH} alt="Trash" style={{ width:40, height:36, objectFit:"contain", display:"block", animation: trashBurp ? "trashShake .22s 4" : "none" }} />
-                  </button>
-                  <div style={{ fontSize:14, fontWeight:1000, color:"white", textShadow:"0 2px 4px rgba(0,0,0,.8)", lineHeight:1.2, whiteSpace:"nowrap" }}>Trash {trashTripsThisTurn}/3</div>
-                </div>
-              </div>
-            </div>
-
-            {/* TERRITORIES — fill remaining height */}
-            {renderTerritories()}
-          </div>
-
-          {/* RIGHT — Green score + player panel */}
-          <div style={{ display:"flex", flexDirection:"column", gap:8, minHeight:0 }}>
             <ScoreCard color="green" name="JACKRABBIT" points={players.green.points} />
-            <div style={{ flex:1, minHeight:0 }}>
-              <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} />
-            </div>
+          </div>
+
+          {/* Main */}
+          <div style={{ minHeight:0, display:"grid", gridTemplateColumns:"240px 1fr 240px", gap:12, overflow:"visible" }}>
+            <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t => applyTrick("orange",t)} level={level} />
+            <main style={{ minWidth:0, minHeight:0, display:"grid", gridTemplateRows:"48px 58px minmax(0,1fr)", gap:6, position:"relative", zIndex:4 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative" }}>
+                <div style={{ border:"4px solid white", borderRadius:20, background:"rgba(0,0,0,.46)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:1000, fontSize:27, boxShadow:"0 6px 15px rgba(0,0,0,.35)", width:140, height:48 }}>{timerDisplay}</div>
+                <button onClick={toggleMute} style={{ position:"absolute", right:0, background:"none", border:"none", color:"rgba(255,255,255,.7)", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>{muted ? "🔇" : "🔊"}</button>
+              </div>
+              {renderFractionRow()}
+              {renderTerritories()}
+            </main>
+            <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t => applyTrick("green",t)} level={level} />
           </div>
         </div>
       )}
