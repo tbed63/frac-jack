@@ -70,9 +70,9 @@ function useGameSounds() {
     muted, toggleMute:()=>setMuted(m=>!m),
     playMove:()=>beep(520,0.08,"triangle"),          // simple move beep
     playCapture:()=>{beep(660,0.09,"triangle");setTimeout(()=>beep(880,0.11,"triangle"),90);}, // territory claimed
-    playTrash:()=>beep(180,0.12,"sawtooth"),         // trash success
+    playTrash:()=>beep(180,0.12,"sawtooth"),         // trash beep (kept for reference)
     playBuzz:()=>beep(95,0.18,"square"),             // error / time's up
-    playHarp,                                         // correct fraction placement
+    playHarp,                                         // correct placement AND good trash
     playBrand:()=>playFile(SOUND_BRAND),             // game start / victory
     playTerritoryVictory:()=>playFile(SOUND_TERRITORY_VICTORY), // territory jacked
     playBadTrash:()=>playFile(SOUND_BAD_TRASH),      // bad trash attempt
@@ -88,7 +88,8 @@ function useViewportSize() {
 function IntroScreen({timerLimit,onTimerChange,level,onLevelChange,onStart,isMobile}){
   return(<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?12:24,fontFamily:"Arial, Helvetica, sans-serif",color:"white",background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"}}>
     <div style={{width:"min(700px,96vw)",border:"7px solid white",borderRadius:22,padding:isMobile?"14px 14px 18px":"26px 30px 30px",textAlign:"center",background:"rgba(0,0,0,.48)",boxShadow:"0 24px 70px rgba(0,0,0,.65)"}}>
-      <img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"min(460px,88%)",maxHeight:isMobile?110:210,objectFit:"contain",filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"}} />
+      {/* Frac Jack logo — 25% larger than before (mobile: 138px, desktop: 263px) */}
+      <img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"min(460px,88%)",maxHeight:isMobile?138:263,objectFit:"contain",filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"}} />
       <div style={{fontSize:isMobile?11:15,fontWeight:900,margin:isMobile?"4px 0 10px":"8px 0 22px",textShadow:"0 3px 0 rgba(0,0,0,.5)"}}>Pick fractions. Claim territories. Jack the board.</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:isMobile?8:16,margin:isMobile?"0 auto 12px":"0 auto 24px",maxWidth:520}}>
         <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:18,padding:isMobile?"8px 10px":16,background:"rgba(255,255,255,.10)"}}>
@@ -102,7 +103,12 @@ function IntroScreen({timerLimit,onTimerChange,level,onLevelChange,onStart,isMob
           </select>
         </div>
       </div>
+      {/* Start Game button */}
       <button onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"12px 32px":"14px 46px",fontSize:isMobile?22:26,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
+      {/* Zoodlebug branding — 75% of the Frac Jack logo size */}
+      <div style={{marginTop:isMobile?10:16}}>
+        <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{maxHeight:isMobile?104:197,maxWidth:"min(345px,66%)",objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.6))"}}/>
+      </div>
     </div>
   </div>);
 }
@@ -240,7 +246,7 @@ function FracJack(){
   function doJackback(t){if(t.owner)return;setPendingTrick(null);lockedRef.current=true;setGameLocked(true);showPow("JACKBACK","One whole cleared",currentPlayer,()=>{const amount=t.denominator;let left=Math.min(amount,t.filledUnits);const newChunks=t.chunks.slice();let filled=t.filledUnits;while(left>0&&newChunks.length>0){const last=newChunks[newChunks.length-1];if(last.units<=left){left-=last.units;filled-=last.units;newChunks.pop();}else{newChunks[newChunks.length-1]={...last,units:last.units-left};filled-=left;left=0;}}if(filled<0)filled=0;const newTerrs=territories.map(tt=>tt.id===t.id?{...tt,chunks:newChunks,filledUnits:filled}:tt);setTerritories(newTerrs);doSwitchTurn(currentPlayer==="orange"?"green":"orange",undefined,undefined,newTerrs);});}
   function handleTrashLimitReached(){lockedRef.current=true;setGameLocked(true);stopTimer();playBuzz();showPow("TRASH LIMIT!","Max 3 trash trips per turn. Play a fraction now.","red",()=>{lockedRef.current=false;setGameLocked(false);resumeTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>doSwitchTurn(currentPlayer==="orange"?"green":"orange"));});});}
   function handleTrashClick(){if(gameLocked||pendingTrick||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const frac=fractions[selectedFracIdx];if(!frac)return;if(trashTripsThisTurn>=3){handleTrashLimitReached();return;}setTrashTripsThisTurn(prev=>prev+1);const hasMove=territories.some(t=>isLegalMove(frac,t));if(hasMove)badTrash();else goodTrash();}
-  function goodTrash(){const trashed=fractions[selectedFracIdx];if(!trashed)return;lockedRef.current=true;setGameLocked(true);stopTimer();const scoringPlayer=currentPlayer;const newDisc={...discardedKeys,[fractionKey(trashed)]:true};setDiscardedKeys(newDisc);playTrash();burpTrash();const usedKeys={};fractions.forEach((f,i)=>{if(i!==selectedFracIdx)usedKeys[fractionKey(f)]=true;});const newFrac=createSmartLegalFraction(activeLevel(),usedKeys,newDisc,territories);const newFracs=cleanFractionHand(activeLevel(),(()=>{const arr=fractions.slice();arr[selectedFracIdx]=newFrac;return arr;})(),newDisc,territories);setFractions(newFracs);setSelectedFracIdx(0);const trashPts=50;setPlayers(prev=>({...prev,[scoringPlayer]:{...prev[scoringPlayer],points:prev[scoringPlayer].points+trashPts}}));const trashLines=["That fraction was GARBAGE anyway!","Bye bye, bad fraction! 👋","Into the void it goes!","The trash can is DELIGHTED.","That fraction had no friends here.","Disposed of with extreme prejudice!","Even the trash can rolled its eyes.","One fraction's trash is no one's treasure."];const trashMsg=trashLines[Math.floor(Math.random()*trashLines.length)];showPow("FRAC TRASH! +"+trashPts,trashMsg,scoringPlayer,()=>{resetTimerToThirty(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{doSwitchTurn(scoringPlayer==="orange"?"green":"orange");});});unlockAfterInputGuard(350);},{imageSrc:IMG_TRASH,imageAlt:"Frac Trash",variant:"trashSuccess"});}
+  function goodTrash(){const trashed=fractions[selectedFracIdx];if(!trashed)return;lockedRef.current=true;setGameLocked(true);stopTimer();const scoringPlayer=currentPlayer;const newDisc={...discardedKeys,[fractionKey(trashed)]:true};setDiscardedKeys(newDisc);playHarp();burpTrash();const usedKeys={};fractions.forEach((f,i)=>{if(i!==selectedFracIdx)usedKeys[fractionKey(f)]=true;});const newFrac=createSmartLegalFraction(activeLevel(),usedKeys,newDisc,territories);const newFracs=cleanFractionHand(activeLevel(),(()=>{const arr=fractions.slice();arr[selectedFracIdx]=newFrac;return arr;})(),newDisc,territories);setFractions(newFracs);setSelectedFracIdx(0);const trashPts=50;setPlayers(prev=>({...prev,[scoringPlayer]:{...prev[scoringPlayer],points:prev[scoringPlayer].points+trashPts}}));const trashLines=["That fraction was GARBAGE anyway!","Bye bye, bad fraction! 👋","Into the void it goes!","The trash can is DELIGHTED.","That fraction had no friends here.","Disposed of with extreme prejudice!","Even the trash can rolled its eyes.","One fraction's trash is no one's treasure."];const trashMsg=trashLines[Math.floor(Math.random()*trashLines.length)];showPow("FRAC TRASH! +"+trashPts,trashMsg,scoringPlayer,()=>{resetTimerToThirty(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{doSwitchTurn(scoringPlayer==="orange"?"green":"orange");});});unlockAfterInputGuard(350);},{imageSrc:IMG_TRASH,imageAlt:"Frac Trash",variant:"trashSuccess"});}
   function badTrash(){lockedRef.current=true;setGameLocked(true);stopTimer();playBadTrash();setTimeout(()=>playBuzz(),180);burpTrash();const penalty=activeLevel()===1?50:activeLevel()===2?50:100;setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points-penalty}}));const badLines=["That fraction was perfectly good! The trash can is FURIOUS.","You just tried to trash a totally legal fraction. Shameful.","The trash can spit it right back out.","Nice try. That fraction had moves and you knew it.","The trash can called your bluff.","That fraction files a formal complaint.","Even the trash can has standards. That fraction stays.","The trash can has seen things, but THIS? Bad trash move."];setTrashPenaltyMsg(badLines[Math.floor(Math.random()*badLines.length)]);setTrashPenaltyOverlay(true);setPenaltyAmount(penalty);}
   function applyTrick(player,trick){if(gameLocked||victoryReached||!gameStarted)return;if(player!==currentPlayer)return;if(trickUsed[player][trick])return;setTrickUsed(prev=>({...prev,[player]:{...prev[player],[trick]:true}}));if(trick==="hint"){setHints({fractionIdx:null,territoryId:null});let found=null;outer:for(let i=0;i<fractions.length;i++){for(let j=0;j<territories.length;j++){if(isLegalMove(fractions[i],territories[j])){found={fractionIdx:i,territoryId:territories[j].id};break outer;}}}if(!found){showPow("NO LEGAL MOVES","Try a Jack Trick or wait.","red",null);return;}setSelectedFracIdx(found.fractionIdx);setHints(found);showPow("HINT!","Try this move.",currentPlayer,null);return;}if(trick==="refrac"){setHints({fractionIdx:null,territoryId:null});setFractions(rollFractions(activeLevel(),discardedKeys,territories));setSelectedFracIdx(0);showPow("RE-FRAC!","New choices",currentPlayer,null);return;}if(trick==="jackback"){setHints({fractionIdx:null,territoryId:null});setPendingTrick("jackback");showPow("JACKBACK","Pick territory",currentPlayer,null);}}
 
@@ -374,18 +380,72 @@ function FracJack(){
       </div>
     )}
 
-    {/* ── PORTRAIT ── */}
+    {/* ── PORTRAIT ── scrollable flex column, always uses compact mobile sizing */}
     {!isDesktop&&!isLandscape&&(
       <div style={{minHeight:"100vh",padding:"6px 8px 12px",display:"flex",flexDirection:"column",gap:5,fontFamily:"Arial, Helvetica, sans-serif",color:"white",userSelect:"none",background:BG}}>
-        <div style={{display:"flex",justifyContent:"center",paddingTop:2}}><img src={IMG_LOGO} alt="Frac Jack" style={{maxHeight:140,maxWidth:"92%",objectFit:"contain",filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"}}/></div>
+
+        {/* 1. Logo */}
+        <div style={{display:"flex",justifyContent:"center",paddingTop:2}}>
+          <img src={IMG_LOGO} alt="Frac Jack" style={{maxHeight:140,maxWidth:"92%",objectFit:"contain",filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"}}/>
+        </div>
+
+        {/* 2. Timer · mute · Rules · New */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
           <div style={{border:"2px solid white",borderRadius:8,background:"rgba(0,0,0,.5)",padding:"2px 8px",fontWeight:1000,fontSize:13,letterSpacing:1}}>{timerDisplay}</div>
           <button onClick={toggleMute} style={{background:"none",border:"none",color:"rgba(255,255,255,.75)",fontSize:13,cursor:"pointer",padding:"1px 3px"}}>{muted?"🔇":"🔊"}</button>
           <button onClick={()=>setRulesOverlay(true)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.4)",borderRadius:6,color:"rgba(255,255,255,.85)",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"uppercase",padding:"3px 8px"}}>Rules</button>
           <button onClick={()=>setupNewGame()} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.4)",borderRadius:6,color:"rgba(255,255,255,.85)",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"uppercase",padding:"3px 8px"}}>New</button>
         </div>
-        {renderFractionRow()}
-        {renderTerritories()}
+
+        {/* 3. Fraction chips + trash — always compact mobile sizing (58×36 chips, 50×42 trash) */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,flexWrap:"wrap",overflow:"visible",position:"relative",zIndex:10}}>
+          {fractions.map((f,i)=>{
+            const txt=f.display||(f.n+"/"+f.d);
+            const isSelected=i===selectedFracIdx;
+            const isHinted=hints.fractionIdx===i;
+            return(
+              <div key={i}
+                onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}}
+                style={{width:58,height:36,background:"white",color:"#111",border:"3px solid white",borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:1000,lineHeight:.95,cursor:"pointer",
+                  boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)":i===0?"0 0 0 3px rgba(255,135,0,.75),0 6px 12px rgba(0,0,0,.35)":i===1?"0 0 0 3px rgba(24,120,255,.75),0 6px 12px rgba(0,0,0,.35)":"0 0 0 3px rgba(163,92,255,.75),0 6px 12px rgba(0,0,0,.35)",
+                  transform:isSelected?"translateY(-3px) scale(1.04)":"none",
+                  animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>
+                {txt.includes(" ")?<span style={{fontSize:14}}>{txt}</span>:txt}
+              </div>
+            );
+          })}
+          {/* Trash can */}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,overflow:"visible"}}>
+            <button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`}
+              style={{width:50,height:42,border:"3px solid rgba(255,255,255,.98)",borderRadius:14,background:trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",display:"flex",alignItems:"center",justifyContent:"center",cursor:trashTripsThisTurn>=3?"not-allowed":"pointer",boxShadow:"0 5px 10px rgba(0,0,0,.45)",padding:3,overflow:"hidden",transition:".15s",opacity:trashTripsThisTurn>=3?.65:1}}>
+              <img src={IMG_TRASH} alt="Trash" style={{width:40,height:34,objectFit:"contain",display:"block",animation:trashBurp?"trashShake .22s 4":"none"}}/>
+            </button>
+            <div style={{fontSize:13,fontWeight:1000,color:"white",textShadow:"0 2px 4px rgba(0,0,0,.7)",lineHeight:1.2,whiteSpace:"nowrap"}}>Trash {trashTripsThisTurn}/3</div>
+          </div>
+        </div>
+
+        {/* 4. Five territories:
+               T1 (Set)   — full width
+               T2 (Line)  — full width
+               T3+T4      — side by side (Area + Circle)
+               T5 (Bar)   — full width */}
+        {territories&&territories.length>=5&&(()=>{
+          const t1=territories[0],t2=territories[1],t3=territories[2],t4=territories[3],t5=territories[4];
+          const cp={onClick:handleTerritoryClick,players,gameLocked,gameStarted,victoryReached,boardInputBlocked,isDesktop:false};
+          return(
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <TerritoryCard key={t1.id} t={t1} isHinted={hints.territoryId===t1.id} {...cp}/>
+              <TerritoryCard key={t2.id} t={t2} isHinted={hints.territoryId===t2.id} {...cp}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                <TerritoryCard key={t3.id} t={t3} isHinted={hints.territoryId===t3.id} {...cp}/>
+                <TerritoryCard key={t4.id} t={t4} isHinted={hints.territoryId===t4.id} {...cp}/>
+              </div>
+              <TerritoryCard key={t5.id} t={t5} isHinted={hints.territoryId===t5.id} {...cp}/>
+            </div>
+          );
+        })()}
+
+        {/* 5. Player panels side by side */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
           <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} compact points={players.orange.points}/>
           <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} compact points={players.green.points}/>
