@@ -68,6 +68,7 @@ const IMG_LOGO="https://media.base44.com/images/public/69fa82e0877a38539df3196d/
 const IMG_JACKAL="https://media.base44.com/images/public/69fa82e0877a38539df3196d/b4c6884ac_jackal-orange.png";
 const IMG_JACKRABBIT="https://media.base44.com/images/public/69fa82e0877a38539df3196d/52f7ec8e4_jackrabbit-green.png";
 const IMG_TRASH="https://media.base44.com/images/public/69fa82e0877a38539df3196d/ca01e9af6_frac-trash.png";
+const IMG_ZOODLEBUG="zoodlebug-game.png";
 const SOUND_BRAND="ZoodleBugBrandSound.wav";
 const SOUND_TERRITORY_VICTORY="FracJackTerritoryVictory.wav";
 const SOUND_BAD_TRASH="FracJackBadTrash.wav";
@@ -267,6 +268,11 @@ function FracJack(){
           <ScoreCard color="green" name="JACKRABBIT" points={players.green.points}/>
         </div>
 
+        {/* Zoodlebug branding — bottom center, desktop */}
+        <div style={{position:"fixed",bottom:8,left:"50%",transform:"translateX(-50%)",zIndex:5,pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",opacity:0.55}}>
+          <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{height:28,objectFit:"contain",filter:"drop-shadow(0 1px 3px rgba(0,0,0,.6))"}}/>
+        </div>
+
         {/* MAIN ROW: player panels + territories */}
         <div style={{minHeight:0,height:"100%",display:"grid",gridTemplateColumns:"240px 1fr 240px",gap:12,overflow:"visible"}}>
           <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level}/>
@@ -297,7 +303,7 @@ function FracJack(){
             {fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{height:32,background:"white",color:"#111",border:"3px solid white",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 5px #fff24c,0 0 16px #fff24c":isSelected?"0 0 0 4px #ffd83d":i===0?"0 0 0 2px rgba(255,135,0,.9)":i===1?"0 0 0 2px rgba(24,120,255,.9)":"0 0 0 2px rgba(163,92,255,.9)",transform:isSelected?"scale(1.05)":"none",transition:".12s"}}>{txt.includes(" ")?<span style={{fontSize:13}}>{txt}</span>:txt}</div>;})}
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><button onClick={handleTrashClick} style={{width:"100%",height:34,border:"2px solid rgba(255,255,255,.9)",borderRadius:10,background:trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",display:"flex",alignItems:"center",justifyContent:"center",cursor:trashTripsThisTurn>=3?"not-allowed":"pointer",boxShadow:"0 3px 8px rgba(0,0,0,.4)",padding:2,overflow:"hidden",opacity:trashTripsThisTurn>=3?.65:1}}><img src={IMG_TRASH} alt="Trash" style={{height:26,objectFit:"contain",animation:trashBurp?"trashShake .22s 4":"none"}}/></button><div style={{fontSize:11,fontWeight:1000,color:"white",lineHeight:1}}>Trash {trashTripsThisTurn}/3</div></div>
           </div>
-          <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",flex:"0 0 auto"}}><img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"100%",maxHeight:52,objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.75))",opacity:.92}}/></div>
+          <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:6,flex:"0 0 auto"}}><img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"100%",maxHeight:52,objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.75))",opacity:.92}}/><img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{maxHeight:18,objectFit:"contain",opacity:0.5,filter:"drop-shadow(0 1px 3px rgba(0,0,0,.6))"}}/></div>
         </div>
       </div>
     )}
@@ -317,6 +323,9 @@ function FracJack(){
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
           <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} compact points={players.orange.points}/>
           <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} compact points={players.green.points}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"center",paddingTop:4,paddingBottom:4,opacity:0.5}}>
+          <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{height:22,objectFit:"contain",filter:"drop-shadow(0 1px 3px rgba(0,0,0,.6))"}}/>
         </div>
       </div>
     )}
