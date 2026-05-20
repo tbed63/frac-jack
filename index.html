@@ -35,12 +35,6 @@ function useGameSounds() {
   const poolIndexRef = useRef({});
   const unlockedRef = useRef(false);
 
-  // SOUND SYSTEM RESET / FIX
-  // Earlier mobile patches tried to "play/pause" every WAV file repeatedly.
-  // That can accidentally silence or block sounds on desktop AND mobile.
-  // This version restores the dependable WebAudio effects (harp + negative dong)
-  // and uses file audio only for the three WAV effects.
-
   function getAudioContext(){
     try{
       const AC=window.AudioContext||window.webkitAudioContext;
@@ -80,8 +74,6 @@ function useGameSounds() {
     try{
       const ctx=resumeAudioContext();
       if(ctx&&!unlockedRef.current){
-        // A nearly silent blip, triggered by a real tap/click, unlocks WebAudio
-        // on mobile so later harp/dong effects can play during game events.
         const osc=ctx.createOscillator();
         const gain=ctx.createGain();
         gain.gain.setValueAtTime(0.0001,ctx.currentTime);
@@ -125,8 +117,6 @@ function useGameSounds() {
     }catch(e){}
   }
 
-  // Negative "dong" — this is the mistake sound Tim noticed was missing.
-  // It uses WebAudio, so it works on desktop and mobile after the first tap.
   function playNegativeDong(){
     if(muted)return;
     try{
@@ -145,7 +135,6 @@ function useGameSounds() {
       osc.start(now);
       osc.stop(now+0.44);
 
-      // Tiny low buzz under the dong so mistakes are obvious in noisy rooms.
       const buzz=ctx.createOscillator();
       const buzzGain=ctx.createGain();
       buzz.type="square";
@@ -185,8 +174,6 @@ function useGameSounds() {
     }catch(e){fallbackPattern(kind);}
   }
 
-  // Rising harp arpeggio — used for successful placement and successful trash.
-  // This is intentionally WebAudio only so it does not depend on WAV loading.
   function playHarp(){
     if(muted)return;
     try{
@@ -208,7 +195,6 @@ function useGameSounds() {
         osc.stop(t+0.36);
       });
     }catch(e){
-      // Backup: still rising, still obvious.
       beep(523,0.08,"triangle",0.06);setTimeout(()=>beep(659,0.08,"triangle",0.06),70);setTimeout(()=>beep(784,0.10,"triangle",0.06),140);
     }
   }
@@ -218,7 +204,6 @@ function useGameSounds() {
     unlockAudio,
     toggleMute:()=>{unlockAudio();setMuted(m=>!m);},
     playMove:()=>beep(520,0.08,"triangle"),
-    playCapture:()=>{beep(660,0.09,"triangle");setTimeout(()=>beep(880,0.11,"triangle"),90);},
     playTrash:()=>beep(180,0.12,"sawtooth"),
     playBuzz:playNegativeDong,
     playHarp,
@@ -237,7 +222,6 @@ function useViewportSize() {
 function IntroScreen({timerLimit,onTimerChange,level,onLevelChange,gameMode,onGameModeChange,onStart,isMobile}){
   return(<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?12:14,fontFamily:"Arial, Helvetica, sans-serif",color:"white",background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"}}>
     <div style={{width:isMobile?"min(700px,96vw)":"min(620px,94vw)",maxHeight:isMobile?"none":"calc(100vh - 28px)",overflow:isMobile?"visible":"hidden",border:"7px solid white",borderRadius:22,padding:isMobile?"14px 14px 18px":"14px 22px 16px",textAlign:"center",background:"rgba(0,0,0,.48)",boxShadow:"0 24px 70px rgba(0,0,0,.65)"}}>
-      {/* Frac Jack logo — 25% larger than before (mobile: 138px, desktop: 263px) */}
       <img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"min(460px,88%)",maxHeight:isMobile?138:150,objectFit:"contain",filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"}} />
       <div style={{fontSize:isMobile?11:15,fontWeight:900,margin:isMobile?"4px 0 10px":"4px 0 10px",textShadow:"0 3px 0 rgba(0,0,0,.5)"}}>Pick fractions. Claim territories. Jack the board.</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:isMobile?8:10,margin:isMobile?"0 auto 12px":"0 auto 12px",maxWidth:520}}>
@@ -252,7 +236,6 @@ function IntroScreen({timerLimit,onTimerChange,level,onLevelChange,gameMode,onGa
           </select>
         </div>
       </div>
-      {/* Game mode selector — leaves the original two-player game intact and adds an optional computer opponent. */}
       <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:18,padding:isMobile?"8px 10px":10,background:"rgba(255,255,255,.10)",maxWidth:520,margin:isMobile?"0 auto 12px":"0 auto 12px"}}>
         <div style={{fontSize:isMobile?12:14,fontWeight:1000,textTransform:"uppercase",letterSpacing:1,marginBottom:isMobile?8:6}}>Game Mode</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -260,9 +243,7 @@ function IntroScreen({timerLimit,onTimerChange,level,onLevelChange,gameMode,onGa
           <button onClick={()=>onGameModeChange("cpu")} style={{height:isMobile?38:36,borderRadius:14,border:"3px solid white",fontSize:isMobile?12:13,fontWeight:1000,cursor:"pointer",color:gameMode==="cpu"?"#111":"white",background:gameMode==="cpu"?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)",textTransform:"uppercase"}}>Vs Computer</button>
         </div>
       </div>
-      {/* Start Game button */}
       <button onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"12px 32px":"10px 38px",fontSize:isMobile?22:22,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
-      {/* Zoodlebug branding — 75% of the Frac Jack logo size */}
       <div style={{marginTop:isMobile?10:10}}>
         <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{maxHeight:isMobile?104:88,maxWidth:"min(345px,66%)",objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.6))"}}/>
       </div>
@@ -309,32 +290,23 @@ function createTerritories(level){
   for(let i=0;i<5;i++){
     let den=territoryDenominators[i];
     let wholes;
-
-    // Keep every territory visually readable: never generate more than 3 wholes.
-    // More than 3 wholes made the fraction models too tiny on mobile, especially
-    // circles, bars, and area models.
     if(lv===1){
       wholes=1;
     }else if(i===0){
-      wholes=1+Math.floor(Math.random()*2); // 1–2 wholes
+      wholes=1+Math.floor(Math.random()*2);
     }else if(i===1){
-      wholes=lv===2?1+Math.floor(Math.random()*2):1+Math.floor(Math.random()*3); // 1–3 wholes
+      wholes=lv===2?1+Math.floor(Math.random()*2):1+Math.floor(Math.random()*3);
       const maxNLDen=wholes===1?8:wholes===2?6:4;
       const nlDens=dens.filter(d=>d<=maxNLDen);
       den=nlDens.includes(den)?den:choose(nlDens.length?nlDens:[2,3,4]);
     }else{
-      wholes=lv===2?1+Math.floor(Math.random()*2):2+Math.floor(Math.random()*2); // Level 3 now 2–3, not 2–4
+      wholes=lv===2?1+Math.floor(Math.random()*2):2+Math.floor(Math.random()*2);
     }
-
     wholes=Math.min(3,wholes);
-
-    // The area model gets too small past eighths, especially with multiple wholes.
-    // Force T3 / Area Model to use denominators no larger than 8.
     if(models[i]==="Area Model"&&den>8){
       const areaDens=dens.filter(d=>d<=8);
       den=choose(areaDens.length?areaDens:[2,3,4,5,6,8]);
     }
-
     list.push({id:i,slot:SLOTS[i],name:"T"+(i+1),model:models[i],denominator:den,wholes,filledUnits:0,owner:null,chunks:[],hijacked:false});
   }
   return list;
@@ -351,21 +323,26 @@ function rollFractions(level,discardedKeys,territories){const usedKeys={};const 
 
 function cellsFromChunks(t){const total=t.denominator*t.wholes;const cells=new Array(total).fill("");let filledAmount=0;t.chunks.forEach(c=>{let u=c.units;while(u>0&&filledAmount<total){const idx=Math.floor(filledAmount);if(idx<total)cells[idx]=c.color;filledAmount+=1;u-=1;}});return cells;}
 
-const CELL_H=28;
+// ── NEW SCORING HELPER ──────────────────────────────────────────────────────
+// Returns points (0-100) based on how full the last touched whole is after
+// a placement. If the filled amount lands exactly on a whole boundary the
+// last whole is 100% full → 100 pts. The +50 jack bonus is added separately
+// in doPlace() when the territory is claimed.
+function calcPlacementPoints(newFilledUnits, denominator) {
+  const unitsInLastWhole = newFilledUnits % denominator;
+  // 0 remainder means we landed exactly on a whole boundary → last whole = full
+  const effectiveUnits = unitsInLastWhole === 0 ? denominator : unitsInLastWhole;
+  return Math.round((effectiveUnits / denominator) * 100);
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function BarModel({t,compactPortrait=false}){
   const cells=cellsFromChunks(t);
-
-  // Universal fit rule:
-  // Bars must live completely inside the card's middle content box. No fixed row height.
-  // Each whole receives an equal share of the available height, so 1, 2, or 3 wholes
-  // always stay between the territory header and footer instead of being clipped.
   const gap=compactPortrait?2:4;
   const pad=compactPortrait?"3px 5px":"5px 6px";
   const labelW=compactPortrait?12:14;
   const labelSize=compactPortrait?9:10;
   const border=compactPortrait?"2px solid #555":"2.5px solid #555";
-
   return(
     <div style={{width:"100%",height:"100%",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center",gap,padding:pad,overflow:"hidden",boxSizing:"border-box"}}>
       {Array.from({length:t.wholes}).map((_,w)=>(
@@ -382,31 +359,13 @@ function BarModel({t,compactPortrait=false}){
 
 function AreaModel({t,isDesktop,compactPortrait=false}){
   const cells=cellsFromChunks(t);
-
-  // Area models stay readable only up to eighths. The territory generator already
-  // enforces this, but this safety clamp protects older saved games or future edits.
   const d=Math.min(t.denominator,8);
-
   let cols,rows;
   const gridMap={2:[2,1],3:[3,1],4:[2,2],5:[5,1],6:[3,2],8:[4,2]};
   if(gridMap[d]){[cols,rows]=gridMap[d];}
   else{cols=Math.ceil(Math.sqrt(d));rows=Math.ceil(d/cols);}
-
-  // Each whole is drawn as an SVG square. SVG preserveAspectRatio keeps every whole
-  // fully visible inside its allotted box, which prevents the top/bottom clipping
-  // that happened when CSS aspect-ratio squares were taller than the card interior.
   return(
-    <div style={{
-      width:"100%",height:"100%",minHeight:0,
-      display:"grid",
-      gridTemplateColumns:`repeat(${t.wholes}, minmax(0, 1fr))`,
-      gridTemplateRows:"minmax(0,1fr)",
-      alignItems:"center",justifyItems:"center",
-      gap:compactPortrait?3:5,
-      padding:compactPortrait?"3px 5px":"5px 6px",
-      boxSizing:"border-box",
-      overflow:"hidden"
-    }}>
+    <div style={{width:"100%",height:"100%",minHeight:0,display:"grid",gridTemplateColumns:`repeat(${t.wholes}, minmax(0, 1fr))`,gridTemplateRows:"minmax(0,1fr)",alignItems:"center",justifyItems:"center",gap:compactPortrait?3:5,padding:compactPortrait?"3px 5px":"5px 6px",boxSizing:"border-box",overflow:"hidden"}}>
       {Array.from({length:t.wholes}).map((_,w)=>(
         <svg key={w} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style={{width:"100%",height:"100%",maxWidth:"100%",maxHeight:"100%",display:"block",filter:"drop-shadow(0 1px 1px rgba(0,0,0,.14))"}}>
           <rect x="3" y="3" width="94" height="94" rx="4" ry="4" fill="white" stroke="#555" strokeWidth={compactPortrait?4:5}/>
@@ -444,16 +403,11 @@ function SetModel({t,compactPortrait=false}){
   );
 }
 
-
 function polarToCartesian(cx,cy,r,a){const rad=(a-90)*Math.PI/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
 function describePieSlice(cx,cy,r,s,e){const start=polarToCartesian(cx,cy,r,e);const end=polarToCartesian(cx,cy,r,s);return["M",cx,cy,"L",start.x,start.y,"A",r,r,0,e-s<=180?"0":"1",0,end.x,end.y,"Z"].join(" ");}
 
 function CircleModel({t,compactPortrait=false}){
   const cells=cellsFromChunks(t);
-
-  // Draw all circles inside a single measured grid. We use one row whenever possible
-  // so multiple wholes don't get pushed behind the territory footer. Since territories
-  // are capped at 3 wholes, this keeps every circle visible even in the narrow T4 card.
   const cols=t.wholes;
   const rows=1;
   const size=62;
@@ -473,7 +427,6 @@ function CircleModel({t,compactPortrait=false}){
     </div>
   );
 }
-
 
 function TerritoryModel({t,isDesktop,compactPortrait=false}){if(t.model==="Bar Model")return<BarModel t={t} compactPortrait={compactPortrait}/>;if(t.model==="Set Model")return<SetModel t={t} compactPortrait={compactPortrait}/>;if(t.model==="Number Line")return<NumberLine t={t} compactPortrait={compactPortrait}/>;if(t.model==="Area Model")return<AreaModel t={t} isDesktop={isDesktop} compactPortrait={compactPortrait}/>;return<CircleModel t={t} compactPortrait={compactPortrait}/>;}
 function shortModelName(m){if(m==="Bar Model")return"Bar";if(m==="Set Model")return"Set";if(m==="Number Line")return"Line";if(m==="Area Model")return"Area";return"Circle";}
@@ -507,12 +460,10 @@ function TerritoryCard({t,onClick,isHinted,players,gameLocked,gameStarted,victor
 function FracJack(){
   const [gameMode,setGameMode]=useState("pvp");
   const [level,setLevel]=useState(1);const [gameStarted,setGameStarted]=useState(false);const [gameLocked,setGameLocked]=useState(true);const [victoryReached,setVictoryReached]=useState(false);const [currentPlayer,setCurrentPlayer]=useState("orange");const [players,setPlayers]=useState({orange:{name:"Jackal",points:0},green:{name:"Jackrabbit",points:0}});const [territories,setTerritories]=useState([]);const [fractions,setFractions]=useState([]);const [selectedFracIdx,setSelectedFracIdx]=useState(null);const [discardedKeys,setDiscardedKeys]=useState({});const [trickUsed,setTrickUsed]=useState({orange:{hint:false,refrac:false,jackback:false},green:{hint:false,refrac:false,jackback:false}});const [pendingTrick,setPendingTrick]=useState(null);const [moveChunkIndex,setMoveChunkIndex]=useState(0);const [timer,setTimer]=useState(30);const [timerLimit,setTimerLimit]=useState(30);const [timerDisplay,setTimerDisplay]=useState("00:30");const [hints,setHints]=useState({fractionIdx:null,territoryId:null});const [trashBurp,setTrashBurp]=useState(false);const [trashTripsThisTurn,setTrashTripsThisTurn]=useState(0);const [pow,setPow]=useState({show:false,big:"",small:"",color:"orange",imageSrc:null,imageAlt:"",onContinue:null});const [lessonOverlay,setLessonOverlay]=useState(null);const [trashPenaltyOverlay,setTrashPenaltyOverlay]=useState(false);const [trashPenaltyMsg,setTrashPenaltyMsg]=useState("");const [penaltyAmount,setPenaltyAmount]=useState(0);const [rulesOverlay,setRulesOverlay]=useState(false);const [victoryData,setVictoryData]=useState(null);const [lessonReady,setLessonReady]=useState(false);
-  const {muted,unlockAudio,toggleMute,playMove,playCapture,playTrash,playBuzz,playHarp,playBrand,playTerritoryVictory,playBadTrash}=useGameSounds();
+  const {muted,unlockAudio,toggleMute,playMove,playTrash,playBuzz,playHarp,playBrand,playTerritoryVictory,playBadTrash}=useGameSounds();
   const timerRef=useRef(null);const timerVal=useRef(30);const lockedRef=useRef(true);const victoryRef=useRef(false);const startedRef=useRef(false);const moveChunkRef=useRef(0);const currentLevelRef=useRef(normalizeLevel(level));const inputGuardUntilRef=useRef(0);
   const viewport=useViewportSize();
   useEffect(()=>{
-    // Unlock audio on the first real tap/click/key press anywhere in the game.
-    // This is what makes mobile sound effects behave like desktop sound effects.
     function unlock(){unlockAudio();}
     window.addEventListener("pointerdown",unlock,{once:true,passive:true});
     window.addEventListener("touchstart",unlock,{once:true,passive:true});
@@ -540,7 +491,6 @@ function FracJack(){
   function startTimer(onZero){timerVal.current=timerLimit;const m=Math.floor(timerLimit/60);const s=timerLimit%60;setTimerDisplay(String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"));setTimer(timerLimit);armTimer(onZero);}
   function resetTimerToThirty(onZero){clearInterval(timerRef.current);timerVal.current=timerLimit;const m=Math.floor(timerLimit/60);const s=timerLimit%60;setTimerDisplay(String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"));setTimer(timerLimit);armTimer(onZero);}
   function resumeTimer(onZero){const m=Math.floor(timerVal.current/60);const s=timerVal.current%60;setTimerDisplay(String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"));armTimer(onZero);}
-  function speedMultiplier(){const elapsed=timerLimit-timerVal.current;if(elapsed<=3)return 3;const decay=timerLimit-3;if(decay<=0)return 1;return Math.max(1,3-(2*(elapsed-3)/decay));}
   function nextColor(){const c=moveChunkRef.current%2===0?"red":"blue";moveChunkRef.current++;setMoveChunkIndex(prev=>prev+1);return c;}
   function showPow(big,small,color,onContinue,options={}){stopTimer();setPow({show:true,big,small,color,imageSrc:options.imageSrc||null,imageAlt:options.imageAlt||"",variant:options.variant||"standard",onContinue:onContinue||null});}
   function dismissPow(e){if(e){e.preventDefault();e.stopPropagation();}blockBoardInput(650);setPow(p=>{const cb=p.onContinue;setTimeout(()=>{if(cb)cb();},0);return{...p,show:false,imageSrc:null,imageAlt:"",onContinue:null};});}
@@ -552,8 +502,101 @@ function FracJack(){
   function checkGameOver(terrs,playersState){const claimed=terrs.filter(t=>t.owner).length;if(claimed>=5){victoryRef.current=true;clearInterval(timerRef.current);lockedRef.current=true;setVictoryReached(true);setGameLocked(true);playBrand();const tie=playersState.orange.points===playersState.green.points;const winner=playersState.green.points>playersState.orange.points?"green":"orange";setVictoryData({winner:tie?"tie":winner,tie,points:playersState});showPow(tie?"TIE!":"CHAMP!",tie?"Same Jack Points!":playersState[tie?"orange":winner].points+" Jack Points",tie?"blue":winner,null);return true;}return false;}
   function doSwitchTurn(nextPlayer,newFracs,newDisc,territoriesOverride){const nextTerritories=territoriesOverride||territories;const nextDiscarded=newDisc??discardedKeys;setHints({fractionIdx:null,territoryId:null});setCurrentPlayer(nextPlayer);setPendingTrick(null);setTrashTripsThisTurn(0);const baseHand=newFracs??rollFractions(activeLevel(),nextDiscarded,nextTerritories);const fracsToUse=cleanFractionHand(activeLevel(),baseHand,nextDiscarded,nextTerritories);setFractions(fracsToUse);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);startTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{const nxt=nextPlayer==="orange"?"green":"orange";const nf=rollFractions(activeLevel(),nextDiscarded,nextTerritories);setFractions(nf);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);setCurrentPlayer(nxt);startTimer(()=>{});});});}
   function handleTerritoryClick(id){unlockAudio();if(gameLocked||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const t=territories[id];if(!t||t.owner)return;if(pendingTrick==="jackback"){doJackback(t);return;}const frac=fractions[selectedFracIdx];if(!frac)return;if(!fractionFits(frac,t)){lockedRef.current=true;setGameLocked(true);playBuzz();showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".\nLose Your Turn","red",()=>{doSwitchTurn(currentPlayer==="orange"?"green":"orange");});return;}const units=fractionUnits(frac,t);const max=t.denominator*t.wholes;const remaining=max-t.filledUnits;if(units>remaining){doHijack(t,frac,remaining);return;}doPlace(t,frac,units);}
-  function doPlace(t,frac,units,fracIdxOverride=null){const chosenIdx=fracIdxOverride??selectedFracIdx;lockedRef.current=true;setGameLocked(true);const mult=speedMultiplier();const placePts=Math.round(50*mult);const color=t.chunks.length%2===0?"red":"blue";const max=t.denominator*t.wholes;const clampedUnits=Math.min(units,max-t.filledUnits);const roundedUnits=Math.round(clampedUnits*1000)/1000;const updatedT={...t,chunks:[...t.chunks,{units:roundedUnits,color}],filledUnits:t.filledUnits+clampedUnits};const newFracs=(()=>{const usedKeys={};fractions.forEach((f,i)=>{if(i!==chosenIdx)usedKeys[fractionKey(f)]=true;});const newF=createFractionFromPool(activeLevel(),usedKeys,discardedKeys);const arr=fractions.slice();arr[chosenIdx]=newF;return cleanFractionHand(activeLevel(),arr,discardedKeys,territories);})();const newTerrs=territories.map(tt=>tt.id===t.id?updatedT:tt);if(updatedT.filledUnits>=max){let bonus=updatedT.wholes*100;if(activeLevel()===1)bonus=updatedT.wholes*50;if(activeLevel()===2)bonus=updatedT.wholes*75;playTerritoryVictory();const speedLabel=mult>=2.5?" ⚡FAST!":mult>=1.5?" ⚡":"";showPow("+"+(placePts+bonus),currentPlayer==="orange"?"Jackal JACKED IT!"+speedLabel:"Jackrabbit JACKED IT!"+speedLabel,currentPlayer,()=>{const ownedT={...updatedT,owner:currentPlayer};const finalTerrs=newTerrs.map(tt=>tt.id===t.id?ownedT:tt);setTerritories(finalTerrs);setFractions(newFracs);setSelectedFracIdx(null);setPlayers(prev=>{const np={...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+placePts+bonus}};if(checkGameOver(finalTerrs,np))return np;doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,finalTerrs);return np;});});}else{playHarp();const speedLabelMove=mult>=2.5?" ⚡FAST!":mult>=1.5?" ⚡":"";setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+placePts}}));setTerritories(newTerrs);setFractions(newFracs);setSelectedFracIdx(null);showPow("+"+placePts+speedLabelMove,currentPlayer==="orange"?"Jackal":"Jackrabbit",currentPlayer,()=>{doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,newTerrs);});}}
-  function doHijack(t,frac,remaining){lockedRef.current=true;setGameLocked(true);const opp=currentPlayer==="orange"?"green":"orange";let bonus=300;if(activeLevel()===1)bonus=100;if(activeLevel()===2)bonus=200;const newFracs=(()=>{const usedKeys={};fractions.forEach((f,i)=>{if(i!==selectedFracIdx)usedKeys[fractionKey(f)]=true;});const newF=createFractionFromPool(activeLevel(),usedKeys,discardedKeys);const arr=fractions.slice();arr[selectedFracIdx]=newF;return cleanFractionHand(activeLevel(),arr,discardedKeys,territories);})();playBadTrash();setTimeout(()=>playBuzz(),180);showPow("HIJACKED!",players[opp].name+" +"+bonus,"red",()=>{setLessonOverlay({t,remaining,callback:()=>{const ownedT={...t,owner:opp,hijacked:true};const finalTerrs=territories.map(tt=>tt.id===t.id?ownedT:tt);setTerritories(finalTerrs);setFractions(newFracs);setSelectedFracIdx(null);setPlayers(prev=>{const np={...prev,[opp]:{...prev[opp],points:prev[opp].points+bonus}};if(checkGameOver(finalTerrs,np))return np;doSwitchTurn(opp,newFracs,undefined,finalTerrs);return np;});}});setLessonReady(false);setTimeout(()=>setLessonReady(true),3000);});}
+
+  // ── doPlace: new percentage-based scoring ──────────────────────────────────
+  function doPlace(t,frac,units,fracIdxOverride=null){
+    const chosenIdx=fracIdxOverride??selectedFracIdx;
+    lockedRef.current=true;setGameLocked(true);
+
+    const color=t.chunks.length%2===0?"red":"blue";
+    const max=t.denominator*t.wholes;
+    const clampedUnits=Math.min(units,max-t.filledUnits);
+    const roundedUnits=Math.round(clampedUnits*1000)/1000;
+    const newFilledUnits=t.filledUnits+clampedUnits;
+
+    const updatedT={...t,chunks:[...t.chunks,{units:roundedUnits,color}],filledUnits:newFilledUnits};
+
+    const newFracs=(()=>{
+      const usedKeys={};
+      fractions.forEach((f,i)=>{if(i!==chosenIdx)usedKeys[fractionKey(f)]=true;});
+      const newF=createFractionFromPool(activeLevel(),usedKeys,discardedKeys);
+      const arr=fractions.slice();arr[chosenIdx]=newF;
+      return cleanFractionHand(activeLevel(),arr,discardedKeys,territories);
+    })();
+
+    const newTerrs=territories.map(tt=>tt.id===t.id?updatedT:tt);
+
+    // Points: percentage of last whole touched (0–100), +50 jack bonus if territory claimed
+    const placePts=calcPlacementPoints(newFilledUnits,t.denominator);
+
+    if(newFilledUnits>=max){
+      // Territory claimed (jacked)
+      const totalPts=placePts+50; // placePts will be 100 here since last whole is full
+      playTerritoryVictory();
+      showPow("+"+totalPts,currentPlayer==="orange"?"Jackal JACKED IT!":"Jackrabbit JACKED IT!",currentPlayer,()=>{
+        const ownedT={...updatedT,owner:currentPlayer};
+        const finalTerrs=newTerrs.map(tt=>tt.id===t.id?ownedT:tt);
+        setTerritories(finalTerrs);
+        setFractions(newFracs);
+        setSelectedFracIdx(null);
+        setPlayers(prev=>{
+          const np={...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+totalPts}};
+          if(checkGameOver(finalTerrs,np))return np;
+          doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,finalTerrs);
+          return np;
+        });
+      });
+    }else{
+      // Partial fill
+      playHarp();
+      setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+placePts}}));
+      setTerritories(newTerrs);
+      setFractions(newFracs);
+      setSelectedFracIdx(null);
+      showPow("+"+placePts,currentPlayer==="orange"?"Jackal":"Jackrabbit",currentPlayer,()=>{
+        doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,newTerrs);
+      });
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── doHijack: opponent earns 50 flat, placer earns 0 ─────────────────────
+  function doHijack(t,frac,remaining){
+    lockedRef.current=true;setGameLocked(true);
+    const opp=currentPlayer==="orange"?"green":"orange";
+    const hijackPts=50;
+
+    const newFracs=(()=>{
+      const usedKeys={};
+      fractions.forEach((f,i)=>{if(i!==selectedFracIdx)usedKeys[fractionKey(f)]=true;});
+      const newF=createFractionFromPool(activeLevel(),usedKeys,discardedKeys);
+      const arr=fractions.slice();arr[selectedFracIdx]=newF;
+      return cleanFractionHand(activeLevel(),arr,discardedKeys,territories);
+    })();
+
+    playBadTrash();
+    setTimeout(()=>playBuzz(),180);
+
+    showPow("HIJACKED!",players[opp].name+" +"+hijackPts,"red",()=>{
+      setLessonOverlay({t,remaining,callback:()=>{
+        const ownedT={...t,owner:opp,hijacked:true};
+        const finalTerrs=territories.map(tt=>tt.id===t.id?ownedT:tt);
+        setTerritories(finalTerrs);
+        setFractions(newFracs);
+        setSelectedFracIdx(null);
+        setPlayers(prev=>{
+          const np={...prev,[opp]:{...prev[opp],points:prev[opp].points+hijackPts}};
+          if(checkGameOver(finalTerrs,np))return np;
+          doSwitchTurn(opp,newFracs,undefined,finalTerrs);
+          return np;
+        });
+      }});
+      setLessonReady(false);
+      setTimeout(()=>setLessonReady(true),3000);
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function doJackback(t){if(t.owner)return;setPendingTrick(null);lockedRef.current=true;setGameLocked(true);showPow("JACKBACK","One whole cleared",currentPlayer,()=>{const amount=t.denominator;let left=Math.min(amount,t.filledUnits);const newChunks=t.chunks.slice();let filled=t.filledUnits;while(left>0&&newChunks.length>0){const last=newChunks[newChunks.length-1];if(last.units<=left){left-=last.units;filled-=last.units;newChunks.pop();}else{newChunks[newChunks.length-1]={...last,units:last.units-left};filled-=left;left=0;}}if(filled<0)filled=0;const newTerrs=territories.map(tt=>tt.id===t.id?{...tt,chunks:newChunks,filledUnits:filled}:tt);setTerritories(newTerrs);doSwitchTurn(currentPlayer==="orange"?"green":"orange",undefined,undefined,newTerrs);});}
   function handleTrashLimitReached(){lockedRef.current=true;setGameLocked(true);stopTimer();playBuzz();showPow("TRASH LIMIT!","Max 3 trash trips per turn. Play a fraction now.","red",()=>{lockedRef.current=false;setGameLocked(false);resumeTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>doSwitchTurn(currentPlayer==="orange"?"green":"orange"));});});}
   function handleTrashClick(){unlockAudio();if(gameLocked||pendingTrick||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const frac=fractions[selectedFracIdx];if(!frac)return;if(trashTripsThisTurn>=3){handleTrashLimitReached();return;}setTrashTripsThisTurn(prev=>prev+1);const hasMove=territories.some(t=>isLegalMove(frac,t));if(hasMove)badTrash();else goodTrash();}
@@ -561,9 +604,6 @@ function FracJack(){
   function badTrash(){lockedRef.current=true;setGameLocked(true);stopTimer();playBadTrash();setTimeout(()=>playBuzz(),180);burpTrash();const penalty=activeLevel()===1?50:activeLevel()===2?50:100;setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points-penalty}}));const badLines=["That fraction was perfectly good! The trash can is FURIOUS.","You just tried to trash a totally legal fraction. Shameful.","The trash can spit it right back out.","Nice try. That fraction had moves and you knew it.","The trash can called your bluff.","That fraction files a formal complaint.","Even the trash can has standards. That fraction stays.","The trash can has seen things, but THIS? Bad trash move."];setTrashPenaltyMsg(badLines[Math.floor(Math.random()*badLines.length)]);setTrashPenaltyOverlay(true);setPenaltyAmount(penalty);}
   function applyTrick(player,trick){unlockAudio();if(gameLocked||victoryReached||!gameStarted)return;if(player!==currentPlayer)return;if(trickUsed[player][trick])return;setTrickUsed(prev=>({...prev,[player]:{...prev[player],[trick]:true}}));if(trick==="hint"){setHints({fractionIdx:null,territoryId:null});let found=null;outer:for(let i=0;i<fractions.length;i++){for(let j=0;j<territories.length;j++){if(isLegalMove(fractions[i],territories[j])){found={fractionIdx:i,territoryId:territories[j].id};break outer;}}}if(!found){showPow("NO LEGAL MOVES","Try a Jack Trick or wait.","red",null);return;}setSelectedFracIdx(found.fractionIdx);setHints(found);showPow("HINT!","Try this move.",currentPlayer,null);return;}if(trick==="refrac"){setHints({fractionIdx:null,territoryId:null});setFractions(rollFractions(activeLevel(),discardedKeys,territories));setSelectedFracIdx(null);showPow("RE-FRAC!","New choices",currentPlayer,null);return;}if(trick==="jackback"){setHints({fractionIdx:null,territoryId:null});setPendingTrick("jackback");showPow("JACKBACK","Pick territory",currentPlayer,null);}}
 
-  // Computer opponent: only controls the green Jackrabbit/Computer player in Vs Computer mode.
-  // It waits a moment, highlights its chosen fraction/territory so the player can see the decision,
-  // then uses the same doPlace() scoring and territory logic as a human move.
   useEffect(()=>{
     if(gameMode!=="cpu"||currentPlayer!=="green"||!gameStarted||gameLocked||victoryReached)return;
     if(pow.show||lessonOverlay||trashPenaltyOverlay||rulesOverlay||pendingTrick)return;
@@ -589,7 +629,6 @@ function FracJack(){
       showPow("COMPUTER PASSES","No legal move.","green",()=>doSwitchTurn("orange"));
       return;
     }
-    // Simple but competent strategy: claim a territory if possible; otherwise play the largest useful legal move.
     possible.sort((a,b)=>Number(b.claims)-Number(a.claims)||b.units-a.units||a.remaining-b.remaining);
     const move=possible[0];
     setSelectedFracIdx(move.idx);
@@ -620,23 +659,13 @@ function FracJack(){
 
   const BG="radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 18%), radial-gradient(circle at 50% 48%, rgba(0,105,255,.30), transparent 30%), radial-gradient(circle at 12% 45%, rgba(255,135,0,.28), transparent 22%), radial-gradient(circle at 88% 45%, rgba(64,201,31,.25), transparent 22%), linear-gradient(180deg,#020b1f 0%,#06245d 46%,#020916 100%)";
 
-  // Portrait mobile layout tuning
-  // Goal: keep the full game on one phone screen with no scrolling.
-  // Portrait mobile layout helpers.
-  // Goal: keep everything on one screen WITHOUT overlap.
-  // The portrait screen is now a real CSS grid: top controls are auto-sized,
-  // territories stretch through the middle, and the player panels sit in a
-  // reserved bottom row with a small safe buffer.
   const portraitHeight=viewport.height||700;
   const portraitTiny=portraitHeight<670;
   const portraitShort=portraitHeight<760;
   const portraitLogoH=portraitTiny?48:portraitShort?58:68;
   const portraitGap=portraitTiny?3:4;
-  // Bigger bottom panels restore all 3 Jack Trick buttons.
-  // The mascot images are allowed to overflow upward, so their heads do not get chopped off.
   const portraitPanelH=portraitTiny?108:portraitShort?118:130;
   const portraitBottomPad=portraitTiny?8:10;
-  // Portrait now has 4 rows: compact top bar, fraction/trash row, territory board, player panels.
   const portraitMainGridRows=`auto auto minmax(0,1fr) ${portraitPanelH}px`;
 
   return(<>
@@ -645,35 +674,21 @@ function FracJack(){
     {/* ── DESKTOP ── */}
     {isDesktop&&(
       <div style={{position:"fixed",inset:0,overflow:"hidden",display:"grid",gridTemplateRows:"33vh 1fr",gap:8,padding:10,fontFamily:"Arial, Helvetica, sans-serif",color:"white",userSelect:"none",background:BG}}>
-
-        {/* TOP BAR: 3 cols — orange score | center band | green score */}
         <div style={{display:"grid",gridTemplateColumns:"240px 1fr auto 240px",gap:12,alignItems:"stretch"}}>
-
-          {/* Orange score */}
           <ScoreCard color="orange" name="JACKAL" points={players.orange.points}/>
-
-          {/* CENTER TOP BAND: logo left, fractions+trash right */}
           <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:16,alignItems:"center",overflow:"visible",position:"relative"}}>
-
-            {/* Logo — large, overflows down */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",overflow:"visible",position:"relative",zIndex:20}}>
               <img src={IMG_LOGO} alt="Frac Jack" style={{height:200,width:"auto",objectFit:"contain",transform:"translateX(10vw) translateY(-5px) scale(1.05)",filter:"drop-shadow(0 14px 20px rgba(0,0,0,.72)) drop-shadow(0 6px 8px rgba(0,0,0,.50))",position:"relative",zIndex:20}}/>
             </div>
-
-            {/* RIGHT SIDE: New·Rules·mute (top), timer (middle), fractions+trash (bottom)
-                Centered in the space between logo and Zoodlebug/green-score */}
-            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center",justifyContent:"space-between",height:"100%",paddingTop:4,paddingBottom:4}}>              {/* Row 1: New · Rules · mute */}
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center",justifyContent:"space-between",height:"100%",paddingTop:4,paddingBottom:4}}>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
                 <button onClick={()=>setupNewGame()} style={{background:"none",border:"none",color:"rgba(255,255,255,.9)",fontSize:22,fontWeight:800,cursor:"pointer",textTransform:"uppercase",letterSpacing:1,padding:"2px 0",textShadow:"0 2px 4px rgba(0,0,0,.5)"}}>NEW</button>
                 <button onClick={()=>setRulesOverlay(true)} style={{background:"none",border:"none",color:"rgba(255,255,255,.9)",fontSize:22,fontWeight:800,cursor:"pointer",textTransform:"uppercase",letterSpacing:1,padding:"2px 0",textShadow:"0 2px 4px rgba(0,0,0,.5)"}}>RULES</button>
                 <button onClick={toggleMute} style={{background:"none",border:"none",color:"rgba(255,255,255,.85)",fontSize:26,cursor:"pointer",padding:"2px 0",lineHeight:1}}>{muted?"🔇":"🔊"}</button>
               </div>
-              {/* Row 2: Timer */}
               <div style={{border:"4px solid white",borderRadius:18,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:1000,fontSize:36,boxShadow:"0 6px 18px rgba(0,0,0,.45)",width:170,height:60,letterSpacing:2}}>{timerDisplay}</div>
-              {/* Row 3: Fraction chips + trash */}
               <div style={{display:"flex",alignItems:"center",gap:10,overflow:"visible",position:"relative",zIndex:10}}>
                 {fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return(<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{width:86,height:48,background:"white",color:"#111",border:"3px solid white",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 6px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 6px 14px rgba(0,0,0,.38)":"0 0 0 2px rgba(255,255,255,.55),0 4px 10px rgba(0,0,0,.30)",transform:isSelected?"translateY(-4px) scale(1.07)":"none",animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>{txt.includes(" ")?<span style={{fontSize:18}}>{txt}</span>:txt}</div>);})}
-                {/* Trash */}
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,overflow:"visible"}}>
                   <button onClick={handleTrashClick} title={`Trash trips: ${trashTripsThisTurn}/3`} style={{width:72,height:64,border:"3px solid rgba(255,255,255,.95)",borderRadius:14,background:trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",display:"flex",alignItems:"center",justifyContent:"center",cursor:trashTripsThisTurn>=3?"not-allowed":"pointer",boxShadow:"0 5px 12px rgba(0,0,0,.5)",padding:4,overflow:"hidden",opacity:trashTripsThisTurn>=3?.65:1,transition:".15s"}}>
                     <img src={IMG_TRASH} alt="Trash" style={{width:58,height:52,objectFit:"contain",display:"block",animation:trashBurp?"trashShake .22s 4":"none"}}/>
@@ -683,17 +698,11 @@ function FracJack(){
               </div>
             </div>
           </div>
-
-          {/* Zoodlebug branding — between trash and green score */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
             <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{height:84,objectFit:"contain",filter:"drop-shadow(0 2px 6px rgba(0,0,0,.5))"}}/>
           </div>
-
-          {/* Green score */}
           <ScoreCard color="green" name="JACKRABBIT" points={players.green.points}/>
         </div>
-
-        {/* MAIN ROW: player panels + territories */}
         <div style={{minHeight:0,height:"100%",display:"grid",gridTemplateColumns:"240px 1fr 240px",gap:12,overflow:"visible"}}>
           <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level}/>
           <main style={{minWidth:0,minHeight:0,height:"100%",position:"relative",zIndex:4}}>
@@ -704,10 +713,7 @@ function FracJack(){
       </div>
     )}
 
-    {/* ── MOBILE LANDSCAPE BLOCKER ──
-        Mobile landscape gameplay has been intentionally removed.
-        If a phone/tablet is rotated sideways, players see this message instead.
-        Desktop still uses the normal desktop layout above. */}
+    {/* ── LANDSCAPE BLOCKER ── */}
     {!isDesktop&&isLandscape&&(
       <div style={{position:"fixed",inset:0,zIndex:300,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"Arial, Helvetica, sans-serif",color:"white",textAlign:"center",userSelect:"none",background:BG}}>
         <div style={{width:"min(520px,92vw)",border:"6px solid white",borderRadius:28,padding:"24px 22px",background:"rgba(0,0,0,.52)",boxShadow:"0 22px 60px rgba(0,0,0,.68)",display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
@@ -717,39 +723,16 @@ function FracJack(){
       </div>
     )}
 
-    {/* ── PORTRAIT ── fixed one-screen grid, no overlap, no scrolling */}
+    {/* ── PORTRAIT ── */}
     {!isDesktop&&!isLandscape&&(
-      <div style={{
-        height:"100dvh",
-        maxHeight:"100dvh",
-        overflow:"hidden",
-        padding:`4px 8px ${portraitBottomPad}px`,
-        display:"grid",
-        gridTemplateRows:portraitMainGridRows,
-        gap:portraitGap,
-        fontFamily:"Arial, Helvetica, sans-serif",
-        color:"white",
-        userSelect:"none",
-        background:BG
-      }}>
-
-        {/* 1. Compact top bar: timer left, logo center, buttons stacked right. */}
-        <div style={{
-          display:"grid",
-          gridTemplateColumns:"74px minmax(0,1fr) 58px",
-          alignItems:"center",
-          gap:6,
-          minHeight:0,
-          overflow:"visible"
-        }}>
+      <div style={{height:"100dvh",maxHeight:"100dvh",overflow:"hidden",padding:`4px 8px ${portraitBottomPad}px`,display:"grid",gridTemplateRows:portraitMainGridRows,gap:portraitGap,fontFamily:"Arial, Helvetica, sans-serif",color:"white",userSelect:"none",background:BG}}>
+        <div style={{display:"grid",gridTemplateColumns:"74px minmax(0,1fr) 58px",alignItems:"center",gap:6,minHeight:0,overflow:"visible"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
             <div style={{border:"2px solid white",borderRadius:8,background:"rgba(0,0,0,.5)",padding:"3px 6px",fontWeight:1000,fontSize:12,letterSpacing:.5,boxShadow:"0 3px 8px rgba(0,0,0,.35)"}}>{timerDisplay}</div>
           </div>
-
           <div style={{display:"flex",justifyContent:"center",alignItems:"center",minWidth:0,overflow:"visible"}}>
             <img src={IMG_LOGO} alt="Frac Jack" style={{maxHeight:portraitLogoH,maxWidth:"100%",objectFit:"contain",filter:"drop-shadow(0 6px 12px rgba(0,0,0,.75))"}}/>
           </div>
-
           <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",justifyContent:"center",gap:2,minWidth:0}}>
             <button onClick={()=>setRulesOverlay(true)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.45)",borderRadius:6,color:"rgba(255,255,255,.9)",fontSize:9,fontWeight:900,cursor:"pointer",textTransform:"uppercase",padding:"2px 3px",lineHeight:1}}>Rules</button>
             <button onClick={()=>setupNewGame()} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.45)",borderRadius:6,color:"rgba(255,255,255,.9)",fontSize:9,fontWeight:900,cursor:"pointer",textTransform:"uppercase",padding:"2px 3px",lineHeight:1}}>New</button>
@@ -757,7 +740,6 @@ function FracJack(){
           </div>
         </div>
 
-        {/* 2. Fraction choices + trash only. */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,flexWrap:"nowrap",overflow:"visible",position:"relative",zIndex:20,minHeight:0}}>
           {fractions.map((f,i)=>{
             const txt=f.display||(f.n+"/"+f.d);
@@ -783,21 +765,11 @@ function FracJack(){
           </div>
         </div>
 
-        {/* 3. Territories — fills all middle space and stops before bottom panels. */}
         {territories&&territories.length>=5&&(()=>{
           const t1=territories[0],t2=territories[1],t3=territories[2],t4=territories[3],t5=territories[4];
           const cp={onClick:handleTerritoryClick,players,gameLocked,gameStarted,victoryReached,boardInputBlocked,isDesktop:false,compactPortrait:true};
           return(
-            <div style={{
-              minHeight:0,
-              height:"100%",
-              display:"grid",
-              gridTemplateRows:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
-              gap:portraitGap,
-              overflow:"hidden",
-              position:"relative",
-              zIndex:10
-            }}>
+            <div style={{minHeight:0,height:"100%",display:"grid",gridTemplateRows:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",gap:portraitGap,overflow:"hidden",position:"relative",zIndex:10}}>
               <TerritoryCard key={t1.id} t={t1} isHinted={hints.territoryId===t1.id} {...cp}/>
               <TerritoryCard key={t2.id} t={t2} isHinted={hints.territoryId===t2.id} {...cp}/>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:portraitGap,minHeight:0,overflow:"hidden"}}>
@@ -809,7 +781,6 @@ function FracJack(){
           );
         })()}
 
-        {/* 4. Bottom player panels. Mascots intentionally overflow upward over the board. */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:portraitGap,height:"100%",minHeight:0,overflow:"visible",position:"relative",zIndex:40}}>
           <PlayerPanel color="orange" active={currentPlayer==="orange"&&gameStarted} mascotSrc={IMG_JACKAL} mascotClass="orange" trickUsed={trickUsed.orange} onTrick={t=>applyTrick("orange",t)} level={level} compact points={players.orange.points}/>
           <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} compact points={players.green.points}/>
@@ -824,7 +795,7 @@ function FracJack(){
 
     {trashPenaltyOverlay&&(<div style={{position:"fixed",inset:0,zIndex:120,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.78)"}}><div style={{position:"relative",width:"min(580px,92vw)",border:"7px solid white",borderRadius:34,padding:"20px 22px 22px",textAlign:"center",color:"white",background:"linear-gradient(180deg,#2b1111,#07090f 62%,#101824)",boxShadow:"0 24px 60px rgba(0,0,0,.68)",textShadow:"0 4px 0 rgba(0,0,0,.55)"}}><img src={IMG_TRASH} alt="" style={{width:100,height:100,objectFit:"contain"}}/><div style={{fontSize:isMobile?36:46,fontWeight:1000,color:"#ffdf4c",lineHeight:.95,textTransform:"uppercase",marginTop:4}}>Not Frac Trash!</div><div style={{fontSize:isMobile?16:22,fontWeight:1000,lineHeight:1.25,margin:"10px auto 16px",maxWidth:440}}>{trashPenaltyMsg}</div><div style={{display:"inline-block",fontSize:isMobile?26:34,fontWeight:1000,color:"white",background:"linear-gradient(180deg,#ff6a6a,#d41414)",border:"4px solid white",borderRadius:20,padding:"8px 16px",transform:"rotate(-3deg)",boxShadow:"0 7px 0 rgba(0,0,0,.42)"}}>-{penaltyAmount} JACK POINTS</div><br/><button onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.preventDefault();e.stopPropagation();blockBoardInput(650);setTrashPenaltyOverlay(false);if(victoryReached)return;resumeTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>doSwitchTurn(currentPlayer==="orange"?"green":"orange"));});unlockAfterInputGuard(350);}} style={{marginTop:18,border:"4px solid white",borderRadius:999,padding:isMobile?"10px 28px":"12px 32px",fontSize:isMobile?18:21,fontWeight:1000,color:"#111",background:"linear-gradient(180deg,#ffe76a,#ff9d18)",cursor:"pointer",boxShadow:"0 6px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Continue</button></div></div>)}
 
-    {rulesOverlay&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.58)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?12:14,overflowY:"auto"}}><div style={{width:"min(700px,96vw)",background:"white",color:"#111",border:"7px solid #111",borderRadius:30,padding:isMobile?"16px 14px":24,boxShadow:"0 18px 42px rgba(0,0,0,.48)",textAlign:"center"}}><div style={{fontSize:isMobile?34:46,fontWeight:1000,color:"#df2525",lineHeight:1}}>How to Play</div><div style={{fontSize:isMobile?14:18,fontWeight:900,lineHeight:1.35,textAlign:"left",maxWidth:580,margin:"14px auto"}}>Pick one fraction and place it in a territory. Legal moves earn <strong>50 Jack Points</strong>, multiplied by a speed bonus — up to <strong>3×</strong> in the first 3 seconds. ⚡ Speed pays!<br/><br/>Complete a territory to earn a big bonus. Go over, and your opponent <strong>Hijacks</strong> the territory.<br/><br/>Some fractions do not fit some models. If it does not fit, your turn ends.<br/><br/>Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets! Max <strong>3 trash trips per turn</strong>. Trashing a playable fraction costs points.<br/><br/><strong>Jack Tricks:</strong> Hint reveals a legal move · Re-Frac deals new fractions · Jackback clears one whole from a territory.<br/><br/>Highest Jack Points wins when all 5 territories are Jacked!</div><button onClick={()=>setRulesOverlay(false)} style={{border:0,borderRadius:999,padding:"12px 28px",fontSize:19,fontWeight:1000,background:"#111",color:"white",cursor:"pointer"}}>Close</button></div></div>)}
+    {rulesOverlay&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.58)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?12:14,overflowY:"auto"}}><div style={{width:"min(700px,96vw)",background:"white",color:"#111",border:"7px solid #111",borderRadius:30,padding:isMobile?"16px 14px":24,boxShadow:"0 18px 42px rgba(0,0,0,.48)",textAlign:"center"}}><div style={{fontSize:isMobile?34:46,fontWeight:1000,color:"#df2525",lineHeight:1}}>How to Play</div><div style={{fontSize:isMobile?14:18,fontWeight:900,lineHeight:1.35,textAlign:"left",maxWidth:580,margin:"14px auto"}}>Pick one fraction and place it in a territory. Earn Jack Points equal to the percentage of the last whole you filled — placing <strong>3/4</strong> earns <strong>75 points</strong>, filling a whole earns <strong>100 points</strong>.<br/><br/>Complete a territory and earn a <strong>+50 Jack Bonus</strong> — a full Jack is worth <strong>150 points</strong>! Go over the territory limit and your opponent <strong>Hijacks</strong> it for 50 points while you earn nothing.<br/><br/>Some fractions do not fit some models. If it does not fit, your turn ends.<br/><br/>Toss a truly unplayable fraction into the <strong>Frac Trash</strong> and get +50 points plus a replacement — and your timer resets! Max <strong>3 trash trips per turn</strong>. Trashing a playable fraction costs points.<br/><br/><strong>Jack Tricks:</strong> Hint reveals a legal move · Re-Frac deals new fractions · Jackback clears one whole from a territory.<br/><br/>Highest Jack Points wins when all 5 territories are Jacked!</div><button onClick={()=>setRulesOverlay(false)} style={{border:0,borderRadius:999,padding:"12px 28px",fontSize:19,fontWeight:1000,background:"#111",color:"white",cursor:"pointer"}}>Close</button></div></div>)}
 
     {victoryData&&(<div style={{position:"fixed",top:isMobile?70:100,left:"50%",transform:"translateX(-50%)",zIndex:95,width:"min(680px,90vw)",display:"grid",gridTemplateColumns:"1fr 120px",gap:12,alignItems:"center",padding:isMobile?"14px 16px":"18px 22px",border:"6px solid #ffd83d",borderRadius:26,background:"linear-gradient(135deg,#111,#372100)",boxShadow:"0 18px 44px rgba(0,0,0,.55)"}}><div><div style={{fontSize:isMobile?24:34,fontWeight:1000,lineHeight:1.05,marginBottom:10,color:"white"}}>{victoryData.tie?"Frac Jack Tie!":players[victoryData.winner].name+" is the Frac Jack Champ!"}</div><button onClick={()=>setupNewGame()} style={{border:"3px solid #ffd83d",borderRadius:12,padding:"8px 18px",fontSize:14,fontWeight:1000,background:"linear-gradient(180deg,#ffe84d,#f0b800)",color:"#111",cursor:"pointer",textTransform:"uppercase",boxShadow:"0 4px 10px rgba(0,0,0,.35)"}}>New Game</button></div><img src={victoryData.tie?IMG_LOGO:victoryData.winner==="orange"?IMG_JACKAL:IMG_JACKRABBIT} alt="" style={{maxWidth:110,maxHeight:110,objectFit:"contain"}}/></div>)}
   </>);
