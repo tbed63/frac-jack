@@ -492,13 +492,89 @@ function TerritoryCard({t,onClick,isHinted,players,gameLocked,gameStarted,victor
   </div>);
 }
 
+/* ─── Percent helpers ───────────────────────────────────────────────────── */
+function fracToPercent(n,d){const isExact=(n*100)%d===0;const pct=Math.round((n/d)*100);return{pct,isExact};}
+function fracDisplayStr(n,d){if(n>=d){const w=Math.floor(n/d);const r=n%d;if(r===0)return String(w);return`${w} ${r}/${d}`;}return`${n}/${d}`;}
+
+/* ─── PlacementPopup ────────────────────────────────────────────────────── */
+// Shown after every successful fraction placement.
+// Spec: character head · success message · fraction bar model · percent sentence · points
+function PlacementPopup({data,onContinue}){
+  if(!data)return null;
+  const{n,d,pts,color,isJack}=data;
+  const{pct,isExact}=fracToPercent(n,d);
+  const fracStr=fracDisplayStr(n,d);
+  const percentSentence=isExact?`${fracStr} is ${pct}%`:`${fracStr} is about ${pct}%`;
+
+  // Stacked bars: one per whole + one partial if remainder>0
+  const wholes=Math.floor(n/d);
+  const remainder=n%d;
+  const bars=wholes+(remainder>0?1:0);
+
+  const accent=color==="orange"?"#e07000":"#1a9e1a";
+  const bgGrad=color==="orange"
+    ?"linear-gradient(160deg,#fff8e8 0%,#ffe9b0 100%)"
+    :"linear-gradient(160deg,#e8fff0 0%,#b0ffc8 100%)";
+  const mascotSrc=color==="orange"?IMG_JACKAL:IMG_JACKRABBIT;
+  // Pick a random success message; isJack gets a bolder message
+  const msgs=isJack?["JACKED IT!","TERRITORY JACKED!","FULLY JACKED!"]:["Nice Move!","Great Move!","Fraction Placed!","Well Done!"];
+  const msg=msgs[Math.floor(Math.random()*msgs.length)];
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:90,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.74)",pointerEvents:"all"}}>
+      <div style={{width:"min(400px,88vw)",borderRadius:26,background:bgGrad,border:`5px solid ${accent}`,boxShadow:`0 0 0 3px rgba(0,0,0,.16),0 30px 64px rgba(0,0,0,.65)`,overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center"}}>
+
+        {/* Top accent stripe */}
+        <div style={{width:"100%",height:8,background:accent}}/>
+
+        {/* Character head — cropped circle showing head/face area */}
+        <div style={{width:84,height:84,borderRadius:"50%",border:`4px solid ${accent}`,boxShadow:`0 4px 12px rgba(0,0,0,.3)`,overflow:"hidden",marginTop:14,background:"rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <img src={mascotSrc} alt="" style={{width:108,height:108,objectFit:"contain",objectPosition:"top center",transform:"scale(1.12) translateY(10px)"}}/>
+        </div>
+
+        {/* Success message */}
+        <div style={{fontSize:20,fontWeight:1000,color:accent,marginTop:9,letterSpacing:.4,textShadow:`0 2px 0 rgba(0,0,0,.12)`}}>{msg}</div>
+
+        {/* Fraction bar model */}
+        <div style={{width:"calc(100% - 36px)",margin:"12px 0 2px",display:"flex",flexDirection:"column",gap:5}}>
+          {Array.from({length:bars}).map((_,barIdx)=>{
+            const isLast=barIdx===bars-1;
+            const filled=(isLast&&remainder>0)?remainder:d;
+            return(
+              <div key={barIdx} style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{width:16,fontSize:10,fontWeight:1000,color:"#666",textAlign:"right",flexShrink:0}}>{barIdx+1}</div>
+                <div style={{flex:1,height:26,border:`2.5px solid ${accent}`,borderRadius:5,overflow:"hidden",background:"white",display:"grid",gridTemplateColumns:`repeat(${d},1fr)`}}>
+                  {Array.from({length:d}).map((_,ci)=>(
+                    <div key={ci} style={{borderRight:ci<d-1?"1.5px solid rgba(0,0,0,.15)":"none",background:ci<filled?accent:"white"}}/>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Fraction = percent sentence */}
+        <div style={{fontSize:17,fontWeight:900,color:"#111",margin:"10px 0 2px",textAlign:"center",padding:"0 14px",lineHeight:1.3}}>{percentSentence}</div>
+
+        {/* Points */}
+        <div style={{fontSize:30,fontWeight:1000,color:accent,marginBottom:2,textShadow:`0 2px 0 rgba(0,0,0,.10)`}}>+{pts} points</div>
+
+        {/* Continue */}
+        <button onPointerDown={e=>e.stopPropagation()} onClick={onContinue} style={{margin:"8px 0 18px",border:`3px solid ${accent}`,borderRadius:999,padding:"9px 34px",fontSize:15,fontWeight:1000,color:"white",cursor:"pointer",background:accent,boxShadow:`0 5px 0 rgba(0,0,0,.22)`,textTransform:"uppercase",letterSpacing:.5}}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
 function FracJack(){
   const [gameMode,setGameMode]=useState("pvp");
-  const [timerEnabled,setTimerEnabled]=useState(true); // PvP toggle; CPU always ignores timer
+  const [timerEnabled,setTimerEnabled]=useState(true);
+  const [placementPow,setPlacementPow]=useState(null); // drives PlacementPopup
   const [level,setLevel]=useState(1);const [gameStarted,setGameStarted]=useState(false);const [gameLocked,setGameLocked]=useState(true);const [victoryReached,setVictoryReached]=useState(false);const [currentPlayer,setCurrentPlayer]=useState("orange");const [players,setPlayers]=useState({orange:{name:"Jackal",points:0},green:{name:"Jackrabbit",points:0}});const [territories,setTerritories]=useState([]);const [fractions,setFractions]=useState([]);const [selectedFracIdx,setSelectedFracIdx]=useState(null);const [discardedKeys,setDiscardedKeys]=useState({});const [trickUsed,setTrickUsed]=useState({orange:{hint:false,refrac:false,jackback:false},green:{hint:false,refrac:false,jackback:false}});const [pendingTrick,setPendingTrick]=useState(null);const [moveChunkIndex,setMoveChunkIndex]=useState(0);const [timer,setTimer]=useState(30);const [timerLimit,setTimerLimit]=useState(30);const [timerDisplay,setTimerDisplay]=useState("00:30");const [hints,setHints]=useState({fractionIdx:null,territoryId:null});const [trashBurp,setTrashBurp]=useState(false);const [trashTripsThisTurn,setTrashTripsThisTurn]=useState(0);const [pow,setPow]=useState({show:false,big:"",small:"",color:"orange",imageSrc:null,imageAlt:"",onContinue:null});const [lessonOverlay,setLessonOverlay]=useState(null);const [trashPenaltyOverlay,setTrashPenaltyOverlay]=useState(false);const [trashPenaltyMsg,setTrashPenaltyMsg]=useState("");const [penaltyAmount,setPenaltyAmount]=useState(0);const [rulesOverlay,setRulesOverlay]=useState(false);const [victoryData,setVictoryData]=useState(null);const [lessonReady,setLessonReady]=useState(false);
   const {muted,unlockAudio,toggleMute,playMove,playTrash,playBuzz,playHarp,playBrand,playTerritoryVictory,playBadTrash}=useGameSounds();
   const timerRef=useRef(null);const timerVal=useRef(30);const lockedRef=useRef(true);const victoryRef=useRef(false);const startedRef=useRef(false);const moveChunkRef=useRef(0);const currentLevelRef=useRef(normalizeLevel(level));const inputGuardUntilRef=useRef(0);
   const timerActiveRef=useRef(false); // true only when PvP+timerEnabled at game start
+  const placementPow_callback=useRef(null); // callback to run when PlacementPopup is dismissed
   const viewport=useViewportSize();
   useEffect(()=>{
     function unlock(){unlockAudio();}
@@ -546,7 +622,7 @@ function FracJack(){
   function showPow(big,small,color,onContinue,options={}){stopTimer();setPow({show:true,big,small,color,imageSrc:options.imageSrc||null,imageAlt:options.imageAlt||"",variant:options.variant||"standard",onContinue:onContinue||null});}
   function dismissPow(e){if(e){e.preventDefault();e.stopPropagation();}blockBoardInput(650);setPow(p=>{const cb=p.onContinue;setTimeout(()=>{if(cb)cb();},0);return{...p,show:false,imageSrc:null,imageAlt:"",onContinue:null};});}
   function burpTrash(){setTrashBurp(true);setTimeout(()=>setTrashBurp(false),900);}
-  function setupNewGame(newLevel){const lv=normalizeLevel(newLevel??activeLevel());currentLevelRef.current=lv;setLevel(lv);clearInterval(timerRef.current);timerVal.current=timerLimit;lockedRef.current=true;victoryRef.current=false;startedRef.current=false;moveChunkRef.current=0;const terr=createTerritories(lv);const disc={};const fracs=rollFractions(lv,disc,terr);setPlayers({orange:{name:"Jackal",points:0},green:{name:gameMode==="cpu"?"Computer":"Jackrabbit",points:0}});setCurrentPlayer("orange");setTerritories(terr);setFractions(fracs);setSelectedFracIdx(null);setDiscardedKeys(disc);setTrickUsed({orange:{hint:false,refrac:false,jackback:false},green:{hint:false,refrac:false,jackback:false}});setPendingTrick(null);setMoveChunkIndex(0);setVictoryData(null);setHints({fractionIdx:null,territoryId:null});setGameStarted(false);setGameLocked(true);setVictoryReached(false);setPow({show:false,big:"",small:"",color:"orange",imageSrc:null,imageAlt:"",onContinue:null});setLessonOverlay(null);setTrashPenaltyOverlay(false);setTrashPenaltyMsg("");setTrashTripsThisTurn(0);inputGuardUntilRef.current=0;
+  function setupNewGame(newLevel){const lv=normalizeLevel(newLevel??activeLevel());currentLevelRef.current=lv;setLevel(lv);clearInterval(timerRef.current);timerVal.current=timerLimit;lockedRef.current=true;victoryRef.current=false;startedRef.current=false;moveChunkRef.current=0;const terr=createTerritories(lv);const disc={};const fracs=rollFractions(lv,disc,terr);setPlayers({orange:{name:"Jackal",points:0},green:{name:gameMode==="cpu"?"Computer":"Jackrabbit",points:0}});setCurrentPlayer("orange");setTerritories(terr);setFractions(fracs);setSelectedFracIdx(null);setDiscardedKeys(disc);setTrickUsed({orange:{hint:false,refrac:false,jackback:false},green:{hint:false,refrac:false,jackback:false}});setPendingTrick(null);setMoveChunkIndex(0);setVictoryData(null);setHints({fractionIdx:null,territoryId:null});setGameStarted(false);setGameLocked(true);setVictoryReached(false);setPow({show:false,big:"",small:"",color:"orange",imageSrc:null,imageAlt:"",onContinue:null});setLessonOverlay(null);setTrashPenaltyOverlay(false);setTrashPenaltyMsg("");setTrashTripsThisTurn(0);inputGuardUntilRef.current=0;setPlacementPow(null);placementPow_callback.current=null;
     // Show ∞ if timer is off for this mode, otherwise show countdown value
     if(gameMode==="cpu"||!timerEnabled){setTimerDisplay("∞");}else{const m=Math.floor(timerLimit/60);const s=timerLimit%60;setTimerDisplay(String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"));}
   }
@@ -568,7 +644,7 @@ function FracJack(){
   function doSwitchTurn(nextPlayer,newFracs,newDisc,territoriesOverride){const nextTerritories=territoriesOverride||territories;const nextDiscarded=newDisc??discardedKeys;setHints({fractionIdx:null,territoryId:null});setCurrentPlayer(nextPlayer);setPendingTrick(null);setTrashTripsThisTurn(0);const baseHand=newFracs??rollFractions(activeLevel(),nextDiscarded,nextTerritories);const fracsToUse=cleanFractionHand(activeLevel(),baseHand,nextDiscarded,nextTerritories);setFractions(fracsToUse);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);startTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{const nxt=nextPlayer==="orange"?"green":"orange";const nf=rollFractions(activeLevel(),nextDiscarded,nextTerritories);setFractions(nf);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);setCurrentPlayer(nxt);startTimer(()=>{});});});}
   function handleTerritoryClick(id){unlockAudio();if(gameLocked||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const t=territories[id];if(!t||t.owner)return;if(pendingTrick==="jackback"){doJackback(t);return;}const frac=fractions[selectedFracIdx];if(!frac)return;if(!fractionFits(frac,t)){lockedRef.current=true;setGameLocked(true);playBuzz();showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".\nLose Your Turn","red",()=>{doSwitchTurn(currentPlayer==="orange"?"green":"orange");});return;}const units=fractionUnits(frac,t);const max=t.denominator*t.wholes;const remaining=max-t.filledUnits;if(units>remaining){doHijack(t,frac,remaining);return;}doPlace(t,frac,units);}
 
-  // ── doPlace: new percentage-based scoring ──────────────────────────────────
+  // ── doPlace: places a fraction, shows PlacementPopup, then switches turn ──
   function doPlace(t,frac,units,fracIdxOverride=null){
     const chosenIdx=fracIdxOverride??selectedFracIdx;
     lockedRef.current=true;setGameLocked(true);
@@ -578,7 +654,6 @@ function FracJack(){
     const clampedUnits=Math.min(units,max-t.filledUnits);
     const roundedUnits=Math.round(clampedUnits*1000)/1000;
     const newFilledUnits=t.filledUnits+clampedUnits;
-
     const updatedT={...t,chunks:[...t.chunks,{units:roundedUnits,color}],filledUnits:newFilledUnits};
 
     const newFracs=(()=>{
@@ -588,42 +663,48 @@ function FracJack(){
       const arr=fractions.slice();arr[chosenIdx]=newF;
       return cleanFractionHand(activeLevel(),arr,discardedKeys,territories);
     })();
-
     const newTerrs=territories.map(tt=>tt.id===t.id?updatedT:tt);
 
-    // Points: percentage of last whole touched (0–100), +50 jack bonus if territory claimed
+    // Points = percent of last whole filled; +50 bonus if territory is jacked
     const placePts=calcPlacementPoints(newFilledUnits,t.denominator);
+    const isJack=newFilledUnits>=max;
+    const totalPts=isJack?placePts+50:placePts;
 
-    if(newFilledUnits>=max){
-      // Territory claimed (jacked)
-      const totalPts=placePts+50; // placePts will be 100 here since last whole is full
-      playTerritoryVictory();
-      showPow("+"+totalPts,currentPlayer==="orange"?"Jackal JACKED IT!":"Jackrabbit JACKED IT!",currentPlayer,()=>{
+    // Play sound first
+    if(isJack) playTerritoryVictory(); else playHarp();
+
+    // Update state immediately so board reflects the move behind the popup
+    setTerritories(newTerrs);
+    setFractions(newFracs);
+    setSelectedFracIdx(null);
+
+    // Show PlacementPopup — use the fraction that was actually placed (frac.n/frac.d)
+    setPlacementPow({
+      n: frac.n, d: frac.d,
+      pts: totalPts,
+      color: currentPlayer,
+      isJack
+    });
+
+    // Store what to do when popup is dismissed
+    placementPow_callback.current = () => {
+      if(isJack){
+        // Finalise territory ownership
         const ownedT={...updatedT,owner:currentPlayer};
         const finalTerrs=newTerrs.map(tt=>tt.id===t.id?ownedT:tt);
         setTerritories(finalTerrs);
-        setFractions(newFracs);
-        setSelectedFracIdx(null);
         setPlayers(prev=>{
           const np={...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+totalPts}};
           if(checkGameOver(finalTerrs,np))return np;
           doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,finalTerrs);
           return np;
         });
-      });
-    }else{
-      // Partial fill
-      playHarp();
-      setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+placePts}}));
-      setTerritories(newTerrs);
-      setFractions(newFracs);
-      setSelectedFracIdx(null);
-      showPow("+"+placePts,currentPlayer==="orange"?"Jackal":"Jackrabbit",currentPlayer,()=>{
+      } else {
+        setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points+totalPts}}));
         doSwitchTurn(currentPlayer==="orange"?"green":"orange",newFracs,undefined,newTerrs);
-      });
-    }
+      }
+    };
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   // ── doHijack: opponent earns 50 flat, placer earns 0 ─────────────────────
   function doHijack(t,frac,remaining){
@@ -851,6 +932,19 @@ function FracJack(){
           <PlayerPanel color="green" active={currentPlayer==="green"&&gameStarted} mascotSrc={IMG_JACKRABBIT} mascotClass="green" trickUsed={trickUsed.green} onTrick={t=>applyTrick("green",t)} level={level} compact points={players.green.points}/>
         </div>
       </div>
+    )}
+
+    {/* ── PLACEMENT POPUP — educational fraction/percent/points popup ── */}
+    {placementPow&&(
+      <PlacementPopup
+        data={placementPow}
+        onContinue={()=>{
+          setPlacementPow(null);
+          const cb=placementPow_callback.current;
+          placementPow_callback.current=null;
+          if(cb) cb();
+        }}
+      />
     )}
 
     {/* ── POW ── */}
