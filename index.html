@@ -802,18 +802,15 @@ function FracJack(){
     // Find all fractions in hand that have no legal move (valid trash candidates)
     const trashable=fractions.map((f,idx)=>({f,idx})).filter(({f})=>f&&!territories.some(t=>isLegalMove(f,t)));
 
-    // For each trashable fraction, independently roll — trash it if roll passes.
-    // Stop if we hit the 3-trip limit. After trashing, re-evaluate on the next
-    // computer turn trigger (state update will re-fire the useEffect).
+    // For each trashable fraction independently roll — trash the first one that passes
     if(trashable.length>0&&trashTripsThisTurn<3){
       const pick=trashable.find(()=>Math.random()<trashChance);
       if(pick){
-        setSelectedFracIdx(pick.idx);
         blockBoardInput(900);
         setTimeout(()=>{
           if(gameMode!=="cpu"||currentPlayer!=="green"||victoryRef.current||lockedRef.current)return;
-          setSelectedFracIdx(pick.idx);
-          handleTrashClick();
+          // Call goodTrash directly with the known index — avoids stale selectedFracIdx state
+          computerGoodTrash(pick.idx);
         },650);
         return;
       }
@@ -846,6 +843,32 @@ function FracJack(){
       setHints({fractionIdx:null,territoryId:null});
       doPlace(move.t,move.f,move.units,move.idx);
     },650);
+  }
+
+  // computerGoodTrash: same as goodTrash but takes an explicit index
+  // so it doesn't depend on selectedFracIdx state being committed yet
+  function computerGoodTrash(idx){
+    const trashed=fractions[idx];
+    if(!trashed)return;
+    lockedRef.current=true;setGameLocked(true);stopTimer();
+    const scoringPlayer=currentPlayer;
+    const newDisc={...discardedKeys,[fractionKey(trashed)]:true};
+    setDiscardedKeys(newDisc);
+    playHarp();burpTrash();
+    setTrashTripsThisTurn(prev=>prev+1);
+    const usedKeys={};
+    fractions.forEach((f,i)=>{if(i!==idx)usedKeys[fractionKey(f)]=true;});
+    const newFrac=createSmartLegalFraction(activeLevel(),usedKeys,newDisc,territories);
+    const newFracs=cleanFractionHand(activeLevel(),(()=>{const arr=fractions.slice();arr[idx]=newFrac;return arr;})(),newDisc,territories);
+    setFractions(newFracs);setSelectedFracIdx(null);
+    const trashPts=activeLevel()===1?20:activeLevel()===2?50:100;
+    setPlayers(prev=>({...prev,[scoringPlayer]:{...prev[scoringPlayer],points:prev[scoringPlayer].points+trashPts}}));
+    const trashLines=["That fraction was GARBAGE anyway!","Bye bye, bad fraction! 👋","Into the void it goes!","The trash can is DELIGHTED.","That fraction had no friends here.","Disposed of with extreme prejudice!","Even the trash can rolled its eyes.","One fraction's trash is no one's treasure."];
+    const trashMsg=trashLines[Math.floor(Math.random()*trashLines.length)];
+    showPow("FRAC TRASH! +"+trashPts,trashMsg,scoringPlayer,()=>{
+      resetTimerToThirty(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{doSwitchTurn(scoringPlayer==="orange"?"green":"orange");});});
+      unlockAfterInputGuard(350);
+    },{imageSrc:IMG_TRASH,imageAlt:"Frac Trash",variant:"trashSuccess"});
   }
 
   function renderLesson(){if(!lessonOverlay)return null;const{t,remaining,callback}=lessonOverlay;const simp=simplify(remaining,t.denominator);return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.58)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}><div style={{width:"min(760px,94vw)",background:"white",color:"#111",border:"7px solid #111",borderRadius:30,padding:24,boxShadow:"0 18px 42px rgba(0,0,0,.48)",textAlign:"center"}}><div style={{fontSize:27,fontWeight:1000,color:"#df2525",lineHeight:1}}>HIJACKED!</div><div style={{fontSize:15,fontWeight:1000,margin:"12px 0 18px"}}>This amount would have filled it.</div><div style={{width:"min(520px,88%)",height:72,margin:"0 auto 16px",border:"4px solid #111",display:"grid",gridTemplateColumns:`repeat(${t.denominator},1fr)`,background:"#fff7df"}}>{Array.from({length:t.denominator}).map((_,i)=>(<div key={i} style={{borderRight:i<t.denominator-1?"1px solid rgba(0,0,0,.38)":"none",background:i<(remaining%t.denominator||t.denominator)?"linear-gradient(180deg,#fff17a,#ffcc25)":"transparent"}}/>))}</div><div style={{display:"flex",justifyContent:"center",gap:18,flexWrap:"wrap",marginBottom:18}}><div style={{background:"#111",color:"white",borderRadius:18,padding:"10px 18px",fontSize:25,fontWeight:1000}}>{remaining}/{t.denominator}</div>{!(simp.n===remaining&&simp.d===t.denominator)&&(<div style={{background:"#111",color:"white",borderRadius:18,padding:"10px 18px",fontSize:25,fontWeight:1000}}>{simp.n}/{simp.d}</div>)}</div><button onClick={()=>{if(!lessonReady)return;setLessonOverlay(null);callback();}} style={{border:0,borderRadius:999,padding:"12px 28px",fontSize:19,fontWeight:1000,background:"#111",color:"white",cursor:lessonReady?"pointer":"default",opacity:lessonReady?1:0.42}}>{lessonReady?"Continue":"Look closely..."}</button></div></div>);}
