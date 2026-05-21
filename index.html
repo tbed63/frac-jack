@@ -236,41 +236,49 @@ function TimerToggle({enabled, onToggle, isMobile}) {
 
 function IntroScreen({timerLimit,onTimerChange,timerEnabled,onTimerToggle,level,onLevelChange,gameMode,onGameModeChange,onStart,isMobile}){
   const isCpu = gameMode === "cpu";
-  return(<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?12:14,fontFamily:"Arial, Helvetica, sans-serif",color:"white",background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"}}>
-    <div style={{width:isMobile?"min(700px,96vw)":"min(620px,94vw)",maxHeight:isMobile?"none":"calc(100vh - 28px)",overflow:isMobile?"visible":"auto",border:"7px solid white",borderRadius:22,padding:isMobile?"14px 14px 18px":"14px 22px 16px",textAlign:"center",background:"rgba(0,0,0,.48)",boxShadow:"0 24px 70px rgba(0,0,0,.65)"}}>
-      <img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"min(460px,88%)",maxHeight:isMobile?138:150,objectFit:"contain",filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"}} />
-      <div style={{fontSize:isMobile?11:15,fontWeight:900,margin:isMobile?"4px 0 10px":"4px 0 10px",textShadow:"0 3px 0 rgba(0,0,0,.5)"}}>Pick fractions. Claim territories. Jack the board.</div>
+  return(<div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"8px":"14px",fontFamily:"Arial, Helvetica, sans-serif",color:"white",background:"radial-gradient(circle at 50% 20%, rgba(255,255,255,.14), transparent 22%), radial-gradient(circle at 20% 55%, rgba(255,135,0,.32), transparent 28%), radial-gradient(circle at 80% 55%, rgba(64,201,31,.28), transparent 28%), linear-gradient(180deg,#020b1f,#06245d 52%,#020916)"}}>
+    {/* Outer card — never wider than screen, scrollable if needed */}
+    <div style={{width:"min(540px,calc(100vw - 16px))",maxHeight:"calc(100vh - 16px)",overflowY:"auto",overflowX:"hidden",border:"7px solid white",borderRadius:22,padding:isMobile?"12px 12px 16px":"14px 22px 16px",textAlign:"center",background:"rgba(0,0,0,.48)",boxShadow:"0 24px 70px rgba(0,0,0,.65)",boxSizing:"border-box"}}>
 
-      {/* Level + Game Mode */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:isMobile?8:10,margin:isMobile?"0 auto 8px":"0 auto 8px",maxWidth:520}}>
-        <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:18,padding:isMobile?"8px 10px":10,background:"rgba(255,255,255,.10)"}}>
-          <div style={{fontSize:isMobile?12:14,fontWeight:1000,textTransform:"uppercase",letterSpacing:1,marginBottom:isMobile?8:6}}>Level</div>
-          <div style={{display:"flex",gap:6,justifyContent:"center"}}>{[1,2,3].map(lv=>(<button key={lv} onClick={()=>onLevelChange(lv)} style={{width:isMobile?48:46,height:isMobile?40:36,borderRadius:14,border:"3px solid white",fontSize:isMobile?20:16,fontWeight:1000,cursor:"pointer",color:level===lv?"#111":"white",background:level===lv?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)"}}>{lv}</button>))}</div>
+      {/* Logo */}
+      <img src={IMG_LOGO} alt="Frac Jack" style={{maxWidth:"min(360px,82%)",maxHeight:isMobile?120:150,objectFit:"contain",filter:"drop-shadow(0 12px 18px rgba(0,0,0,.75))"}} />
+      <div style={{fontSize:isMobile?11:14,fontWeight:900,margin:isMobile?"3px 0 8px":"4px 0 10px",textShadow:"0 3px 0 rgba(0,0,0,.5)"}}>Pick fractions. Claim territories. Jack the board.</div>
+
+      {/* Row 1: Level + Game Mode (swapped — Game Mode now in right cell) */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:isMobile?7:10,marginBottom:isMobile?7:8}}>
+
+        {/* Level picker */}
+        <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:16,padding:isMobile?"7px 8px":"8px 10px",background:"rgba(255,255,255,.10)"}}>
+          <div style={{fontSize:isMobile?11:13,fontWeight:1000,textTransform:"uppercase",letterSpacing:1,marginBottom:isMobile?6:6}}>Level</div>
+          <div style={{display:"flex",gap:5,justifyContent:"center"}}>
+            {[1,2,3].map(lv=>(
+              <button key={lv} onClick={()=>onLevelChange(lv)} style={{flex:1,height:isMobile?36:36,borderRadius:12,border:"3px solid white",fontSize:isMobile?18:16,fontWeight:1000,cursor:"pointer",color:level===lv?"#111":"white",background:level===lv?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)"}}>{lv}</button>
+            ))}
+          </div>
         </div>
-        <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:18,padding:isMobile?"8px 10px":10,background:"rgba(255,255,255,.10)"}}>
-          <div style={{fontSize:isMobile?12:14,fontWeight:1000,textTransform:"uppercase",letterSpacing:1,marginBottom:isMobile?8:6}}>Game Mode</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <button onClick={()=>onGameModeChange("pvp")} style={{height:isMobile?38:36,borderRadius:14,border:"3px solid white",fontSize:isMobile?12:13,fontWeight:1000,cursor:"pointer",color:gameMode==="pvp"?"#111":"white",background:gameMode==="pvp"?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)",textTransform:"uppercase"}}>2 Players</button>
-            <button onClick={()=>onGameModeChange("cpu")} style={{height:isMobile?38:36,borderRadius:14,border:"3px solid white",fontSize:isMobile?12:13,fontWeight:1000,cursor:"pointer",color:gameMode==="cpu"?"#111":"white",background:gameMode==="cpu"?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)",textTransform:"uppercase"}}>Vs Computer</button>
+
+        {/* Game Mode — SWAPPED to this position */}
+        <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:16,padding:isMobile?"7px 8px":"8px 10px",background:"rgba(255,255,255,.10)"}}>
+          <div style={{fontSize:isMobile?11:13,fontWeight:1000,textTransform:"uppercase",letterSpacing:1,marginBottom:isMobile?6:6}}>Game Mode</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            <button onClick={()=>onGameModeChange("pvp")} style={{height:isMobile?32:32,borderRadius:10,border:"3px solid white",fontSize:isMobile?11:12,fontWeight:1000,cursor:"pointer",color:gameMode==="pvp"?"#111":"white",background:gameMode==="pvp"?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)",textTransform:"uppercase"}}>2 Players</button>
+            <button onClick={()=>onGameModeChange("cpu")} style={{height:isMobile?32:32,borderRadius:10,border:"3px solid white",fontSize:isMobile?11:12,fontWeight:1000,cursor:"pointer",color:gameMode==="cpu"?"#111":"white",background:gameMode==="cpu"?"linear-gradient(180deg,#ffe76a,#ffb21b)":"rgba(0,0,0,.28)",textTransform:"uppercase"}}>Vs Computer</button>
           </div>
         </div>
       </div>
 
-      {/* Timer section:
-           - CPU mode: collapsed, just a small note
-           - PvP mode: toggle switch + (if on) time selector */}
-      <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:18,padding:isMobile?"8px 12px":10,background:"rgba(255,255,255,.10)",maxWidth:520,margin:isMobile?"0 auto 12px":"0 auto 10px"}}>
+      {/* Row 2: Timer — full width, SWAPPED to this position
+           CPU: collapsed note · PvP: toggle + optional selector */}
+      <div style={{border:"3px solid rgba(255,255,255,.75)",borderRadius:16,padding:isMobile?"7px 10px":"8px 12px",background:"rgba(255,255,255,.10)",marginBottom:isMobile?10:10}}>
         {isCpu ? (
-          /* CPU: timer always off, just show a muted note */
           <div style={{fontSize:isMobile?11:12,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:.4,textAlign:"center",padding:"2px 0"}}>
             Turn timer off in computer mode
           </div>
         ) : (
-          /* PvP: toggle + optional selector */
           <>
             <TimerToggle enabled={timerEnabled} onToggle={onTimerToggle} isMobile={isMobile}/>
             {timerEnabled && (
-              <select value={timerLimit} onChange={e=>onTimerChange(Number(e.target.value))} style={{width:"100%",height:isMobile?40:36,borderRadius:12,border:"3px solid white",fontSize:isMobile?13:17,fontWeight:900,textAlign:"center",color:"#111",background:"white"}}>
+              <select value={timerLimit} onChange={e=>onTimerChange(Number(e.target.value))} style={{width:"100%",height:isMobile?36:36,borderRadius:10,border:"3px solid white",fontSize:isMobile?13:15,fontWeight:900,textAlign:"center",color:"#111",background:"white"}}>
                 <option value={10}>10 sec</option><option value={20}>20 sec</option><option value={30}>30 sec</option><option value={45}>45 sec</option><option value={60}>1 min</option><option value={90}>1 min 30 sec</option><option value={120}>2 min</option>
               </select>
             )}
@@ -278,9 +286,12 @@ function IntroScreen({timerLimit,onTimerChange,timerEnabled,onTimerToggle,level,
         )}
       </div>
 
-      <button onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"12px 32px":"10px 38px",fontSize:isMobile?22:22,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
-      <div style={{marginTop:isMobile?10:10}}>
-        <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{maxHeight:isMobile?104:88,maxWidth:"min(345px,66%)",objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.6))"}}/>
+      {/* Start button */}
+      <button onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"11px 28px":"10px 38px",fontSize:isMobile?21:22,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
+
+      {/* Zoodlebug branding */}
+      <div style={{marginTop:isMobile?8:10}}>
+        <img src={IMG_ZOODLEBUG} alt="Zoodlebug" style={{maxHeight:isMobile?88:88,maxWidth:"min(280px,62%)",objectFit:"contain",filter:"drop-shadow(0 4px 10px rgba(0,0,0,.6))"}}/>
       </div>
     </div>
   </div>);
@@ -493,31 +504,51 @@ function TerritoryCard({t,onClick,isHinted,players,gameLocked,gameStarted,victor
 }
 
 /* ─── Percent helpers ───────────────────────────────────────────────────── */
-function fracToPercent(n,d){const isExact=(n*100)%d===0;const pct=Math.round((n/d)*100);return{pct,isExact};}
-function fracDisplayStr(n,d){if(n>=d){const w=Math.floor(n/d);const r=n%d;if(r===0)return String(w);return`${w} ${r}/${d}`;}return`${n}/${d}`;}
+// Convert a numerator/denominator to percent info.
+// filledUnits = total units filled; denominator = units per whole.
+// Percent = (filledUnits / denominator) * 100 — i.e. percent of ONE whole.
+function fracToPercent(filledUnits,denominator){
+  // Exact if filledUnits * 100 is divisible by denominator (no repeating decimal)
+  const isExact=(filledUnits*100)%denominator===0;
+  const pct=Math.round((filledUnits/denominator)*100);
+  return{pct,isExact};
+}
+
+// Build a display string for the filled amount as a mixed number.
+// e.g. filledUnits=9, denominator=5 → "1 4/5"
+function fracDisplayStr(filledUnits,denominator){
+  if(filledUnits===0)return"0";
+  const w=Math.floor(filledUnits/denominator);
+  const r=filledUnits%denominator;
+  if(r===0)return String(w);
+  if(w===0)return`${r}/${denominator}`;
+  return`${w} ${r}/${denominator}`;
+}
 
 /* ─── PlacementPopup ────────────────────────────────────────────────────── */
 // Shown after every successful fraction placement.
-// Spec: character head · success message · fraction bar model · percent sentence · points
+// data = { filledUnits, denominator, wholes, pts, color, isJack }
+// Shows the ENTIRE territory (all wholes), with cumulative filled units shaded.
+// Percent = filledUnits / denominator * 100 (% of one whole).
+// Points = that percent value; +50 bonus on jack.
 function PlacementPopup({data,onContinue}){
   if(!data)return null;
-  const{n,d,pts,color,isJack}=data;
-  const{pct,isExact}=fracToPercent(n,d);
-  const fracStr=fracDisplayStr(n,d);
-  const percentSentence=isExact?`${fracStr} is ${pct}%`:`${fracStr} is about ${pct}%`;
+  const{filledUnits,denominator,wholes,pts,color,isJack}=data;
 
-  // Stacked bars: one per whole + one partial if remainder>0
-  const wholes=Math.floor(n/d);
-  const remainder=n%d;
-  const bars=wholes+(remainder>0?1:0);
+  const{pct,isExact}=fracToPercent(filledUnits,denominator);
+  const fracStr=fracDisplayStr(filledUnits,denominator);
+  const percentSentence=isExact
+    ?`${fracStr} is ${pct}%`
+    :`${fracStr} is about ${pct}%`;
 
   const accent=color==="orange"?"#e07000":"#1a9e1a";
   const bgGrad=color==="orange"
     ?"linear-gradient(160deg,#fff8e8 0%,#ffe9b0 100%)"
     :"linear-gradient(160deg,#e8fff0 0%,#b0ffc8 100%)";
   const mascotSrc=color==="orange"?IMG_JACKAL:IMG_JACKRABBIT;
-  // Pick a random success message; isJack gets a bolder message
-  const msgs=isJack?["JACKED IT!","TERRITORY JACKED!","FULLY JACKED!"]:["Nice Move!","Great Move!","Fraction Placed!","Well Done!"];
+  const msgs=isJack
+    ?["JACKED IT!","TERRITORY JACKED!","FULLY JACKED!"]
+    :["Nice Move!","Great Move!","Fraction Placed!","Well Done!"];
   const msg=msgs[Math.floor(Math.random()*msgs.length)];
 
   return(
@@ -527,25 +558,26 @@ function PlacementPopup({data,onContinue}){
         {/* Top accent stripe */}
         <div style={{width:"100%",height:8,background:accent}}/>
 
-        {/* Character head — cropped circle showing head/face area */}
+        {/* Character head — cropped circle */}
         <div style={{width:84,height:84,borderRadius:"50%",border:`4px solid ${accent}`,boxShadow:`0 4px 12px rgba(0,0,0,.3)`,overflow:"hidden",marginTop:14,background:"rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <img src={mascotSrc} alt="" style={{width:108,height:108,objectFit:"contain",objectPosition:"top center",transform:"scale(1.12) translateY(10px)"}}/>
         </div>
 
         {/* Success message */}
-        <div style={{fontSize:20,fontWeight:1000,color:accent,marginTop:9,letterSpacing:.4,textShadow:`0 2px 0 rgba(0,0,0,.12)`}}>{msg}</div>
+        <div style={{fontSize:20,fontWeight:1000,color:accent,marginTop:9,letterSpacing:.4}}>{msg}</div>
 
-        {/* Fraction bar model */}
-        <div style={{width:"calc(100% - 36px)",margin:"12px 0 2px",display:"flex",flexDirection:"column",gap:5}}>
-          {Array.from({length:bars}).map((_,barIdx)=>{
-            const isLast=barIdx===bars-1;
-            const filled=(isLast&&remainder>0)?remainder:d;
+        {/* Territory bar model — one bar per whole, cumulative fill shaded */}
+        <div style={{width:"calc(100% - 36px)",margin:"12px 0 2px",display:"flex",flexDirection:"column",gap:4}}>
+          {Array.from({length:wholes}).map((_,barIdx)=>{
+            // How many cells are filled in this bar?
+            const barStart=barIdx*denominator;
+            const filledInThisBar=Math.min(denominator,Math.max(0,filledUnits-barStart));
             return(
               <div key={barIdx} style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{width:16,fontSize:10,fontWeight:1000,color:"#666",textAlign:"right",flexShrink:0}}>{barIdx+1}</div>
-                <div style={{flex:1,height:26,border:`2.5px solid ${accent}`,borderRadius:5,overflow:"hidden",background:"white",display:"grid",gridTemplateColumns:`repeat(${d},1fr)`}}>
-                  {Array.from({length:d}).map((_,ci)=>(
-                    <div key={ci} style={{borderRight:ci<d-1?"1.5px solid rgba(0,0,0,.15)":"none",background:ci<filled?accent:"white"}}/>
+                <div style={{flex:1,height:26,border:`2.5px solid ${accent}`,borderRadius:5,overflow:"hidden",background:"white",display:"grid",gridTemplateColumns:`repeat(${denominator},1fr)`}}>
+                  {Array.from({length:denominator}).map((_,ci)=>(
+                    <div key={ci} style={{borderRight:ci<denominator-1?"1.5px solid rgba(0,0,0,.15)":"none",background:ci<filledInThisBar?accent:"white"}}/>
                   ))}
                 </div>
               </div>
@@ -556,8 +588,11 @@ function PlacementPopup({data,onContinue}){
         {/* Fraction = percent sentence */}
         <div style={{fontSize:17,fontWeight:900,color:"#111",margin:"10px 0 2px",textAlign:"center",padding:"0 14px",lineHeight:1.3}}>{percentSentence}</div>
 
-        {/* Points */}
-        <div style={{fontSize:30,fontWeight:1000,color:accent,marginBottom:2,textShadow:`0 2px 0 rgba(0,0,0,.10)`}}>+{pts} points</div>
+        {/* Points earned */}
+        <div style={{fontSize:30,fontWeight:1000,color:accent,marginBottom:isJack?0:2}}>{`+${pts} points`}</div>
+        {isJack&&(
+          <div style={{fontSize:12,fontWeight:700,color:accent,opacity:.75,marginBottom:2}}>includes +50 jack bonus!</div>
+        )}
 
         {/* Continue */}
         <button onPointerDown={e=>e.stopPropagation()} onClick={onContinue} style={{margin:"8px 0 18px",border:`3px solid ${accent}`,borderRadius:999,padding:"9px 34px",fontSize:15,fontWeight:1000,color:"white",cursor:"pointer",background:accent,boxShadow:`0 5px 0 rgba(0,0,0,.22)`,textTransform:"uppercase",letterSpacing:.5}}>Continue</button>
@@ -665,31 +700,32 @@ function FracJack(){
     })();
     const newTerrs=territories.map(tt=>tt.id===t.id?updatedT:tt);
 
-    // Points = percent of last whole filled; +50 bonus if territory is jacked
-    const placePts=calcPlacementPoints(newFilledUnits,t.denominator);
     const isJack=newFilledUnits>=max;
-    const totalPts=isJack?placePts+50:placePts;
 
-    // Play sound first
+    // Points = percent of ONE whole filled across the ENTIRE territory.
+    // e.g. 8 units in a /5 territory = 8/5 = 160%.  Jack: wholes*100 + 50 bonus.
+    const pctOfOneWhole=Math.round((newFilledUnits/t.denominator)*100);
+    const totalPts=isJack?(t.wholes*100)+50:pctOfOneWhole;
+
     if(isJack) playTerritoryVictory(); else playHarp();
 
-    // Update state immediately so board reflects the move behind the popup
+    // Update board immediately so it shows behind the popup
     setTerritories(newTerrs);
     setFractions(newFracs);
     setSelectedFracIdx(null);
 
-    // Show PlacementPopup — use the fraction that was actually placed (frac.n/frac.d)
+    // Pass full territory fill data so popup shows the complete model + correct percent
     setPlacementPow({
-      n: frac.n, d: frac.d,
+      filledUnits: newFilledUnits,  // total units shaded across all bars
+      denominator: t.denominator,   // cells per bar (= cells per whole)
+      wholes: t.wholes,             // number of bars to draw
       pts: totalPts,
       color: currentPlayer,
       isJack
     });
 
-    // Store what to do when popup is dismissed
     placementPow_callback.current = () => {
       if(isJack){
-        // Finalise territory ownership
         const ownedT={...updatedT,owner:currentPlayer};
         const finalTerrs=newTerrs.map(tt=>tt.id===t.id?ownedT:tt);
         setTerritories(finalTerrs);
