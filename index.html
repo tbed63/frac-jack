@@ -795,6 +795,31 @@ function FracJack(){
 
   function computerTakeTurn(){
     if(gameMode!=="cpu"||currentPlayer!=="green"||gameLocked||victoryReached||!gameStarted)return;
+
+    // Trash probability per trashable fraction: 25% / 75% / 100% by level
+    const trashChance=activeLevel()===1?0.25:activeLevel()===2?0.75:1.0;
+
+    // Find all fractions in hand that have no legal move (valid trash candidates)
+    const trashable=fractions.map((f,idx)=>({f,idx})).filter(({f})=>f&&!territories.some(t=>isLegalMove(f,t)));
+
+    // For each trashable fraction, independently roll — trash it if roll passes.
+    // Stop if we hit the 3-trip limit. After trashing, re-evaluate on the next
+    // computer turn trigger (state update will re-fire the useEffect).
+    if(trashable.length>0&&trashTripsThisTurn<3){
+      const pick=trashable.find(()=>Math.random()<trashChance);
+      if(pick){
+        setSelectedFracIdx(pick.idx);
+        blockBoardInput(900);
+        setTimeout(()=>{
+          if(gameMode!=="cpu"||currentPlayer!=="green"||victoryRef.current||lockedRef.current)return;
+          setSelectedFracIdx(pick.idx);
+          handleTrashClick();
+        },650);
+        return;
+      }
+    }
+
+    // Otherwise find the best legal placement
     const possible=[];
     fractions.forEach((f,idx)=>{
       if(!f)return;
