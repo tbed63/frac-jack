@@ -802,18 +802,15 @@ function FracJack(){
     // Find all fractions in hand that have no legal move (valid trash candidates)
     const trashable=fractions.map((f,idx)=>({f,idx})).filter(({f})=>f&&!territories.some(t=>isLegalMove(f,t)));
 
-    // For each trashable fraction independently roll — trash the first one that passes
-    if(trashable.length>0&&trashTripsThisTurn<3){
-      const pick=trashable.find(()=>Math.random()<trashChance);
-      if(pick){
-        blockBoardInput(900);
-        setTimeout(()=>{
-          if(gameMode!=="cpu"||currentPlayer!=="green"||victoryRef.current||lockedRef.current)return;
-          // Call goodTrash directly with the known index — avoids stale selectedFracIdx state
-          computerGoodTrash(pick.idx);
-        },650);
-        return;
-      }
+    // Roll ONCE to decide whether to trash this turn at all, then pick a candidate
+    if(trashable.length>0&&trashTripsThisTurn<3&&Math.random()<trashChance){
+      const pick=trashable[0];
+      blockBoardInput(900);
+      setTimeout(()=>{
+        if(gameMode!=="cpu"||currentPlayer!=="green"||victoryRef.current||lockedRef.current)return;
+        computerGoodTrash(pick.idx);
+      },650);
+      return;
     }
 
     // Otherwise find the best legal placement
