@@ -32,40 +32,42 @@ function useGameSounds() {
   const [muted, setMuted] = useState(false);
 
   // ========================================================================
-  // FRAC JACK WEB AUDIO ENGINE — MOBILE SAFE / NO EXTERNAL SOUND FILES
+  // FRAC JACK WEB AUDIO ENGINE — MOBILE-FIRST / WEB AUDIO ONLY
   // ========================================================================
-  // This engine uses ONLY the Web Audio API. There are no .wav/.mp3 files.
-  // Why this structure matters:
-  // 1. Mobile browsers block audio until a real user gesture happens.
-  // 2. iOS/Safari may suspend the AudioContext when the tab sleeps.
-  // 3. Every tap/click should try to resume the context before playing.
-  // 4. All sounds route through one master gain so volume is easy to adjust.
+  // This version is intentionally built to solve the most common mobile audio
+  // failure: creating an AudioContext is not enough; iOS/Android browsers may
+  // keep it suspended until resume() finishes from a real user gesture.
   //
-  // Reuse tip:
-  // - Copy this hook into another React game.
-  // - Call unlockAudio() from your Start button.
-  // - Use the returned play_____ functions on game events.
+  // Key rules used here:
+  // 1. NO external sound files. Everything is Web Audio API oscillators/noise.
+  // 2. Every user gesture calls unlockAudio().
+  // 3. Every sound calls playWhenReady(), which resumes the AudioContext first.
+  // 4. If the context is still suspended, the sound is scheduled AFTER resume().
+  // 5. All sounds go through a master gain so mobile volume is strong.
+  // 6. The rising harp is preserved for correct fraction placement and good
+  //    Frac Trash throws.
   // ========================================================================
 
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
   const unlockedRef = useRef(false);
+  const mutedRef = useRef(false);
   const lastHoverRef = useRef(0);
   const lastTapRef = useRef(0);
-  const mutedRef = useRef(false);
+  const lastUnlockAttemptRef = useRef(0);
+
+  const MASTER_VOLUME = 1.0; // intentionally loud for mobile, still controlled by per-sound gains
 
   useEffect(()=>{ mutedRef.current = muted; }, [muted]);
-
-  const MASTER_VOLUME = 0.92; // loud enough for mobile, not painful
 
   function getAudioContext(){
     try{
       const AC = window.AudioContext || window.webkitAudioContext;
       if(!AC) return null;
       if(!audioCtxRef.current){
-        const ctx = new AC();
+        const ctx = new AC({ latencyHint: "interactive" });
         const master = ctx.createGain();
-        master.gain.value = MASTER_VOLUME;
+        master.gain.setValueAtTime(MASTER_VOLUME, ctx.currentTime);
         master.connect(ctx.destination);
         audioCtxRef.current = ctx;
         masterGainRef.current = master;
@@ -79,256 +81,274 @@ function useGameSounds() {
     return masterGainRef.current;
   }
 
-  function resumeAudio(){
+  function primeSilentBlip(){
     try{
       const ctx = getAudioContext();
-      if(ctx && ctx.state === "suspended"){
-        const p = ctx.resume();
-        if(p && typeof p.catch === "function") p.catch(()=>{});
-      }
-      return ctx;
-    }catch(e){ return null; }
-  }
-
-  // Must be called by user gestures. It creates/resumes the context and plays
-  // a nearly silent blip so iOS knows audio is allowed for later sounds.
-  function unlockAudio(){
-    try{
-      const ctx = resumeAudio();
       const master = getMaster();
       if(!ctx || !master) return;
-      if(!unlockedRef.current){
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.025);
-        unlockedRef.current = true;
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(440, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(t);
+      osc.stop(t + 0.02);
+    }catch(e){}
+  }
+
+  function unlockAudio(){
+    try{
+      const nowMs = (performance && performance.now) ? performance.now() : Date.now();
+      if(nowMs - lastUnlockAttemptRef.current < 25) return;
+      lastUnlockAttemptRef.current = nowMs;
+
+      const ctx = getAudioContext();
+      if(!ctx) return;
+
+      const finishUnlock = () => {
+        try{
+          primeSilentBlip();
+          unlockedRef.current = true;
+        }catch(e){}
+      };
+
+      if(ctx.state === "suspended"){
+        const p = ctx.resume();
+        if(p && typeof p.then === "function") p.then(finishUnlock).catch(()=>{});
+        else finishUnlock();
+      }else{
+        finishUnlock();
       }
     }catch(e){}
   }
 
-  // Global mobile unlock + generic tap/hover sounds.
-  // This makes mobile reliable even if a specific event handler forgets to call
-  // unlockAudio(). The generic tap sound is intentionally short and tasteful.
+  // This is the critical mobile-safe wrapper. It does NOT assume resume() is
+  // instant. If audio is suspended, the requested sound waits until resume()
+  // resolves, then plays immediately.
+  function playWhenReady(soundFn){
+    if(mutedRef.current) return;
+    try{
+      const ctx = getAudioContext();
+      const master = getMaster();
+      if(!ctx || !master) return;
+      const fire = () => {
+        try{
+          if(mutedRef.current) return;
+          soundFn(ctx, master, ctx.currentTime);
+        }catch(e){}
+      };
+      if(ctx.state === "suspended"){
+        const p = ctx.resume();
+        if(p && typeof p.then === "function") p.then(()=>fire()).catch(()=>{});
+        else fire();
+      }else{
+        fire();
+      }
+      unlockedRef.current = true;
+    }catch(e){}
+  }
+
   useEffect(()=>{
-    const unlockOnly = () => unlockAudio();
+    const gestureUnlock = () => unlockAudio();
     const tapHandler = (e) => {
       unlockAudio();
-      const now = performance.now();
-      if(now - lastTapRef.current < 70) return;
-      lastTapRef.current = now;
+      const nowMs = (performance && performance.now) ? performance.now() : Date.now();
+      if(nowMs - lastTapRef.current < 70) return;
+      lastTapRef.current = nowMs;
       const target = e.target;
-      const isUsefulTap = target && target.closest && (
+      const playable = target && target.closest && (
         target.closest("button") ||
         target.closest("select") ||
         target.closest("[role='button']") ||
         target.closest("div")
       );
-      if(isUsefulTap) playButtonTap();
+      if(playable) playButtonTap();
     };
     const hoverHandler = (e) => {
       const target = e.target;
       if(!target || !target.closest) return;
       if(!(target.closest("button") || target.closest("select"))) return;
-      const now = performance.now();
-      if(now - lastHoverRef.current < 95) return; // throttle: no machine-gun hover
-      lastHoverRef.current = now;
+      const nowMs = (performance && performance.now) ? performance.now() : Date.now();
+      if(nowMs - lastHoverRef.current < 95) return;
+      lastHoverRef.current = nowMs;
       playHover();
     };
 
+    // Use several gesture types because mobile browsers vary.
     window.addEventListener("pointerdown", tapHandler, {capture:true, passive:true});
     window.addEventListener("touchstart", tapHandler, {capture:true, passive:true});
-    window.addEventListener("click", unlockOnly, {capture:true, passive:true});
-    window.addEventListener("keydown", unlockOnly, {capture:true});
+    window.addEventListener("click", gestureUnlock, {capture:true, passive:true});
+    window.addEventListener("keydown", gestureUnlock, {capture:true});
     document.addEventListener("mouseover", hoverHandler, {capture:true, passive:true});
     document.addEventListener("mouseenter", hoverHandler, {capture:true, passive:true});
 
     return()=>{
-      window.removeEventListener("pointerdown", tapHandler, {capture:true});
-      window.removeEventListener("touchstart", tapHandler, {capture:true});
-      window.removeEventListener("click", unlockOnly, {capture:true});
-      window.removeEventListener("keydown", unlockOnly, {capture:true});
-      document.removeEventListener("mouseover", hoverHandler, {capture:true});
-      document.removeEventListener("mouseenter", hoverHandler, {capture:true});
+      window.removeEventListener("pointerdown", tapHandler, true);
+      window.removeEventListener("touchstart", tapHandler, true);
+      window.removeEventListener("click", gestureUnlock, true);
+      window.removeEventListener("keydown", gestureUnlock, true);
+      document.removeEventListener("mouseover", hoverHandler, true);
+      document.removeEventListener("mouseenter", hoverHandler, true);
     };
   },[]);
 
-  function now(){
-    const ctx = resumeAudio();
-    return ctx ? ctx.currentTime : 0;
+  function osc(ctx, master, t, {freq=440, endFreq=null, start=0, duration=0.1, type="sine", volume=0.12, attack=0.006}){
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const st = t + start;
+    o.type = type;
+    o.frequency.setValueAtTime(freq, st);
+    if(endFreq) o.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq), st + duration);
+    g.gain.setValueAtTime(0.0001, st);
+    g.gain.linearRampToValueAtTime(volume, st + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + duration);
+    o.connect(g);
+    g.connect(master);
+    o.start(st);
+    o.stop(st + duration + 0.03);
   }
 
-  function connectNode(node){
-    const master = getMaster();
-    if(master) node.connect(master);
-  }
-
-  function oscTone({freq=440, endFreq=null, start=0, duration=0.1, type="sine", volume=0.12, attack=0.006, decay=true}){
-    if(mutedRef.current) return;
-    try{
-      const ctx = resumeAudio();
-      if(!ctx) return;
-      const t = ctx.currentTime + start;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t);
-      if(endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq), t + duration);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(volume, t + attack);
-      if(decay) gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      osc.connect(gain);
-      connectNode(gain);
-      osc.start(t);
-      osc.stop(t + duration + 0.025);
-    }catch(e){}
-  }
-
-  function noiseBurst({start=0, duration=0.08, volume=0.08, filterFreq=900, type="lowpass"}={}){
-    if(mutedRef.current) return;
-    try{
-      const ctx = resumeAudio();
-      if(!ctx) return;
-      const t = ctx.currentTime + start;
-      const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
-      const src = ctx.createBufferSource();
-      const filter = ctx.createBiquadFilter();
-      const gain = ctx.createGain();
-      src.buffer = buffer;
-      filter.type = type;
-      filter.frequency.setValueAtTime(filterFreq, t);
-      gain.gain.setValueAtTime(volume, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      src.connect(filter);
-      filter.connect(gain);
-      connectNode(gain);
-      src.start(t);
-      src.stop(t + duration + 0.02);
-    }catch(e){}
+  function noise(ctx, master, t, {start=0, duration=0.08, volume=0.08, filterFreq=900, type="lowpass"}={}){
+    const st = t + start;
+    const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+    const src = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    src.buffer = buffer;
+    filter.type = type;
+    filter.frequency.setValueAtTime(filterFreq, st);
+    g.gain.setValueAtTime(volume, st);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + duration);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(master);
+    src.start(st);
+    src.stop(st + duration + 0.03);
   }
 
   function playButtonTap(){
-    // crisp arcade tap
-    oscTone({freq:620, endFreq:760, duration:0.055, type:"triangle", volume:0.075});
-    oscTone({freq:1240, duration:0.035, type:"sine", volume:0.035});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:620, endFreq:760, duration:0.055, type:"triangle", volume:0.09});
+      osc(ctx, master, t, {freq:1240, duration:0.035, type:"sine", volume:0.045});
+    });
   }
 
   function playHover(){
-    // very short hover tick, throttle-protected above
-    oscTone({freq:880, endFreq:980, duration:0.035, type:"sine", volume:0.028});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:880, endFreq:980, duration:0.035, type:"sine", volume:0.035});
+    });
   }
 
   function playSelect(){
-    // fraction/tile selection
-    oscTone({freq:420, endFreq:640, duration:0.085, type:"triangle", volume:0.105});
-    oscTone({freq:840, duration:0.055, type:"sine", volume:0.045, start:0.025});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:420, endFreq:640, duration:0.085, type:"triangle", volume:0.13});
+      osc(ctx, master, t, {freq:840, duration:0.055, type:"sine", volume:0.06, start:0.025});
+    });
   }
 
   function playTrash(){
-    // satisfying trash thunk, used before the harp on successful trash
-    noiseBurst({duration:0.09, volume:0.09, filterFreq:520});
-    oscTone({freq:160, endFreq:95, duration:0.14, type:"sawtooth", volume:0.13});
+    playWhenReady((ctx, master, t)=>{
+      noise(ctx, master, t, {duration:0.09, volume:0.11, filterFreq:520});
+      osc(ctx, master, t, {freq:160, endFreq:95, duration:0.14, type:"sawtooth", volume:0.16});
+    });
   }
 
   function playNegativeDong(){
-    // short negative bonk/dong for illegal or unavailable actions
-    oscTone({freq:220, endFreq:92, duration:0.34, type:"sine", volume:0.18});
-    oscTone({freq:82, endFreq:58, duration:0.20, type:"square", volume:0.045, start:0.02});
-    noiseBurst({start:0.015, duration:0.06, volume:0.035, filterFreq:380});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:220, endFreq:92, duration:0.34, type:"sine", volume:0.22});
+      osc(ctx, master, t, {freq:82, endFreq:58, duration:0.20, type:"square", volume:0.06, start:0.02});
+      noise(ctx, master, t, {start:0.015, duration:0.06, volume:0.045, filterFreq:380});
+    });
   }
 
   function playWrong(){
-    // sad mistake sound, louder than subtle beeps but still short
-    oscTone({freq:330, endFreq:260, duration:0.16, type:"triangle", volume:0.16});
-    oscTone({freq:247, endFreq:196, duration:0.22, type:"triangle", volume:0.16, start:0.13});
-    oscTone({freq:185, endFreq:130, duration:0.30, type:"sine", volume:0.15, start:0.30});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:330, endFreq:260, duration:0.16, type:"triangle", volume:0.19});
+      osc(ctx, master, t, {freq:247, endFreq:196, duration:0.22, type:"triangle", volume:0.18, start:0.13});
+      osc(ctx, master, t, {freq:185, endFreq:130, duration:0.30, type:"sine", volume:0.17, start:0.30});
+    });
   }
 
   function playTimeUp(){
-    playWrong();
-    noiseBurst({start:0.04, duration:0.12, volume:0.045, filterFreq:300});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:330, endFreq:260, duration:0.16, type:"triangle", volume:0.19});
+      osc(ctx, master, t, {freq:247, endFreq:196, duration:0.22, type:"triangle", volume:0.18, start:0.13});
+      osc(ctx, master, t, {freq:185, endFreq:130, duration:0.30, type:"sine", volume:0.17, start:0.30});
+      noise(ctx, master, t, {start:0.04, duration:0.12, volume:0.055, filterFreq:300});
+    });
   }
 
   function playTimerTick(){
-    // last-10-seconds tick
-    oscTone({freq:1200, duration:0.035, type:"square", volume:0.06});
-    oscTone({freq:600, duration:0.035, type:"triangle", volume:0.035});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:1200, duration:0.035, type:"square", volume:0.08});
+      osc(ctx, master, t, {freq:600, duration:0.035, type:"triangle", volume:0.045});
+    });
   }
 
-  // KEEP THIS SOUND: rising harp for a correctly placed fraction and good trash.
+  // IMPORTANT: This is the upward harp sound Tim wanted preserved.
+  // It is used for correct fraction placement and successful Frac Trash.
   function playHarp(){
-    if(mutedRef.current) return;
-    try{
-      const ctx = resumeAudio();
-      if(!ctx) return;
-      const master = getMaster();
+    playWhenReady((ctx, master, t)=>{
       const notes=[523,659,784,880,1047,1319];
       notes.forEach((freq,i)=>{
-        const t=ctx.currentTime+(i*0.065);
-        const osc=ctx.createOscillator();
-        const gain=ctx.createGain();
-        osc.type="sine";
-        osc.frequency.setValueAtTime(freq,t);
-        gain.gain.setValueAtTime(0.0001,t);
-        gain.gain.linearRampToValueAtTime(0.12,t+0.018);
-        gain.gain.exponentialRampToValueAtTime(0.0001,t+0.36);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(t);
-        osc.stop(t+0.40);
+        osc(ctx, master, t, {freq, duration:0.36, type:"sine", volume:0.14, start:i*0.065, attack:0.018});
       });
-    }catch(e){}
+    });
   }
 
   function playSquishyPlacement(){
-    // subtle squishy bounce layered under harp for successful placement
-    oscTone({freq:170, endFreq:245, duration:0.10, type:"sine", volume:0.08});
-    oscTone({freq:245, endFreq:190, duration:0.13, type:"triangle", volume:0.065, start:0.06});
-    noiseBurst({start:0.015, duration:0.045, volume:0.025, filterFreq:950});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:170, endFreq:245, duration:0.10, type:"sine", volume:0.10});
+      osc(ctx, master, t, {freq:245, endFreq:190, duration:0.13, type:"triangle", volume:0.08, start:0.06});
+      noise(ctx, master, t, {start:0.015, duration:0.045, volume:0.035, filterFreq:950});
+    });
   }
 
   function playPower(){
-    // jack trick / power move
-    oscTone({freq:392, endFreq:784, duration:0.12, type:"sawtooth", volume:0.10});
-    oscTone({freq:784, endFreq:1175, duration:0.16, type:"triangle", volume:0.095, start:0.10});
-    noiseBurst({start:0.02, duration:0.09, volume:0.035, filterFreq:1600, type:"highpass"});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:392, endFreq:784, duration:0.12, type:"sawtooth", volume:0.13});
+      osc(ctx, master, t, {freq:784, endFreq:1175, duration:0.16, type:"triangle", volume:0.12, start:0.10});
+      noise(ctx, master, t, {start:0.02, duration:0.09, volume:0.045, filterFreq:1600, type:"highpass"});
+    });
   }
 
   function playBrand(){
-    // start-game flourish
-    oscTone({freq:392, duration:0.10, type:"triangle", volume:0.10});
-    oscTone({freq:523, duration:0.10, type:"triangle", volume:0.10, start:0.09});
-    oscTone({freq:659, duration:0.13, type:"triangle", volume:0.10, start:0.18});
-    oscTone({freq:1047, duration:0.18, type:"sine", volume:0.08, start:0.30});
+    playWhenReady((ctx, master, t)=>{
+      osc(ctx, master, t, {freq:392, duration:0.10, type:"triangle", volume:0.12});
+      osc(ctx, master, t, {freq:523, duration:0.10, type:"triangle", volume:0.12, start:0.09});
+      osc(ctx, master, t, {freq:659, duration:0.13, type:"triangle", volume:0.12, start:0.18});
+      osc(ctx, master, t, {freq:1047, duration:0.18, type:"sine", volume:0.10, start:0.30});
+    });
   }
 
   function playTerritoryVictory(){
-    // short energetic territory-jacked tune
-    const notes=[523,659,784,1047,1319];
-    notes.forEach((f,i)=>oscTone({freq:f, duration:0.10+(i===4?0.12:0), type:i%2?"triangle":"square", volume:0.11, start:i*0.075}));
-    noiseBurst({start:0.10, duration:0.12, volume:0.045, filterFreq:2200, type:"highpass"});
+    playWhenReady((ctx, master, t)=>{
+      const notes=[523,659,784,1047,1319];
+      notes.forEach((freq,i)=>osc(ctx, master, t, {freq, duration:0.10+(i===4?0.12:0), type:i%2?"triangle":"square", volume:0.13, start:i*0.075}));
+      noise(ctx, master, t, {start:0.10, duration:0.12, volume:0.055, filterFreq:2200, type:"highpass"});
+    });
   }
 
   function playVictory(){
-    // winner tune, short and bright
-    const seq=[523,659,784,1047,784,1047,1319];
-    seq.forEach((f,i)=>oscTone({freq:f, duration:i===seq.length-1?0.28:0.105, type:"triangle", volume:0.12, start:i*0.085}));
-    noiseBurst({start:0.10, duration:0.16, volume:0.055, filterFreq:2400, type:"highpass"});
+    playWhenReady((ctx, master, t)=>{
+      const seq=[523,659,784,1047,784,1047,1319];
+      seq.forEach((freq,i)=>osc(ctx, master, t, {freq, duration:i===seq.length-1?0.28:0.105, type:"triangle", volume:0.14, start:i*0.085}));
+      noise(ctx, master, t, {start:0.10, duration:0.16, volume:0.065, filterFreq:2400, type:"highpass"});
+    });
   }
 
   function playComputerWin(){
-    // melancholy losing tune when the computer wins
-    const seq=[392,330,294,247,196];
-    seq.forEach((f,i)=>oscTone({freq:f, duration:i===seq.length-1?0.34:0.18, type:"sine", volume:0.13, start:i*0.16}));
-    oscTone({freq:98, endFreq:82, duration:0.50, type:"triangle", volume:0.055, start:0.35});
+    playWhenReady((ctx, master, t)=>{
+      const seq=[392,330,294,247,196];
+      seq.forEach((freq,i)=>osc(ctx, master, t, {freq, duration:i===seq.length-1?0.34:0.18, type:"sine", volume:0.15, start:i*0.16}));
+      osc(ctx, master, t, {freq:98, endFreq:82, duration:0.50, type:"triangle", volume:0.07, start:0.35});
+    });
   }
 
   function playBadTrash(){
@@ -339,14 +359,12 @@ function useGameSounds() {
   return {
     muted,
     unlockAudio,
-    toggleMute:()=>{ unlockAudio(); setMuted(m=>!m); },
+    toggleMute:()=>{unlockAudio(); setMuted(m=>!m);},
     playMove:playSelect,
-    playHover,
+    playTrash,
     playButtonTap,
     playSelect,
-    playTrash,
     playBuzz:playNegativeDong,
-    playIllegal:playNegativeDong,
     playWrong,
     playTimeUp,
     playTimerTick,
@@ -357,7 +375,7 @@ function useGameSounds() {
     playBadTrash,
     playPower,
     playVictory,
-    playComputerWin,
+    playComputerWin
   };
 }
 
