@@ -30,30 +30,33 @@ const { useState, useEffect, useRef, useCallback } = React;
 
 function useGameSounds() {
   const [muted, setMuted] = useState(false);
-  const mutedRef = useRef(false);
-  useEffect(()=>{ mutedRef.current = muted; }, [muted]);
 
-  // ──────────────────────────────────────────────────────────────────────
-  // POLISHED ARCADE AUDIO ENGINE — WEB AUDIO API ONLY
-  // No external sound files are used. Everything is generated with layered
-  // oscillators, gain envelopes, pitch bends, and short noise bursts.
+  // ========================================================================
+  // FRAC JACK WEB AUDIO ENGINE — MOBILE SAFE / NO EXTERNAL SOUND FILES
+  // ========================================================================
+  // This engine uses ONLY the Web Audio API. There are no .wav/.mp3 files.
+  // Why this structure matters:
+  // 1. Mobile browsers block audio until a real user gesture happens.
+  // 2. iOS/Safari may suspend the AudioContext when the tab sleeps.
+  // 3. Every tap/click should try to resume the context before playing.
+  // 4. All sounds route through one master gain so volume is easy to adjust.
   //
-  // Mobile browsers usually block audio until the first user gesture. This
-  // engine unlocks itself on pointerdown, touchstart, click, keydown, and the
-  // Start button. It also resumes the AudioContext any time the player taps.
-  //
-  // Reuse notes:
-  // 1. Call unlockAudio() from your Start button.
-  // 2. Call playButtonClick(), playSelect(), playHarp(), playBuzz(), etc.
-  // 3. Keep hover sounds throttle-protected so they do not machine-gun.
-  // ──────────────────────────────────────────────────────────────────────
+  // Reuse tip:
+  // - Copy this hook into another React game.
+  // - Call unlockAudio() from your Start button.
+  // - Use the returned play_____ functions on game events.
+  // ========================================================================
+
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
   const unlockedRef = useRef(false);
   const lastHoverRef = useRef(0);
-  const lastTickRef = useRef(0);
+  const lastTapRef = useRef(0);
+  const mutedRef = useRef(false);
 
-  const MASTER_VOLUME = 0.92; // intentionally loud, but not painful
+  useEffect(()=>{ mutedRef.current = muted; }, [muted]);
+
+  const MASTER_VOLUME = 0.92; // loud enough for mobile, not painful
 
   function getAudioContext(){
     try{
@@ -61,129 +64,137 @@ function useGameSounds() {
       if(!AC) return null;
       if(!audioCtxRef.current){
         const ctx = new AC();
+        const master = ctx.createGain();
+        master.gain.value = MASTER_VOLUME;
+        master.connect(ctx.destination);
         audioCtxRef.current = ctx;
-        masterGainRef.current = ctx.createGain();
-        masterGainRef.current.gain.value = MASTER_VOLUME;
-        masterGainRef.current.connect(ctx.destination);
+        masterGainRef.current = master;
       }
       return audioCtxRef.current;
     }catch(e){ return null; }
   }
 
-  function master(){
-    const ctx = getAudioContext();
-    return ctx && masterGainRef.current ? masterGainRef.current : null;
+  function getMaster(){
+    getAudioContext();
+    return masterGainRef.current;
   }
 
-  function resumeAudioContext(){
+  function resumeAudio(){
     try{
       const ctx = getAudioContext();
-      if(ctx && ctx.state === "suspended") ctx.resume();
+      if(ctx && ctx.state === "suspended"){
+        const p = ctx.resume();
+        if(p && typeof p.catch === "function") p.catch(()=>{});
+      }
       return ctx;
     }catch(e){ return null; }
   }
 
+  // Must be called by user gestures. It creates/resumes the context and plays
+  // a nearly silent blip so iOS knows audio is allowed for later sounds.
   function unlockAudio(){
     try{
-      const ctx = resumeAudioContext();
-      const out = master();
-      if(!ctx || !out) return;
+      const ctx = resumeAudio();
+      const master = getMaster();
+      if(!ctx || !master) return;
       if(!unlockedRef.current){
-        // Silent micro-sound to unlock iOS/Android audio pathways.
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
         gain.gain.setValueAtTime(0.0001, ctx.currentTime);
         osc.connect(gain);
-        gain.connect(out);
+        gain.connect(master);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.02);
+        osc.stop(ctx.currentTime + 0.025);
+        unlockedRef.current = true;
       }
-      unlockedRef.current = true;
     }catch(e){}
   }
 
+  // Global mobile unlock + generic tap/hover sounds.
+  // This makes mobile reliable even if a specific event handler forgets to call
+  // unlockAudio(). The generic tap sound is intentionally short and tasteful.
   useEffect(()=>{
-    const handler = () => unlockAudio();
-    window.addEventListener("pointerdown", handler, {capture:true, passive:true});
-    window.addEventListener("touchstart", handler, {capture:true, passive:true});
-    window.addEventListener("click", handler, {capture:true, passive:true});
-    window.addEventListener("keydown", handler, {capture:true});
-
-    // Global button hover/click layer. This adds sound to normal UI buttons
-    // without changing game logic or manually editing every button.
+    const unlockOnly = () => unlockAudio();
+    const tapHandler = (e) => {
+      unlockAudio();
+      const now = performance.now();
+      if(now - lastTapRef.current < 70) return;
+      lastTapRef.current = now;
+      const target = e.target;
+      const isUsefulTap = target && target.closest && (
+        target.closest("button") ||
+        target.closest("select") ||
+        target.closest("[role='button']") ||
+        target.closest("div")
+      );
+      if(isUsefulTap) playButtonTap();
+    };
     const hoverHandler = (e) => {
-      const btn = e.target && e.target.closest ? e.target.closest("button") : null;
-      if(btn) playButtonHover();
+      const target = e.target;
+      if(!target || !target.closest) return;
+      if(!(target.closest("button") || target.closest("select"))) return;
+      const now = performance.now();
+      if(now - lastHoverRef.current < 95) return; // throttle: no machine-gun hover
+      lastHoverRef.current = now;
+      playHover();
     };
-    const clickHandler = (e) => {
-      const btn = e.target && e.target.closest ? e.target.closest("button") : null;
-      if(btn) playButtonClick();
-    };
-    document.addEventListener("mouseover", hoverHandler, true);
-    document.addEventListener("pointerdown", clickHandler, true);
+
+    window.addEventListener("pointerdown", tapHandler, {capture:true, passive:true});
+    window.addEventListener("touchstart", tapHandler, {capture:true, passive:true});
+    window.addEventListener("click", unlockOnly, {capture:true, passive:true});
+    window.addEventListener("keydown", unlockOnly, {capture:true});
+    document.addEventListener("mouseover", hoverHandler, {capture:true, passive:true});
+    document.addEventListener("mouseenter", hoverHandler, {capture:true, passive:true});
 
     return()=>{
-      window.removeEventListener("pointerdown", handler, {capture:true});
-      window.removeEventListener("touchstart", handler, {capture:true});
-      window.removeEventListener("click", handler, {capture:true});
-      window.removeEventListener("keydown", handler, {capture:true});
-      document.removeEventListener("mouseover", hoverHandler, true);
-      document.removeEventListener("pointerdown", clickHandler, true);
+      window.removeEventListener("pointerdown", tapHandler, {capture:true});
+      window.removeEventListener("touchstart", tapHandler, {capture:true});
+      window.removeEventListener("click", unlockOnly, {capture:true});
+      window.removeEventListener("keydown", unlockOnly, {capture:true});
+      document.removeEventListener("mouseover", hoverHandler, {capture:true});
+      document.removeEventListener("mouseenter", hoverHandler, {capture:true});
     };
   },[]);
 
-  function nowMs(){ return Date.now(); }
+  function now(){
+    const ctx = resumeAudio();
+    return ctx ? ctx.currentTime : 0;
+  }
 
-  function beep(freq=440,duration=0.08,type="sine",volume=0.09,delay=0){
+  function connectNode(node){
+    const master = getMaster();
+    if(master) node.connect(master);
+  }
+
+  function oscTone({freq=440, endFreq=null, start=0, duration=0.1, type="sine", volume=0.12, attack=0.006, decay=true}){
     if(mutedRef.current) return;
     try{
-      const ctx = resumeAudioContext();
-      const out = master();
-      if(!ctx || !out) return;
-      const t = ctx.currentTime + delay;
+      const ctx = resumeAudio();
+      if(!ctx) return;
+      const t = ctx.currentTime + start;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, t);
+      if(endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq), t + duration);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(volume, t + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      gain.gain.linearRampToValueAtTime(volume, t + attack);
+      if(decay) gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
       osc.connect(gain);
-      gain.connect(out);
-      osc.start(t);
-      osc.stop(t + duration + 0.02);
-    }catch(e){}
-  }
-
-  function pitchBeep(startFreq,endFreq,duration=0.16,type="sine",volume=0.12,delay=0){
-    if(mutedRef.current) return;
-    try{
-      const ctx = resumeAudioContext();
-      const out = master();
-      if(!ctx || !out) return;
-      const t = ctx.currentTime + delay;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(startFreq, t);
-      osc.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq), t + duration);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(volume, t + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-      osc.connect(gain);
-      gain.connect(out);
+      connectNode(gain);
       osc.start(t);
       osc.stop(t + duration + 0.025);
     }catch(e){}
   }
 
-  function noiseBurst(duration=0.06,volume=0.09,delay=0,filterFreq=1200){
+  function noiseBurst({start=0, duration=0.08, volume=0.08, filterFreq=900, type="lowpass"}={}){
     if(mutedRef.current) return;
     try{
-      const ctx = resumeAudioContext();
-      const out = master();
-      if(!ctx || !out) return;
-      const t = ctx.currentTime + delay;
+      const ctx = resumeAudio();
+      if(!ctx) return;
+      const t = ctx.currentTime + start;
       const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -191,184 +202,162 @@ function useGameSounds() {
       const src = ctx.createBufferSource();
       const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      filter.type = "bandpass";
-      filter.frequency.setValueAtTime(filterFreq, t);
-      filter.Q.value = 0.8;
-      gain.gain.setValueAtTime(volume, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
       src.buffer = buffer;
+      filter.type = type;
+      filter.frequency.setValueAtTime(filterFreq, t);
+      gain.gain.setValueAtTime(volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
       src.connect(filter);
       filter.connect(gain);
-      gain.connect(out);
+      connectNode(gain);
       src.start(t);
-      src.stop(t + duration);
+      src.stop(t + duration + 0.02);
     }catch(e){}
   }
 
-  function playButtonHover(){
-    if(mutedRef.current) return;
-    const n = nowMs();
-    if(n - lastHoverRef.current < 75) return;
-    lastHoverRef.current = n;
-    beep(760,0.035,"triangle",0.035);
+  function playButtonTap(){
+    // crisp arcade tap
+    oscTone({freq:620, endFreq:760, duration:0.055, type:"triangle", volume:0.075});
+    oscTone({freq:1240, duration:0.035, type:"sine", volume:0.035});
   }
 
-  function playButtonClick(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    pitchBeep(520,700,0.055,"triangle",0.075);
-    beep(980,0.035,"sine",0.04,0.025);
-  }
-
-  function playCellHover(){
-    if(mutedRef.current) return;
-    const n = nowMs();
-    if(n - lastHoverRef.current < 70) return;
-    lastHoverRef.current = n;
-    beep(420,0.03,"triangle",0.026);
-  }
-
-  function playBoardTap(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    beep(330,0.045,"triangle",0.055);
-    beep(495,0.05,"sine",0.04,0.025);
+  function playHover(){
+    // very short hover tick, throttle-protected above
+    oscTone({freq:880, endFreq:980, duration:0.035, type:"sine", volume:0.028});
   }
 
   function playSelect(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    pitchBeep(440,880,0.09,"triangle",0.09);
-    beep(1320,0.045,"sine",0.035,0.055);
+    // fraction/tile selection
+    oscTone({freq:420, endFreq:640, duration:0.085, type:"triangle", volume:0.105});
+    oscTone({freq:840, duration:0.055, type:"sine", volume:0.045, start:0.025});
   }
 
-  // The upward harp sound is intentionally preserved because it is part of
-  // the Frac Jack feel. It is used for successful fraction placement and good
-  // Frac Trash. Only the volume was made strong enough for mobile.
-  function playHarp(){
-    if(mutedRef.current)return;
-    try{
-      const ctx=resumeAudioContext();
-      const out=master();
-      if(!ctx||!out)return;
-      const notes=[523,659,784,880,1047,1319];
-      notes.forEach((freq,i)=>{
-        const osc=ctx.createOscillator();
-        const gain=ctx.createGain();
-        osc.type="sine";
-        osc.frequency.setValueAtTime(freq,ctx.currentTime);
-        const t=ctx.currentTime+(i*0.065);
-        gain.gain.setValueAtTime(0,t);
-        gain.gain.linearRampToValueAtTime(0.12,t+0.018);
-        gain.gain.exponentialRampToValueAtTime(0.001,t+0.36);
-        osc.connect(gain);
-        gain.connect(out);
-        osc.start(t);
-        osc.stop(t+0.38);
-      });
-    }catch(e){
-      beep(523,0.08,"triangle",0.08);setTimeout(()=>beep(659,0.08,"triangle",0.08),70);setTimeout(()=>beep(784,0.10,"triangle",0.08),140);
-    }
+  function playTrash(){
+    // satisfying trash thunk, used before the harp on successful trash
+    noiseBurst({duration:0.09, volume:0.09, filterFreq:520});
+    oscTone({freq:160, endFreq:95, duration:0.14, type:"sawtooth", volume:0.13});
   }
 
-  function playSquishyPlace(){
-    // A short, bouncy squish/pop layer. It can be used in addition to the harp.
-    if(mutedRef.current) return;
-    noiseBurst(0.045,0.08,0,900);
-    pitchBeep(180,115,0.08,"sine",0.09,0);
-    pitchBeep(360,620,0.13,"triangle",0.08,0.045);
-    beep(930,0.06,"sine",0.05,0.12);
-  }
-
-  function playBonk(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    pitchBeep(210,95,0.18,"sine",0.16);
-    noiseBurst(0.055,0.07,0.01,260);
+  function playNegativeDong(){
+    // short negative bonk/dong for illegal or unavailable actions
+    oscTone({freq:220, endFreq:92, duration:0.34, type:"sine", volume:0.18});
+    oscTone({freq:82, endFreq:58, duration:0.20, type:"square", volume:0.045, start:0.02});
+    noiseBurst({start:0.015, duration:0.06, volume:0.035, filterFreq:380});
   }
 
   function playWrong(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    pitchBeep(300,165,0.22,"sine",0.15);
-    pitchBeep(190,110,0.28,"triangle",0.10,0.08);
-    noiseBurst(0.08,0.045,0.02,360);
-  }
-
-  function playTimerTick(){
-    if(mutedRef.current) return;
-    const n = nowMs();
-    if(n - lastTickRef.current < 350) return;
-    lastTickRef.current = n;
-    beep(1050,0.045,"square",0.055);
-    beep(700,0.035,"triangle",0.025,0.04);
+    // sad mistake sound, louder than subtle beeps but still short
+    oscTone({freq:330, endFreq:260, duration:0.16, type:"triangle", volume:0.16});
+    oscTone({freq:247, endFreq:196, duration:0.22, type:"triangle", volume:0.16, start:0.13});
+    oscTone({freq:185, endFreq:130, duration:0.30, type:"sine", volume:0.15, start:0.30});
   }
 
   function playTimeUp(){
-    if(mutedRef.current) return;
-    unlockAudio();
     playWrong();
-    pitchBeep(160,70,0.45,"sine",0.13,0.16);
+    noiseBurst({start:0.04, duration:0.12, volume:0.045, filterFreq:300});
+  }
+
+  function playTimerTick(){
+    // last-10-seconds tick
+    oscTone({freq:1200, duration:0.035, type:"square", volume:0.06});
+    oscTone({freq:600, duration:0.035, type:"triangle", volume:0.035});
+  }
+
+  // KEEP THIS SOUND: rising harp for a correctly placed fraction and good trash.
+  function playHarp(){
+    if(mutedRef.current) return;
+    try{
+      const ctx = resumeAudio();
+      if(!ctx) return;
+      const master = getMaster();
+      const notes=[523,659,784,880,1047,1319];
+      notes.forEach((freq,i)=>{
+        const t=ctx.currentTime+(i*0.065);
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.type="sine";
+        osc.frequency.setValueAtTime(freq,t);
+        gain.gain.setValueAtTime(0.0001,t);
+        gain.gain.linearRampToValueAtTime(0.12,t+0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001,t+0.36);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(t);
+        osc.stop(t+0.40);
+      });
+    }catch(e){}
+  }
+
+  function playSquishyPlacement(){
+    // subtle squishy bounce layered under harp for successful placement
+    oscTone({freq:170, endFreq:245, duration:0.10, type:"sine", volume:0.08});
+    oscTone({freq:245, endFreq:190, duration:0.13, type:"triangle", volume:0.065, start:0.06});
+    noiseBurst({start:0.015, duration:0.045, volume:0.025, filterFreq:950});
   }
 
   function playPower(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    noiseBurst(0.07,0.07,0,1800);
-    pitchBeep(280,760,0.14,"sawtooth",0.10,0.01);
-    beep(980,0.09,"triangle",0.08,0.12);
-    beep(1320,0.12,"sine",0.055,0.20);
+    // jack trick / power move
+    oscTone({freq:392, endFreq:784, duration:0.12, type:"sawtooth", volume:0.10});
+    oscTone({freq:784, endFreq:1175, duration:0.16, type:"triangle", volume:0.095, start:0.10});
+    noiseBurst({start:0.02, duration:0.09, volume:0.035, filterFreq:1600, type:"highpass"});
+  }
+
+  function playBrand(){
+    // start-game flourish
+    oscTone({freq:392, duration:0.10, type:"triangle", volume:0.10});
+    oscTone({freq:523, duration:0.10, type:"triangle", volume:0.10, start:0.09});
+    oscTone({freq:659, duration:0.13, type:"triangle", volume:0.10, start:0.18});
+    oscTone({freq:1047, duration:0.18, type:"sine", volume:0.08, start:0.30});
+  }
+
+  function playTerritoryVictory(){
+    // short energetic territory-jacked tune
+    const notes=[523,659,784,1047,1319];
+    notes.forEach((f,i)=>oscTone({freq:f, duration:0.10+(i===4?0.12:0), type:i%2?"triangle":"square", volume:0.11, start:i*0.075}));
+    noiseBurst({start:0.10, duration:0.12, volume:0.045, filterFreq:2200, type:"highpass"});
   }
 
   function playVictory(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    const notes=[523,659,784,1047,784,1047,1319];
-    notes.forEach((f,i)=>beep(f,0.12,i%2?"triangle":"sine",0.105,i*0.085));
-    noiseBurst(0.18,0.07,0.28,2200);
+    // winner tune, short and bright
+    const seq=[523,659,784,1047,784,1047,1319];
+    seq.forEach((f,i)=>oscTone({freq:f, duration:i===seq.length-1?0.28:0.105, type:"triangle", volume:0.12, start:i*0.085}));
+    noiseBurst({start:0.10, duration:0.16, volume:0.055, filterFreq:2400, type:"highpass"});
   }
 
   function playComputerWin(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    const notes=[392,330,294,247,220];
-    notes.forEach((f,i)=>beep(f,0.20,"sine",0.105,i*0.13));
-    pitchBeep(180,90,0.48,"triangle",0.08,0.42);
+    // melancholy losing tune when the computer wins
+    const seq=[392,330,294,247,196];
+    seq.forEach((f,i)=>oscTone({freq:f, duration:i===seq.length-1?0.34:0.18, type:"sine", volume:0.13, start:i*0.16}));
+    oscTone({freq:98, endFreq:82, duration:0.50, type:"triangle", volume:0.055, start:0.35});
   }
 
-  function playStart(){
-    if(mutedRef.current) return;
-    unlockAudio();
-    beep(392,0.08,"triangle",0.08);
-    beep(523,0.09,"triangle",0.08,0.08);
-    beep(659,0.11,"triangle",0.085,0.17);
-    beep(1047,0.13,"sine",0.07,0.27);
+  function playBadTrash(){
+    playTrash();
+    setTimeout(()=>playNegativeDong(),70);
   }
 
   return {
     muted,
     unlockAudio,
-    toggleMute:()=>{unlockAudio();setMuted(m=>!m);},
-    playButtonHover,
-    playButtonClick,
-    playCellHover,
-    playBoardTap,
-    playSelect,
+    toggleMute:()=>{ unlockAudio(); setMuted(m=>!m); },
     playMove:playSelect,
-    playTrash:()=>{noiseBurst(0.08,0.08,0,500);pitchBeep(240,140,0.12,"sawtooth",0.07,0.015);},
-    playBuzz:playBonk,
-    playBonk,
+    playHover,
+    playButtonTap,
+    playSelect,
+    playTrash,
+    playBuzz:playNegativeDong,
+    playIllegal:playNegativeDong,
     playWrong,
-    playHarp,
-    playSquishyPlace,
-    playTimerTick,
     playTimeUp,
+    playTimerTick,
+    playHarp,
+    playSquishyPlacement,
+    playBrand,
+    playTerritoryVictory,
+    playBadTrash,
     playPower,
     playVictory,
     playComputerWin,
-    playBrand:playStart,
-    playTerritoryVictory:()=>{playSquishyPlace();playVictory();},
-    playBadTrash:playWrong,
   };
 }
 
@@ -765,7 +754,7 @@ function FracJack(){
   const [timerEnabled,setTimerEnabled]=useState(true);
   const [placementPow,setPlacementPow]=useState(null); // drives PlacementPopup
   const [level,setLevel]=useState(1);const [gameStarted,setGameStarted]=useState(false);const [gameLocked,setGameLocked]=useState(true);const [victoryReached,setVictoryReached]=useState(false);const [currentPlayer,setCurrentPlayer]=useState("orange");const [players,setPlayers]=useState({orange:{name:"Jackal",points:0},green:{name:"Jackrabbit",points:0}});const [territories,setTerritories]=useState([]);const [fractions,setFractions]=useState([]);const [selectedFracIdx,setSelectedFracIdx]=useState(null);const [discardedKeys,setDiscardedKeys]=useState({});const [trickUsed,setTrickUsed]=useState({orange:{hint:false,refrac:false,jackback:false},green:{hint:false,refrac:false,jackback:false}});const [pendingTrick,setPendingTrick]=useState(null);const [moveChunkIndex,setMoveChunkIndex]=useState(0);const [timer,setTimer]=useState(30);const [timerLimit,setTimerLimit]=useState(30);const [timerDisplay,setTimerDisplay]=useState("00:30");const [hints,setHints]=useState({fractionIdx:null,territoryId:null});const [trashBurp,setTrashBurp]=useState(false);const [trashTripsThisTurn,setTrashTripsThisTurn]=useState(0);const [pow,setPow]=useState({show:false,big:"",small:"",color:"orange",imageSrc:null,imageAlt:"",onContinue:null});const [lessonOverlay,setLessonOverlay]=useState(null);const [trashPenaltyOverlay,setTrashPenaltyOverlay]=useState(false);const [trashPenaltyMsg,setTrashPenaltyMsg]=useState("");const [penaltyAmount,setPenaltyAmount]=useState(0);const [rulesOverlay,setRulesOverlay]=useState(false);const [victoryData,setVictoryData]=useState(null);const [lessonReady,setLessonReady]=useState(false);
-  const {muted,unlockAudio,toggleMute,playMove,playTrash,playBuzz,playHarp,playBrand,playTerritoryVictory,playBadTrash,playButtonHover,playButtonClick,playCellHover,playBoardTap,playSelect,playSquishyPlace,playTimerTick,playTimeUp,playPower,playVictory,playComputerWin}=useGameSounds();
+  const {muted,unlockAudio,toggleMute,playMove,playTrash,playBuzz,playHarp,playBrand,playTerritoryVictory,playBadTrash,playPower,playVictory,playComputerWin,playTimeUp,playTimerTick,playSquishyPlacement}=useGameSounds();
   const timerRef=useRef(null);const timerVal=useRef(30);const lockedRef=useRef(true);const victoryRef=useRef(false);const startedRef=useRef(false);const moveChunkRef=useRef(0);const currentLevelRef=useRef(normalizeLevel(level));const inputGuardUntilRef=useRef(0);
   const timerActiveRef=useRef(false); // true only when PvP+timerEnabled at game start
   const placementPow_callback=useRef(null); // callback to run when PlacementPopup is dismissed
@@ -836,7 +825,7 @@ function FracJack(){
     setPlayers(prev=>({...prev,green:{...prev.green,name:gameMode==="cpu"?"Computer":"Jackrabbit"}}));playBrand();startedRef.current=true;lockedRef.current=false;setGameStarted(true);setGameLocked(false);setTrashTripsThisTurn(0);startTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{setCurrentPlayer(prev=>{const next=prev==="orange"?"green":"orange";const newFracs=rollFractions(activeLevel(),discardedKeys,territories);setFractions(newFracs);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);return next;});});});}
   function checkGameOver(terrs,playersState){const claimed=terrs.filter(t=>t.owner).length;if(claimed>=5){victoryRef.current=true;clearInterval(timerRef.current);lockedRef.current=true;setVictoryReached(true);setGameLocked(true);const tie=playersState.orange.points===playersState.green.points;const winner=playersState.green.points>playersState.orange.points?"green":"orange";if(gameMode==="cpu"&&winner==="green"&&!tie)playComputerWin();else playVictory();setVictoryData({winner:tie?"tie":winner,tie,points:playersState});showPow(tie?"TIE!":"CHAMP!",tie?"Same Jack Points!":playersState[tie?"orange":winner].points+" Jack Points",tie?"blue":winner,null);return true;}return false;}
   function doSwitchTurn(nextPlayer,newFracs,newDisc,territoriesOverride){const nextTerritories=territoriesOverride||territories;const nextDiscarded=newDisc??discardedKeys;setHints({fractionIdx:null,territoryId:null});setCurrentPlayer(nextPlayer);setPendingTrick(null);setTrashTripsThisTurn(0);const baseHand=newFracs??rollFractions(activeLevel(),nextDiscarded,nextTerritories);const fracsToUse=cleanFractionHand(activeLevel(),baseHand,nextDiscarded,nextTerritories);setFractions(fracsToUse);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);startTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{const nxt=nextPlayer==="orange"?"green":"orange";const nf=rollFractions(activeLevel(),nextDiscarded,nextTerritories);setFractions(nf);setSelectedFracIdx(null);lockedRef.current=false;setGameLocked(false);setCurrentPlayer(nxt);startTimer(()=>{});});});}
-  function handleTerritoryClick(id){unlockAudio();if(gameLocked||!gameStarted||victoryReached||boardInputBlocked())return;playBoardTap();setHints({fractionIdx:null,territoryId:null});const t=territories[id];if(!t||t.owner){playBuzz();return;}if(pendingTrick==="jackback"){doJackback(t);return;}const frac=fractions[selectedFracIdx];if(!frac){playBuzz();return;}if(!fractionFits(frac,t)){lockedRef.current=true;setGameLocked(true);playBuzz();showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".\nLose Your Turn","red",()=>{doSwitchTurn(currentPlayer==="orange"?"green":"orange");});return;}const units=fractionUnits(frac,t);const max=t.denominator*t.wholes;const remaining=max-t.filledUnits;if(units>remaining){doHijack(t,frac,remaining);return;}doPlace(t,frac,units);}
+  function handleTerritoryClick(id){unlockAudio();if(gameLocked||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const t=territories[id];if(!t||t.owner)return;if(pendingTrick==="jackback"){doJackback(t);return;}const frac=fractions[selectedFracIdx];if(!frac){playBuzz();return;}if(!fractionFits(frac,t)){lockedRef.current=true;setGameLocked(true);playBuzz();showPow("NO FIT!",denomWord(frac.d)+" can't fit "+denomWord(t.denominator)+".\nLose Your Turn","red",()=>{doSwitchTurn(currentPlayer==="orange"?"green":"orange");});return;}const units=fractionUnits(frac,t);const max=t.denominator*t.wholes;const remaining=max-t.filledUnits;if(units>remaining){doHijack(t,frac,remaining);return;}doPlace(t,frac,units);}
 
   // ── doPlace: places a fraction, shows PlacementPopup, then switches turn ──
   function doPlace(t,frac,units,fracIdxOverride=null){
@@ -866,7 +855,7 @@ function FracJack(){
     const pctOfOneWhole=Math.round((newFilledUnits/t.denominator)*100);
     const totalPts=isJack?(t.wholes*100)+50:pctOfOneWhole;
 
-    if(isJack) playTerritoryVictory(); else { playSquishyPlace(); playHarp(); }
+    if(isJack) playTerritoryVictory(); else { playSquishyPlacement(); playHarp(); }
 
     // Update board immediately so it shows behind the popup
     setTerritories(newTerrs);
@@ -938,11 +927,11 @@ function FracJack(){
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  function doJackback(t){if(t.owner)return;playPower();setPendingTrick(null);lockedRef.current=true;setGameLocked(true);showPow("JACKBACK","One whole cleared",currentPlayer,()=>{const amount=t.denominator;let left=Math.min(amount,t.filledUnits);const newChunks=t.chunks.slice();let filled=t.filledUnits;while(left>0&&newChunks.length>0){const last=newChunks[newChunks.length-1];if(last.units<=left){left-=last.units;filled-=last.units;newChunks.pop();}else{newChunks[newChunks.length-1]={...last,units:last.units-left};filled-=left;left=0;}}if(filled<0)filled=0;const newTerrs=territories.map(tt=>tt.id===t.id?{...tt,chunks:newChunks,filledUnits:filled}:tt);setTerritories(newTerrs);doSwitchTurn(currentPlayer==="orange"?"green":"orange",undefined,undefined,newTerrs);});}
+  function doJackback(t){if(t.owner)return;setPendingTrick(null);lockedRef.current=true;setGameLocked(true);showPow("JACKBACK","One whole cleared",currentPlayer,()=>{const amount=t.denominator;let left=Math.min(amount,t.filledUnits);const newChunks=t.chunks.slice();let filled=t.filledUnits;while(left>0&&newChunks.length>0){const last=newChunks[newChunks.length-1];if(last.units<=left){left-=last.units;filled-=last.units;newChunks.pop();}else{newChunks[newChunks.length-1]={...last,units:last.units-left};filled-=left;left=0;}}if(filled<0)filled=0;const newTerrs=territories.map(tt=>tt.id===t.id?{...tt,chunks:newChunks,filledUnits:filled}:tt);setTerritories(newTerrs);doSwitchTurn(currentPlayer==="orange"?"green":"orange",undefined,undefined,newTerrs);});}
   function handleTrashLimitReached(){lockedRef.current=true;setGameLocked(true);stopTimer();playBuzz();showPow("TRASH LIMIT!","Max 3 trash trips per turn. Play a fraction now.","red",()=>{lockedRef.current=false;setGameLocked(false);resumeTimer(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>doSwitchTurn(currentPlayer==="orange"?"green":"orange"));});});}
-  function handleTrashClick(){unlockAudio();if(gameLocked||pendingTrick||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const frac=fractions[selectedFracIdx];if(!frac)return;if(trashTripsThisTurn>=3){handleTrashLimitReached();return;}setTrashTripsThisTurn(prev=>prev+1);const hasMove=territories.some(t=>isLegalMove(frac,t));if(hasMove)badTrash();else goodTrash();}
+  function handleTrashClick(){unlockAudio();if(gameLocked||pendingTrick||!gameStarted||victoryReached||boardInputBlocked())return;setHints({fractionIdx:null,territoryId:null});const frac=fractions[selectedFracIdx];if(!frac){playBuzz();return;}if(trashTripsThisTurn>=3){handleTrashLimitReached();return;}setTrashTripsThisTurn(prev=>prev+1);const hasMove=territories.some(t=>isLegalMove(frac,t));if(hasMove)badTrash();else goodTrash();}
   function goodTrash(){const trashed=fractions[selectedFracIdx];if(!trashed)return;lockedRef.current=true;setGameLocked(true);stopTimer();const scoringPlayer=currentPlayer;const newDisc={...discardedKeys,[fractionKey(trashed)]:true};setDiscardedKeys(newDisc);playTrash();playHarp();burpTrash();const usedKeys={};fractions.forEach((f,i)=>{if(i!==selectedFracIdx)usedKeys[fractionKey(f)]=true;});const newFrac=createSmartLegalFraction(activeLevel(),usedKeys,newDisc,territories);const newFracs=cleanFractionHand(activeLevel(),(()=>{const arr=fractions.slice();arr[selectedFracIdx]=newFrac;return arr;})(),newDisc,territories);setFractions(newFracs);setSelectedFracIdx(null);const trashPts=activeLevel()===1?20:activeLevel()===2?50:100;setPlayers(prev=>({...prev,[scoringPlayer]:{...prev[scoringPlayer],points:prev[scoringPlayer].points+trashPts}}));const trashLines=["That fraction was GARBAGE anyway!","Bye bye, bad fraction! 👋","Into the void it goes!","The trash can is DELIGHTED.","That fraction had no friends here.","Disposed of with extreme prejudice!","Even the trash can rolled its eyes.","One fraction's trash is no one's treasure."];const trashMsg=trashLines[Math.floor(Math.random()*trashLines.length)];showPow("FRAC TRASH! +"+trashPts,trashMsg,scoringPlayer,()=>{resetTimerToThirty(()=>{lockedRef.current=true;setGameLocked(true);showPow("TIME'S UP!","Turn lost!","red",()=>{doSwitchTurn(scoringPlayer==="orange"?"green":"orange");});});unlockAfterInputGuard(350);},{imageSrc:IMG_TRASH,imageAlt:"Frac Trash",variant:"trashSuccess"});}
-  function badTrash(){lockedRef.current=true;setGameLocked(true);stopTimer();playTrash();playBadTrash();setTimeout(()=>playBuzz(),180);burpTrash();const penalty=activeLevel()===1?20:activeLevel()===2?50:200;setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points-penalty}}));const badLines=["That fraction was perfectly good! The trash can is FURIOUS.","You just tried to trash a totally legal fraction. Shameful.","The trash can spit it right back out.","Nice try. That fraction had moves and you knew it.","The trash can called your bluff.","That fraction files a formal complaint.","Even the trash can has standards. That fraction stays.","The trash can has seen things, but THIS? Bad trash move."];setTrashPenaltyMsg(badLines[Math.floor(Math.random()*badLines.length)]);setTrashPenaltyOverlay(true);setPenaltyAmount(penalty);}
+  function badTrash(){lockedRef.current=true;setGameLocked(true);stopTimer();playBadTrash();setTimeout(()=>playBuzz(),180);burpTrash();const penalty=activeLevel()===1?20:activeLevel()===2?50:200;setPlayers(prev=>({...prev,[currentPlayer]:{...prev[currentPlayer],points:prev[currentPlayer].points-penalty}}));const badLines=["That fraction was perfectly good! The trash can is FURIOUS.","You just tried to trash a totally legal fraction. Shameful.","The trash can spit it right back out.","Nice try. That fraction had moves and you knew it.","The trash can called your bluff.","That fraction files a formal complaint.","Even the trash can has standards. That fraction stays.","The trash can has seen things, but THIS? Bad trash move."];setTrashPenaltyMsg(badLines[Math.floor(Math.random()*badLines.length)]);setTrashPenaltyOverlay(true);setPenaltyAmount(penalty);}
   function applyTrick(player,trick){unlockAudio();if(gameLocked||victoryReached||!gameStarted)return;if(player!==currentPlayer)return;if(trickUsed[player][trick])return;playPower();setTrickUsed(prev=>({...prev,[player]:{...prev[player],[trick]:true}}));if(trick==="hint"){setHints({fractionIdx:null,territoryId:null});let found=null;outer:for(let i=0;i<fractions.length;i++){for(let j=0;j<territories.length;j++){if(isLegalMove(fractions[i],territories[j])){found={fractionIdx:i,territoryId:territories[j].id};break outer;}}}if(!found){showPow("NO LEGAL MOVES","Try a Jack Trick or wait.","red",null);return;}setSelectedFracIdx(found.fractionIdx);setHints(found);showPow("HINT!","Try this move.",currentPlayer,null);return;}if(trick==="refrac"){setHints({fractionIdx:null,territoryId:null});setFractions(rollFractions(activeLevel(),discardedKeys,territories));setSelectedFracIdx(null);showPow("RE-FRAC!","New choices",currentPlayer,null);return;}if(trick==="jackback"){setHints({fractionIdx:null,territoryId:null});setPendingTrick("jackback");showPow("JACKBACK","Pick territory",currentPlayer,null);}}
 
   useEffect(()=>{
@@ -1010,7 +999,7 @@ function FracJack(){
     const scoringPlayer=currentPlayer;
     const newDisc={...discardedKeys,[fractionKey(trashed)]:true};
     setDiscardedKeys(newDisc);
-    playHarp();burpTrash();
+    playTrash();playHarp();burpTrash();
     setTrashTripsThisTurn(prev=>prev+1);
     const usedKeys={};
     fractions.forEach((f,i)=>{if(i!==idx)usedKeys[fractionKey(f)]=true;});
@@ -1038,7 +1027,7 @@ function FracJack(){
   }
 
   function renderFractionRow(){
-    return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:isMobile?7:14,flexWrap:"wrap",overflow:"visible",position:"relative",zIndex:10}}>{fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return(<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playSelect();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{width:isMobile?58:70,height:isMobile?36:38,background:"white",color:"#111",border:"3px solid white",borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)":"0 0 0 2px rgba(255,255,255,.55),0 5px 10px rgba(0,0,0,.30)",transform:isSelected?"translateY(-3px) scale(1.04)":"none",animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>{txt.includes(" ")?<span style={{fontSize:isMobile?14:15}}>{txt}</span>:txt}</div>);})}
+    return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:isMobile?7:14,flexWrap:"wrap",overflow:"visible",position:"relative",zIndex:10}}>{fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return(<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playMove();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{width:isMobile?58:70,height:isMobile?36:38,background:"white",color:"#111",border:"3px solid white",borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 8px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 8px 14px rgba(0,0,0,.38)":"0 0 0 2px rgba(255,255,255,.55),0 5px 10px rgba(0,0,0,.30)",transform:isSelected?"translateY(-3px) scale(1.04)":"none",animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>{txt.includes(" ")?<span style={{fontSize:isMobile?14:15}}>{txt}</span>:txt}</div>);})}
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,overflow:"visible"}}><button onClick={handleTrashClick} title={`Trash trips this turn: ${trashTripsThisTurn}/3`} style={{width:isMobile?50:62,height:isMobile?42:50,border:"3px solid rgba(255,255,255,.98)",borderRadius:14,background:trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",display:"flex",alignItems:"center",justifyContent:"center",cursor:trashTripsThisTurn>=3?"not-allowed":"pointer",boxShadow:"0 5px 10px rgba(0,0,0,.45)",padding:3,overflow:"hidden",transition:".15s",opacity:trashTripsThisTurn>=3?.65:1}}><img src={IMG_TRASH} alt="Trash" style={{width:42,height:36,objectFit:"contain",display:"block",animation:trashBurp?"trashShake .22s 4":"none"}}/></button><div style={{fontSize:isMobile?13:14,fontWeight:1000,color:"white",textShadow:"0 2px 4px rgba(0,0,0,.7)",lineHeight:1.2,whiteSpace:"nowrap"}}>Trash {trashTripsThisTurn}/3</div></div>
     </div>);
   }
@@ -1074,7 +1063,7 @@ function FracJack(){
               </div>
               <div style={{border:"4px solid white",borderRadius:18,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:1000,fontSize:36,boxShadow:"0 6px 18px rgba(0,0,0,.45)",width:170,height:60,letterSpacing:2}}>{timerDisplay}</div>
               <div style={{display:"flex",alignItems:"center",gap:10,overflow:"visible",position:"relative",zIndex:10}}>
-                {fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return(<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playSelect();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{width:86,height:48,background:"white",color:"#111",border:"3px solid white",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 6px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 6px 14px rgba(0,0,0,.38)":"0 0 0 2px rgba(255,255,255,.55),0 4px 10px rgba(0,0,0,.30)",transform:isSelected?"translateY(-4px) scale(1.07)":"none",animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>{txt.includes(" ")?<span style={{fontSize:18}}>{txt}</span>:txt}</div>);})}
+                {fractions.map((f,i)=>{const txt=f.display||(f.n+"/"+f.d);const isSelected=i===selectedFracIdx;const isHinted=hints.fractionIdx===i;return(<div key={i} onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playMove();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}} style={{width:86,height:48,background:"white",color:"#111",border:"3px solid white",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:1000,lineHeight:.95,cursor:"pointer",boxShadow:isHinted?"0 0 0 7px #fff24c,0 0 22px #fff24c,0 6px 14px rgba(0,0,0,.38)":isSelected?"0 0 0 5px #ffd83d,0 6px 14px rgba(0,0,0,.38)":"0 0 0 2px rgba(255,255,255,.55),0 4px 10px rgba(0,0,0,.30)",transform:isSelected?"translateY(-4px) scale(1.07)":"none",animation:isHinted?"hintPulse 1s infinite alternate":"none",transition:".15s"}}>{txt.includes(" ")?<span style={{fontSize:18}}>{txt}</span>:txt}</div>);})}
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,overflow:"visible"}}>
                   <button onClick={handleTrashClick} title={`Trash trips: ${trashTripsThisTurn}/3`} style={{width:72,height:64,border:"3px solid rgba(255,255,255,.95)",borderRadius:14,background:trashTripsThisTurn>=3?"#8a8f98":"#d0d4da",display:"flex",alignItems:"center",justifyContent:"center",cursor:trashTripsThisTurn>=3?"not-allowed":"pointer",boxShadow:"0 5px 12px rgba(0,0,0,.5)",padding:4,overflow:"hidden",opacity:trashTripsThisTurn>=3?.65:1,transition:".15s"}}>
                     <img src={IMG_TRASH} alt="Trash" style={{width:58,height:52,objectFit:"contain",display:"block",animation:trashBurp?"trashShake .22s 4":"none"}}/>
@@ -1133,7 +1122,7 @@ function FracJack(){
             const isHinted=hints.fractionIdx===i;
             return(
               <div key={i}
-                onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playSelect();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}}
+                onClick={()=>{if(gameLocked||pendingTrick||boardInputBlocked())return;playMove();setHints({fractionIdx:null,territoryId:null});setSelectedFracIdx(i);}}
                 style={{width:56,height:32,background:"white",color:"#111",border:"3px solid white",borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:1000,lineHeight:.95,cursor:"pointer",
                   boxShadow:isHinted?"0 0 0 6px #fff24c,0 0 18px #fff24c,0 6px 10px rgba(0,0,0,.35)":isSelected?"0 0 0 4px #ffd83d,0 6px 10px rgba(0,0,0,.35)":"0 0 0 2px rgba(255,255,255,.55),0 4px 9px rgba(0,0,0,.30)",
                   transform:isSelected?"translateY(-2px) scale(1.03)":"none",
