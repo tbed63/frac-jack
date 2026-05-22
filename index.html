@@ -28,7 +28,9 @@
 
   <!-- =====================================================================
        ZoodleAudio — Shared Audio Engine
-       All 6 mobile fixes baked in. One singleton, never rebuilt.
+       iOS Safari fix: AudioContext created AND silent ping fired
+       synchronously inside the first user gesture — no await between
+       the tap and the .start() call. Any async gap breaks iOS unlock.
        ===================================================================== -->
   <script>
   window.ZoodleAudio = (() => {
@@ -36,35 +38,43 @@
     let unlocked = false;
     let heartbeat = null;
 
+    // CRITICAL: ctx is created lazily, but ONLY called from inside gesture handlers.
+    // Never call getCtx() at module load time or outside a user gesture.
     function getCtx() {
       if (!ctx) {
-        ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+        const AC = window.AudioContext || window.webkitAudioContext;
+        ctx = new AC({ latencyHint: 'interactive' });
       }
       return ctx;
     }
 
-    // iOS requires audio to actually PLAY (not just resume) to unlock
-    function silentPing() {
+    // iOS RULE: .start() must be called in the SAME synchronous callstack
+    // as the user gesture. No await, no setTimeout, no Promise.then between
+    // the tap event and this function. Violating this = permanent silence.
+    function _unlockSync() {
       try {
-        const c = getCtx();
+        const c = getCtx(); // create context right here, inside the gesture
+        // Fire silent buffer — this is what iOS actually requires to unlock,
+        // not just calling resume(). The buffer must START synchronously.
         const buf = c.createBuffer(1, 1, 22050);
         const src = c.createBufferSource();
         src.buffer = buf;
         src.connect(c.destination);
-        src.start(0);
+        src.start(0); // <-- must happen synchronously in gesture callstack
+        unlocked = true;
+        // Resume async is fine AFTER the synchronous start() has been called
+        if (c.state === 'suspended') c.resume().catch(() => {});
+        startHeartbeat();
       } catch(e) {}
     }
 
-    async function resume() {
-      try {
-        const c = getCtx();
-        if (c.state === 'suspended') await c.resume();
-      } catch(e) {}
-    }
-
-    async function _handleGesture() {
-      await resume();
-      if (!unlocked) { silentPing(); unlocked = true; }
+    function _handleGesture() {
+      if (unlocked) {
+        // Already unlocked — just make sure context isn't suspended (iOS inactivity)
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+        return;
+      }
+      _unlockSync();
     }
 
     function startHeartbeat() {
@@ -226,17 +236,19 @@
     // ── Public API ─────────────────────────────────────────────────────────
     return {
       init() {
-        // Permanent gesture listeners — never removed
+        // Attach permanent gesture listeners. Do NOT touch AudioContext here —
+        // creating it outside a gesture permanently blacklists it on iOS Safari.
         ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evt => {
           document.addEventListener(evt, _handleGesture, { passive: true, capture: true });
         });
-        startHeartbeat();
+        // Do NOT call startHeartbeat() here — ctx doesn't exist yet.
+        // Heartbeat is started inside _unlockSync() after the first gesture.
       },
 
-      async unlock() {
-        await resume();
-        silentPing();
-        unlocked = true;
+      // Call this directly on your Start button tap — synchronously.
+      // MUST run in the same callstack as the user gesture for iOS to allow audio.
+      unlock() {
+        _unlockSync();
       },
 
       get isUnlocked() { return unlocked; },
@@ -422,7 +434,7 @@ function IntroScreen({timerLimit,onTimerChange,timerEnabled,onTimerToggle,level,
       </div>
 
       {/* Start button */}
-      <button onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"11px 28px":"10px 38px",fontSize:isMobile?21:22,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
+      <button onPointerDown={()=>ZoodleAudio.unlock()} onClick={onStart} style={{border:"5px solid white",borderRadius:999,padding:isMobile?"11px 28px":"10px 38px",fontSize:isMobile?21:22,fontWeight:1000,color:"#111",cursor:"pointer",background:"linear-gradient(180deg,#fff36c,#ff9d18)",boxShadow:"0 8px 0 rgba(0,0,0,.45)",textTransform:"uppercase"}}>Start Game</button>
 
       {/* Zoodlebug branding */}
       <div style={{marginTop:isMobile?8:10}}>
